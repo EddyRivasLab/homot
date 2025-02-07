@@ -4,7 +4,7 @@ import argparse
 import csv
 import glob
 import sqlite3
-
+import dbm
 def parse_domtblouts(datadir):
   sequences= {}
   for dfile in glob.glob(datadir+"/*.domtblout"): #iterate through domtblouts, grouping 
@@ -124,26 +124,31 @@ sequences = parse_domtblouts(args.domtbldir)
 sequences = resolve_overlaps(sequences, args.clanfile)
 
 #Now, write the annotations to a database
-conn=sqlite3.connect(args.outfileName)
-c= conn.cursor()
-c.execute('''CREATE TABLE annotations (sequence text, domain text)''')
-for key in sequences.keys():
-  annotation = ""
-  for domain in sequences[key]:
-    if annotation !="":
-      annotation+= ","
-    annotation += domain[0]
-    annotation +=","
-    annotation += str(domain[1])
-    annotation += ","
-    annotation += str(domain[2])
-    annotation += ","
-    annotation += str(domain[3])
-    annotation += ","
-    annotation += str(domain[4])
-    annotation += ","
-    annotation += str(domain[5])
-  row = (key, annotation)
-  c.execute("INSERT INTO annotations VALUES (?, ?)", row)
+#conn=sqlite3.connect(args.outfileName)
+#c= conn.cursor()
+#c.execute('''CREATE TABLE annotations (sequence text, domain text)''')
+print("starting write to database")
+
+with dbm.open(args.outfileName, 'n') as db:
+  for key in sequences.keys():
+    annotation = ""
+    for domain in sequences[key]:
+      if annotation !="":
+        annotation+= ","
+      annotation += domain[0]
+      annotation +=","
+      annotation += str(domain[1])
+      annotation += ","
+      annotation += str(domain[2])
+      annotation += ","
+      annotation += str(domain[3])
+      annotation += ","
+      annotation += str(domain[4])
+      annotation += ","
+      annotation += str(domain[5])
+    db[key] = annotation
+  #row = (key, annotation)
+  #c.execute("INSERT INTO annotations VALUES (?, ?)", row)
   
-conn.commit()
+#conn.commit()
+#conn.close()
