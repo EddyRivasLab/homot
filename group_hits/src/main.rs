@@ -86,21 +86,25 @@ fn print_domtable_domains(dtable: PathBuf, clan_map: &HashMap<u16, String>, db: 
     }
 }
 
-fn create_domain_id_map(db: &fjall::PartitionHandle) -> HashMap)<u16, String>{
+fn create_domain_id_map(db: &fjall::PartitionHandle) -> HashMap<u16, String>{
     let mut map:HashMap<u16, String> = HashMap::new();
 
     for key in db.keys(){ // This would be dangerous if we didn't know that the domainidtoname partition didn't 
     // have a limited number of entries
-        let res1 = match db.get(key){
-            Err(why) => panic!("Error looking up domain {} in annotations DB, reason was {}", &key, why),
+        let keybody = match key{
+            Err(why) => panic!("Error reading key: {}", why),
+            Ok(k) => k.to_string(),
+        };
+
+        let res1 = match db.get(keybody){
+            Err(why) => panic!("Error looking up domain {} in annotations DB, reason was {}", &keybody, why),
             Ok(d) => d
         };
         let dname = match res1{
             Some(d) => d,
-            None => panic!("Couldn't find domain that we know exists in annotaitons DB");
-
-        }
-        map.insert(key.parse(), dname);
+            None => {panic!("Couldn't find domain that we know exists in annotaitons DB");}
+        };
+        map.insert(keybody.parse(), dname);
     }
     map
 }
