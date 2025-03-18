@@ -37,6 +37,7 @@ dependencies:
   rust_lib_hviewer:
     path: rust_builder
   flutter_rust_bridge: 2.8.0
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -56,7 +57,12 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
+  fonts:
+    - family: FiraMono
+      fonts:
+        - asset: fonts/FiraMono-Regular.ttf
+        - asset: fonts/FiraMono-Bold.ttf
+        - asset: fonts/FiraMono-Medium.ttf
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
@@ -92,3 +98,4 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+  

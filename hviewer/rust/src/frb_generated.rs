@@ -189,10 +189,35 @@ impl SseDecode for crate::api::results_overview::Domain {
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_start = <i32>::sse_decode(deserializer);
         let mut var_end = <i32>::sse_decode(deserializer);
+        let mut var_evalue = <f64>::sse_decode(deserializer);
         return crate::api::results_overview::Domain {
             name: var_name,
             start: var_start,
             end: var_end,
+            evalue: var_evalue,
+        };
+    }
+}
+
+impl SseDecode for f64 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_f64::<NativeEndian>().unwrap()
+    }
+}
+
+impl SseDecode for crate::api::results_overview::Hit {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_sequence = <String>::sse_decode(deserializer);
+        let mut var_domains = <Vec<crate::api::results_overview::Domain>>::sse_decode(deserializer);
+        let mut var_queries = <Vec<crate::api::results_overview::Domain>>::sse_decode(deserializer);
+        return crate::api::results_overview::Hit {
+            name: var_name,
+            sequence: var_sequence,
+            domains: var_domains,
+            queries: var_queries,
         };
     }
 }
@@ -259,26 +284,12 @@ impl SseDecode for crate::api::results_overview::ResultsOverview {
     }
 }
 
-impl SseDecode for crate::api::results_overview::Sequence {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_name = <String>::sse_decode(deserializer);
-        let mut var_sequence = <String>::sse_decode(deserializer);
-        let mut var_domains = <Vec<crate::api::results_overview::Domain>>::sse_decode(deserializer);
-        return crate::api::results_overview::Sequence {
-            name: var_name,
-            sequence: var_sequence,
-            domains: var_domains,
-        };
-    }
-}
-
 impl SseDecode for crate::api::results_overview::SigCategory {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_numHits = <i32>::sse_decode(deserializer);
         let mut var_signature = <String>::sse_decode(deserializer);
-        let mut var_example = <crate::api::results_overview::Sequence>::sse_decode(deserializer);
+        let mut var_example = <crate::api::results_overview::Hit>::sse_decode(deserializer);
         return crate::api::results_overview::SigCategory {
             num_hits: var_numHits,
             signature: var_signature,
@@ -344,6 +355,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::results_overview::Domain {
             self.name.into_into_dart().into_dart(),
             self.start.into_into_dart().into_dart(),
             self.end.into_into_dart().into_dart(),
+            self.evalue.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -356,6 +368,29 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::results_overview::Domain>
     for crate::api::results_overview::Domain
 {
     fn into_into_dart(self) -> crate::api::results_overview::Domain {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::results_overview::Hit {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.name.into_into_dart().into_dart(),
+            self.sequence.into_into_dart().into_dart(),
+            self.domains.into_into_dart().into_dart(),
+            self.queries.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::results_overview::Hit
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::results_overview::Hit>
+    for crate::api::results_overview::Hit
+{
+    fn into_into_dart(self) -> crate::api::results_overview::Hit {
         self
     }
 }
@@ -378,28 +413,6 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::results_overview::ResultsOver
     for crate::api::results_overview::ResultsOverview
 {
     fn into_into_dart(self) -> crate::api::results_overview::ResultsOverview {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::results_overview::Sequence {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.name.into_into_dart().into_dart(),
-            self.sequence.into_into_dart().into_dart(),
-            self.domains.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::results_overview::Sequence
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::results_overview::Sequence>
-    for crate::api::results_overview::Sequence
-{
-    fn into_into_dart(self) -> crate::api::results_overview::Sequence {
         self
     }
 }
@@ -439,6 +452,24 @@ impl SseEncode for crate::api::results_overview::Domain {
         <String>::sse_encode(self.name, serializer);
         <i32>::sse_encode(self.start, serializer);
         <i32>::sse_encode(self.end, serializer);
+        <f64>::sse_encode(self.evalue, serializer);
+    }
+}
+
+impl SseEncode for f64 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_f64::<NativeEndian>(self).unwrap();
+    }
+}
+
+impl SseEncode for crate::api::results_overview::Hit {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.name, serializer);
+        <String>::sse_encode(self.sequence, serializer);
+        <Vec<crate::api::results_overview::Domain>>::sse_encode(self.domains, serializer);
+        <Vec<crate::api::results_overview::Domain>>::sse_encode(self.queries, serializer);
     }
 }
 
@@ -488,21 +519,12 @@ impl SseEncode for crate::api::results_overview::ResultsOverview {
     }
 }
 
-impl SseEncode for crate::api::results_overview::Sequence {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.name, serializer);
-        <String>::sse_encode(self.sequence, serializer);
-        <Vec<crate::api::results_overview::Domain>>::sse_encode(self.domains, serializer);
-    }
-}
-
 impl SseEncode for crate::api::results_overview::SigCategory {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.num_hits, serializer);
         <String>::sse_encode(self.signature, serializer);
-        <crate::api::results_overview::Sequence>::sse_encode(self.example, serializer);
+        <crate::api::results_overview::Hit>::sse_encode(self.example, serializer);
     }
 }
 

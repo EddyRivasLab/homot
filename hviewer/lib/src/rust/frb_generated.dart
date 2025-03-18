@@ -204,12 +204,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Domain dco_decode_domain(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return Domain(
       name: dco_decode_String(arr[0]),
       start: dco_decode_i_32(arr[1]),
       end: dco_decode_i_32(arr[2]),
+      evalue: dco_decode_f_64(arr[3]),
+    );
+  }
+
+  @protected
+  double dco_decode_f_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as double;
+  }
+
+  @protected
+  Hit dco_decode_hit(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return Hit(
+      name: dco_decode_String(arr[0]),
+      sequence: dco_decode_String(arr[1]),
+      domains: dco_decode_list_domain(arr[2]),
+      queries: dco_decode_list_domain(arr[3]),
     );
   }
 
@@ -251,19 +272,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  Sequence dco_decode_sequence(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
-    return Sequence(
-      name: dco_decode_String(arr[0]),
-      sequence: dco_decode_String(arr[1]),
-      domains: dco_decode_list_domain(arr[2]),
-    );
-  }
-
-  @protected
   SigCategory dco_decode_sig_category(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -272,7 +280,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return SigCategory(
       numHits: dco_decode_i_32(arr[0]),
       signature: dco_decode_String(arr[1]),
-      example: dco_decode_sequence(arr[2]),
+      example: dco_decode_hit(arr[2]),
     );
   }
 
@@ -301,7 +309,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_name = sse_decode_String(deserializer);
     var var_start = sse_decode_i_32(deserializer);
     var var_end = sse_decode_i_32(deserializer);
-    return Domain(name: var_name, start: var_start, end: var_end);
+    var var_evalue = sse_decode_f_64(deserializer);
+    return Domain(
+      name: var_name,
+      start: var_start,
+      end: var_end,
+      evalue: var_evalue,
+    );
+  }
+
+  @protected
+  double sse_decode_f_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getFloat64();
+  }
+
+  @protected
+  Hit sse_decode_hit(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_name = sse_decode_String(deserializer);
+    var var_sequence = sse_decode_String(deserializer);
+    var var_domains = sse_decode_list_domain(deserializer);
+    var var_queries = sse_decode_list_domain(deserializer);
+    return Hit(
+      name: var_name,
+      sequence: var_sequence,
+      domains: var_domains,
+      queries: var_queries,
+    );
   }
 
   @protected
@@ -355,24 +390,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  Sequence sse_decode_sequence(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_name = sse_decode_String(deserializer);
-    var var_sequence = sse_decode_String(deserializer);
-    var var_domains = sse_decode_list_domain(deserializer);
-    return Sequence(
-      name: var_name,
-      sequence: var_sequence,
-      domains: var_domains,
-    );
-  }
-
-  @protected
   SigCategory sse_decode_sig_category(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_numHits = sse_decode_i_32(deserializer);
     var var_signature = sse_decode_String(deserializer);
-    var var_example = sse_decode_sequence(deserializer);
+    var var_example = sse_decode_hit(deserializer);
     return SigCategory(
       numHits: var_numHits,
       signature: var_signature,
@@ -409,6 +431,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.name, serializer);
     sse_encode_i_32(self.start, serializer);
     sse_encode_i_32(self.end, serializer);
+    sse_encode_f_64(self.evalue, serializer);
+  }
+
+  @protected
+  void sse_encode_f_64(double self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putFloat64(self);
+  }
+
+  @protected
+  void sse_encode_hit(Hit self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.sequence, serializer);
+    sse_encode_list_domain(self.domains, serializer);
+    sse_encode_list_domain(self.queries, serializer);
   }
 
   @protected
@@ -460,19 +498,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_sequence(Sequence self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.name, serializer);
-    sse_encode_String(self.sequence, serializer);
-    sse_encode_list_domain(self.domains, serializer);
-  }
-
-  @protected
   void sse_encode_sig_category(SigCategory self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.numHits, serializer);
     sse_encode_String(self.signature, serializer);
-    sse_encode_sequence(self.example, serializer);
+    sse_encode_hit(self.example, serializer);
   }
 
   @protected

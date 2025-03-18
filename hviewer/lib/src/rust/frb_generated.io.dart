@@ -26,6 +26,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Domain dco_decode_domain(dynamic raw);
 
   @protected
+  double dco_decode_f_64(dynamic raw);
+
+  @protected
+  Hit dco_decode_hit(dynamic raw);
+
+  @protected
   int dco_decode_i_32(dynamic raw);
 
   @protected
@@ -39,9 +45,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ResultsOverview dco_decode_results_overview(dynamic raw);
-
-  @protected
-  Sequence dco_decode_sequence(dynamic raw);
 
   @protected
   SigCategory dco_decode_sig_category(dynamic raw);
@@ -59,6 +62,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Domain sse_decode_domain(SseDeserializer deserializer);
 
   @protected
+  double sse_decode_f_64(SseDeserializer deserializer);
+
+  @protected
+  Hit sse_decode_hit(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
@@ -72,9 +81,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ResultsOverview sse_decode_results_overview(SseDeserializer deserializer);
-
-  @protected
-  Sequence sse_decode_sequence(SseDeserializer deserializer);
 
   @protected
   SigCategory sse_decode_sig_category(SseDeserializer deserializer);
@@ -93,6 +99,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_domain(Domain self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_f_64(double self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_hit(Hit self, SseSerializer serializer);
 
   @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
@@ -117,9 +129,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     ResultsOverview self,
     SseSerializer serializer,
   );
-
-  @protected
-  void sse_encode_sequence(Sequence self, SseSerializer serializer);
 
   @protected
   void sse_encode_sig_category(SigCategory self, SseSerializer serializer);
