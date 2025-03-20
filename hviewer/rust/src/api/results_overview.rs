@@ -29,9 +29,12 @@ pub fn demo()->ResultsOverview{
     let ex1 = Hit{
         name: "Example 1".to_string(),
         sequence: "ACGTACGTACGTACGTACGTACGT".to_string(),
-        domains: vec![Domain{name: "Domain1".to_string(), start: 1, end: 5}, 
-                     Domain{name: "Domain2".to_string(), start: 6, end: 10},
-                     Domain{name: "Domain3".to_string(), start: 11, end: 15}],
+        domains: vec![Domain{name: "Domain1".to_string(), start: 1, end: 5, evalue: 0.1}, 
+                     Domain{name: "Domain2".to_string(), start: 6, end: 10, evalue: 0.01},
+                     Domain{name: "Domain3".to_string(), start: 11, end: 15, evalue: 0.001}],
+        queries: vec![Domain{name: "query1".to_string(), start: 1, end: 5, evalue: 0.1}, 
+                     Domain{name: "query2".to_string(), start: 6, end: 10, evalue: 0.01},
+                     Domain{name: "query3".to_string(), start: 11, end: 15, evalue: 0.001}], 
     };
     let cat1 = SigCategory{
         num_hits: 5,

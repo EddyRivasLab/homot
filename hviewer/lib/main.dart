@@ -3,11 +3,19 @@ import 'package:flutter/rendering.dart';
 import 'package:hviewer/src/rust/api/simple.dart';
 import 'package:hviewer/src/rust/api/results_overview.dart';
 import 'package:hviewer/src/rust/frb_generated.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+
 
 Future<void> main() async {
   await RustLib.init();
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => OverviewData()),
+      ],
+      child: MyApp(),
+      ),
+  );
 }
 
 ThemeData _hTheme(brightness) {
@@ -18,42 +26,79 @@ ThemeData _hTheme(brightness) {
     textTheme: TextTheme(bodyMedium: TextStyle(fontSize:16)),
   );
 }
+
+//  Top-level application
 class MyApp extends StatelessWidget {
     const MyApp({super.key});
-  final SigCategory testCategory = const SigCategory(
-                              numHits: 12,
-                              signature: "domain1-averylongdomainname",
-                              example: Hit(name: "seq1",
-                              domains: const [
-                                const Domain(name: "domain1", start: 1, end: 10, evalue: 12.0),
-                                const Domain(name: "averylongdomainname", start: 11, end: 20, evalue: 12.0),
-                              ],
-                              queries: const[
-                                const Domain(name: "query1", start: 5, end: 15, evalue: 0.01),
-                                const Domain(name: "averylongqueryname", start: 16, end: 30, evalue: 0.001),
-                              ],
-                              sequence: "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT",
-                                          ),
-                              );
 
   @override
   Widget build(BuildContext context) {
-    var annotation_file= "?";
-    var domtblout_file = "?";
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: _hTheme(Brightness.light),
-      home: Scaffold(
-  
- 
-        body: Center(
-          child: DrawOverview(overview: ResultsOverview(numHits: 48, numCategories: 4, categories: [testCategory, testCategory, testCategory, testCategory]),
-                            ),
-      ),
-    ),);
+    return Consumer<OverviewData>(builder: (context, overview, child){
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Hviewer',
+        theme: _hTheme(Brightness.light),
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const FileForm(),
+          '/overview': (context) => const DrawOverview(),
+        },
+      );
+    }
+  );
   }
 }
 
+
+// ChangeNotifier for state storage
+class OverviewData with ChangeNotifier{
+  ResultsOverview _overview = ResultsOverview(numHits: 0, numCategories: 0, categories: []);
+
+  int get numHits => _overview.numHits;
+  int get numCategories => _overview.numCategories;
+  List<SigCategory> get categories => _overview.categories;
+
+  void set(ResultsOverview newOverview){
+    _overview = newOverview;
+    notifyListeners();
+  }
+
+  void clear(){
+    _overview = ResultsOverview(numHits: 0, numCategories: 0, categories: []);
+    notifyListeners();
+  }
+}
+
+// ChangeNotifier for input files
+class FileData with ChangeNotifier{
+  String _annotationsFile = "";
+  List<String> _domtbloutFiles = [];
+
+  String get annotationsFile => _annotationsFile;
+  List<String> get domtbloutFiles => _domtbloutFiles;
+
+  // Don't notify listners after these functions,
+  // because we want to make all changes, then trigger a load
+  void setAnnotationsFile(String newAnnotations){
+    _annotationsFile = newAnnotations;
+  }
+
+  void addDomtbloutFile(String domtblout){
+    _domtbloutFiles.add(domtblout);
+  }
+
+  void clearDomtbloutFiles(){
+    _domtbloutFiles = [];
+  }
+
+  // Notify listeners once we've made all changes. 
+  void triggerLoad(){
+    notifyListeners();
+  }
+
+}
+
+//Widget to draw the data for a hit
 class DrawHit extends StatefulWidget{
   const DrawHit({
     super.key,
@@ -306,10 +351,7 @@ class DrawCategory extends StatelessWidget {
 class DrawOverview extends StatefulWidget {
   const DrawOverview({
     super.key,
-    required this.overview,
   });
-
-  final ResultsOverview overview;
 
   State<DrawOverview> createState() => _DrawOverviewState();
 }
@@ -317,22 +359,67 @@ class _DrawOverviewState extends State<DrawOverview> {
   ScrollController _scrollController2 = new ScrollController();
   @override
   Widget build(BuildContext context) {
-   return Column(children: [
-    Text(widget.overview.numHits.toString()+ " hits found, with "+widget.overview.numCategories.toString()+" different domain signatures."),
+   return Material( 
+    child: Consumer<OverviewData>(
+            builder: (context, overview, child){
+              return Column(children: [
+    Text(overview.numHits.toString()+ " hits found, with "+overview.numCategories.toString()+" different domain signatures."),
     Expanded( 
       child: Scrollbar(
         controller: _scrollController2,
         child: ListView.builder(
           controller: _scrollController2,
-        itemCount: widget.overview.numCategories,
+        itemCount: overview.numCategories,
         itemBuilder: (BuildContext context, int index){
-          return DrawCategory(category: widget.overview.categories[index]);
+          return DrawCategory(category: overview.categories[index]);
         }
         ),
       ),
     ),
     ]
     );
+  }));
+}
+}
+// Widget to enter information about what files to read
+class FileForm extends StatelessWidget{
+  const FileForm({super.key,});
+  final SigCategory testCategory = const SigCategory(
+                              numHits: 12,
+                              signature: "domain1-averylongdomainname",
+                              example: Hit(name: "seq1",
+                              domains: const [
+                                const Domain(name: "domain1", start: 1, end: 10, evalue: 12.0),
+                                const Domain(name: "averylongdomainname", start: 11, end: 20, evalue: 12.0),
+                              ],
+                              queries: const[
+                                const Domain(name: "query1", start: 5, end: 15, evalue: 0.01),
+                                const Domain(name: "averylongqueryname", start: 16, end: 30, evalue: 0.001),
+                              ],
+                              sequence: "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT",
+                                          ),
+                              );
+  @override
+  Widget build(BuildContext context){
+    return Scaffold(
+        body: Center(
+          child: Consumer<OverviewData>(
+            builder: (context, overview, child){
+              return Column(
+                children: [ElevatedButton(
+                onPressed: (){
+                  overview.set(ResultsOverview(numHits: 24, numCategories: 2, categories: [testCategory, testCategory]));
+                  Navigator.pushNamed(context, '/overview');
+                },
+                child: const Text("Push me"),
+                ),
+                Text("Numhits: "+ overview.numHits.toString()),
+                ]
+                );
+            }
+          ),
+        ),
+        );
   }
 }
              
