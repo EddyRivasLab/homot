@@ -4,7 +4,7 @@ import 'package:hviewer/src/rust/api/simple.dart';
 import 'package:hviewer/src/rust/api/results_overview.dart';
 import 'package:hviewer/src/rust/frb_generated.dart';
 import 'package:provider/provider.dart';
-
+ import 'package:flutter_form_builder/flutter_form_builder.dart';
 
 Future<void> main() async {
   await RustLib.init();
@@ -12,6 +12,8 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => OverviewData()),
+        ChangeNotifierProvider(create: (_) => HitLists()),
+        ChangeNotifierProvider(create: (_) => FileData()),
       ],
       child: MyApp(),
       ),
@@ -96,6 +98,32 @@ class FileData with ChangeNotifier{
     notifyListeners();
   }
 
+}
+
+//ChangeNotifier for hit lists
+class HitLists with ChangeNotifier{
+  List<HitList> _hitLists = [];
+
+  List<HitList> get hitLists => _hitLists;
+
+  void clear(){
+    _hitLists = [];
+    notifyListeners();
+  }
+
+  void set(int which, HitList newHitList){
+    assert(which < _hitLists.length);
+    _hitLists[which] = newHitList;
+    notifyListeners();
+  }
+
+  void init(int numHitLists){
+    for (var q = 0; q < numHitLists; q++){
+      HitList newHit = HitList(numHits: 0, signature: "", hits: []);
+      _hitLists.add(newHit);
+    } 
+    notifyListeners();
+  }
 }
 
 //Widget to draw the data for a hit
@@ -310,39 +338,54 @@ class DomainPainter extends CustomPainter {
 class DrawCategory extends StatelessWidget {
   const DrawCategory({
     super.key,
+    required this.which,
     required this.category,
   });
 
   final SigCategory category;
+  final int which;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap:() {print("button pressed");},
-      hoverColor: Colors.green,
-      child:
-        Padding(
-          padding: EdgeInsets.all(4),
-          child: Material(
-            elevation: 2.0,
-            shadowColor: Colors.black,
-            child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12.0),
-              border: Border.all(color: Colors.black),
-              ),
-            child:
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(category.numHits.toString() + " hits with domain signature " + category.signature),
-                  Text("Example: "),
-                  DrawHit(hit: category.example),
-                ],
-              ),
-          ), 
-        ),
-        ),
+    return Consumer<HitLists>(
+            builder: (context, hitLists, child){
+              return InkWell(
+                onTap:() {
+                  if (hitLists.hitLists[which].numHits ==0){
+                    hitLists.set(which, testHitList);
+                  }
+                  Navigator.push(context,
+                  MaterialPageRoute(builder: (context) =>
+                    DrawHitList(which: which)
+                    ),
+                  );
+                },
+                hoverColor: Colors.green,
+                child:
+                  Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Material(
+                    elevation: 2.0,
+                    shadowColor: Colors.black,
+                    child: DecoratedBox(
+                    decoration: BoxDecoration(
+                     borderRadius: BorderRadius.circular(12.0),
+                     border: Border.all(color: Colors.black),
+                      ),
+                    child:
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(category.numHits.toString() + " hits with domain signature " + category.signature),
+                          Text("Example: "),
+                          DrawHit(hit: category.example),
+                          ],
+                      ),
+                    ), 
+                    ),
+                  ),
+                );
+            }
     );
   }
 }
@@ -363,6 +406,12 @@ class _DrawOverviewState extends State<DrawOverview> {
     child: Consumer<OverviewData>(
             builder: (context, overview, child){
               return Column(children: [
+        ElevatedButton(
+                    onPressed: (){
+                      Navigator.pushNamed(context, '/');
+                    },
+                    child: const Text("Back"),
+                    ),        
     Text(overview.numHits.toString()+ " hits found, with "+overview.numCategories.toString()+" different domain signatures."),
     Expanded( 
       child: Scrollbar(
@@ -371,7 +420,7 @@ class _DrawOverviewState extends State<DrawOverview> {
           controller: _scrollController2,
         itemCount: overview.numCategories,
         itemBuilder: (BuildContext context, int index){
-          return DrawCategory(category: overview.categories[index]);
+          return DrawCategory(which: index, category: overview.categories[index]);
         }
         ),
       ),
@@ -382,6 +431,7 @@ class _DrawOverviewState extends State<DrawOverview> {
 }
 }
 // Widget to enter information about what files to read
+  final _formKey = GlobalKey<FormBuilderState>();
 class FileForm extends StatelessWidget{
   const FileForm({super.key,});
   final SigCategory testCategory = const SigCategory(
@@ -402,24 +452,86 @@ class FileForm extends StatelessWidget{
   @override
   Widget build(BuildContext context){
     return Scaffold(
+        appBar: AppBar(
+          title: const Text("Hviewer"),
+        ),
         body: Center(
-          child: Consumer<OverviewData>(
-            builder: (context, overview, child){
+          child: Consumer2<OverviewData, HitLists>(
+            builder: (context, overview, hitLists, child){
               return Column(
-                children: [ElevatedButton(
-                onPressed: (){
-                  overview.set(ResultsOverview(numHits: 24, numCategories: 2, categories: [testCategory, testCategory]));
-                  Navigator.pushNamed(context, '/overview');
-                },
-                child: const Text("Push me"),
-                ),
-                Text("Numhits: "+ overview.numHits.toString()),
+                children: [
+                  FormBuilder(child: 
+                    FormBuilderTextField(name: "Annotations File", onChanged: (val){print(val);},)
+                    ,),
+                  ElevatedButton(
+                    onPressed: (){
+                      overview.set(ResultsOverview(numHits: 24, numCategories: 2, categories: [testCategory, testCategory]));
+                      hitLists.clear();
+                      hitLists.init(overview.numHits);
+                      Navigator.pushNamed(context, '/overview');
+                    },
+                    child: const Text("Show Overview"),
+                    ),
+                    Text("Numhits: "+ overview.numHits.toString()),
                 ]
-                );
+              );
             }
           ),
         ),
-        );
+      );
   }
 }
-             
+
+//Widget to display a list of hits
+class DrawHitList extends StatefulWidget{
+  const DrawHitList({super.key,
+  required this.which});
+
+  final int which;
+  State<DrawHitList> createState() => _DrawHitListState();
+}
+
+class _DrawHitListState extends State<DrawHitList>{
+  ScrollController _scrollController3 = new ScrollController();
+  @override
+  Widget build(BuildContext context){
+    return Material(child: Consumer<HitLists>(
+            builder: (context, hitLists, child){
+              return Column(children: [
+                ElevatedButton(
+                    onPressed: (){
+                      Navigator.pushNamed(context, '/overview');
+                    },
+                    child: const Text("Back"),
+                ),
+                Text(hitLists.hitLists[widget.which].numHits.toString()+ " hits found with domain structure " + hitLists.hitLists[widget.which].signature),
+                Expanded( 
+                  child: Scrollbar(
+                  controller: _scrollController3,
+                  child: ListView.builder(
+                    controller: _scrollController3,
+                    itemCount: hitLists.hitLists[widget.which].numHits,
+                    itemBuilder: (BuildContext context, int index){
+                      return DrawHit(hit: hitLists.hitLists[widget.which].hits[index]);
+                    }
+                  ),
+                ),
+                ),
+              ],);
+            }
+    ),);
+  }
+}
+
+
+
+
+
+Domain testDomain1 = Domain(start: 2, end:10, evalue: 0.001, name: "TestDomain1");
+Domain testDomain2 = Domain(start: 12, end:20, evalue: 0.001, name: "TestDomain2");
+Domain testQuery1 = Domain(start: 7, end:15, evalue: 0.001, name: "TestQuery1");
+Domain testQuery2 = Domain(start: 12, end:20, evalue: 0.001, name: "TestQuery2");
+
+Hit testHit = Hit(name: "TestHit", sequence: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", domains: [testDomain1, testDomain2], queries: 
+[testQuery1, testQuery2]);
+HitList testHitList = HitList(numHits: 2, signature: "Fee-Fi-Fo-Fum", hits: [testHit, testHit]);

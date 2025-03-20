@@ -3,26 +3,34 @@ pub struct Domain{
     pub start: i32,
     pub end: i32,
     pub evalue: f64,
-}
-
-pub struct Hit{
+  }
+  
+  pub struct Hit{
     pub name: String,  // Name of the sequence that the hit was to
     pub sequence: String,  // Sequence  that was hit
     pub domains: Vec<Domain>,
     pub queries: Vec<Domain>,  // Queries that were hit
-}
-
-pub struct SigCategory{
+  }
+  
+  pub struct SigCategory{
     pub num_hits: i32,
     pub signature: String,
     pub example: Hit,
-}
-
-pub struct ResultsOverview{
+  }
+  
+  pub struct ResultsOverview{
     pub num_hits: i32,
     pub num_categories: i32,
     pub categories: Vec<SigCategory>,
+  }
+
+#[frb(unignore)]
+pub struct HitList{
+    pub numHits: i32,
+    pub signature: String,
+    pub hits: Vec<Hit>,
 }
+
 
 pub fn demo()->ResultsOverview{
     let mut categories = Vec::new();
@@ -48,4 +56,5 @@ pub fn demo()->ResultsOverview{
         categories: categories,
     };
     results
+
 }

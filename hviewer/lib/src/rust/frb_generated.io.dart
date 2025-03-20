@@ -32,10 +32,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Hit dco_decode_hit(dynamic raw);
 
   @protected
+  HitList dco_decode_hit_list(dynamic raw);
+
+  @protected
   int dco_decode_i_32(dynamic raw);
 
   @protected
   List<Domain> dco_decode_list_domain(dynamic raw);
+
+  @protected
+  List<Hit> dco_decode_list_hit(dynamic raw);
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
@@ -68,10 +74,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Hit sse_decode_hit(SseDeserializer deserializer);
 
   @protected
+  HitList sse_decode_hit_list(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
   List<Domain> sse_decode_list_domain(SseDeserializer deserializer);
+
+  @protected
+  List<Hit> sse_decode_list_hit(SseDeserializer deserializer);
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
@@ -107,10 +119,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_hit(Hit self, SseSerializer serializer);
 
   @protected
+  void sse_encode_hit_list(HitList self, SseSerializer serializer);
+
+  @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_domain(List<Domain> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_hit(List<Hit> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_prim_u_8_strict(
