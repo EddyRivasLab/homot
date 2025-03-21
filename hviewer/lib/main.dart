@@ -4,7 +4,7 @@ import 'package:hviewer/src/rust/api/simple.dart';
 import 'package:hviewer/src/rust/api/results_overview.dart';
 import 'package:hviewer/src/rust/frb_generated.dart';
 import 'package:provider/provider.dart';
- import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'dart:io';
 
 Future<void> main() async {
   await RustLib.init();
@@ -351,9 +351,6 @@ class DrawCategory extends StatelessWidget {
             builder: (context, hitLists, child){
               return InkWell(
                 onTap:() {
-                  if (hitLists.hitLists[which].numHits ==0){
-                    hitLists.set(which, testHitList);
-                  }
                   Navigator.push(context,
                   MaterialPageRoute(builder: (context) =>
                     DrawHitList(which: which)
@@ -431,48 +428,100 @@ class _DrawOverviewState extends State<DrawOverview> {
 }
 }
 // Widget to enter information about what files to read
-  final _formKey = GlobalKey<FormBuilderState>();
-class FileForm extends StatelessWidget{
+class FileForm extends StatefulWidget{
   const FileForm({super.key,});
-  final SigCategory testCategory = const SigCategory(
-                              numHits: 12,
-                              signature: "domain1-averylongdomainname",
-                              example: Hit(name: "seq1",
-                              domains: const [
-                                const Domain(name: "domain1", start: 1, end: 10, evalue: 12.0),
-                                const Domain(name: "averylongdomainname", start: 11, end: 20, evalue: 12.0),
-                              ],
-                              queries: const[
-                                const Domain(name: "query1", start: 5, end: 15, evalue: 0.01),
-                                const Domain(name: "averylongqueryname", start: 16, end: 30, evalue: 0.001),
-                              ],
-                              sequence: "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT",
-                                          ),
-                              );
+
+
+  @override
+  _FileFormState createState() => _FileFormState();
+}
+
+class _FileFormState extends State<FileForm>{
+  List<String> _domtbloutFiles = [];
+  String _annotationsFile = "";
+  List<Domain> temp=[];
+
+  String _temp="";  // used in converting domtblout file input into list
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+ 
   @override
   Widget build(BuildContext context){
     return Scaffold(
         appBar: AppBar(
           title: const Text("Hviewer"),
         ),
-        body: Center(
-          child: Consumer2<OverviewData, HitLists>(
+        body: 
+          Center(
+            child: Consumer2<OverviewData, HitLists>(
             builder: (context, overview, hitLists, child){
               return Column(
                 children: [
-                  FormBuilder(child: 
-                    FormBuilderTextField(name: "Annotations File", onChanged: (val){print(val);},)
-                    ,),
-                  ElevatedButton(
-                    onPressed: (){
-                      overview.set(ResultsOverview(numHits: 24, numCategories: 2, categories: [testCategory, testCategory]));
-                      hitLists.clear();
-                      hitLists.init(overview.numHits);
-                      Navigator.pushNamed(context, '/overview');
-                    },
-                    child: const Text("Show Overview"),
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          onSaved: (String? val) => _annotationsFile = (val?? ""),
+                          controller: TextEditingController()..text = _annotationsFile,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: "Annotation File",
+                          ),
+                        ),
+                        TextFormField(
+                          onSaved: (String? val) => _temp = (val?? ""),
+                          controller: TextEditingController()..text = _annotationsFile,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: "Domtblout File(s)",
+                          ),
+
+                        ),
+                        ElevatedButton(
+                        onPressed: (){
+                          _formKey.currentState?.save();
+                          _domtbloutFiles = _temp.split(',');
+                          const loadingSnackBar = SnackBar(
+                            duration: Duration(days: 1),
+                            backgroundColor: Colors.yellow,
+                            content: Center(child: Text("Loading Data",
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 24,
+                                fontFamily: 'FiraMono',
+                                ),)));
+                          ScaffoldMessenger.of(context).showSnackBar(loadingSnackBar);
+                          _searchResults = loadData(annotations: _annotationsFile, domtbloutFiles: _domtbloutFiles);
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          if(!_searchResults.succeeded){
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            //duration: Duration(days: 1),
+                            backgroundColor: Colors.red,
+                            content: Center(child: Text("Load Failed: ${_searchResults.errMsg}",
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 24,
+                                fontFamily: 'FiraMono',
+                                ),))));
+                          }
+                          else{
+                            overview.set(_searchResults.overview);
+                            hitLists.init(_searchResults.overview.numCategories);
+                            for(var iter1 = 0; iter1 < _searchResults.overview.numCategories; iter1++){
+                              hitLists.set(iter1, _searchResults.hitLists[iter1]);
+                            }
+                              Navigator.pushNamed(context, '/overview');
+                          }
+                          //Navigator.pushNamed(context, '/overview');
+                        },
+                    child: const Text("Load Data"),
                     ),
-                    Text("Numhits: "+ overview.numHits.toString()),
+                        Text("Annotations File Chosen"),
+                        Text(_annotationsFile),
+                        Text("Domtblout Files Selected"),
+                        Text(_domtbloutFiles.join("\n")),
+                      ],),
+                  ),
                 ]
               );
             }
@@ -523,15 +572,9 @@ class _DrawHitListState extends State<DrawHitList>{
   }
 }
 
-
-
-
-
-Domain testDomain1 = Domain(start: 2, end:10, evalue: 0.001, name: "TestDomain1");
-Domain testDomain2 = Domain(start: 12, end:20, evalue: 0.001, name: "TestDomain2");
-Domain testQuery1 = Domain(start: 7, end:15, evalue: 0.001, name: "TestQuery1");
-Domain testQuery2 = Domain(start: 12, end:20, evalue: 0.001, name: "TestQuery2");
-
-Hit testHit = Hit(name: "TestHit", sequence: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", domains: [testDomain1, testDomain2], queries: 
-[testQuery1, testQuery2]);
-HitList testHitList = HitList(numHits: 2, signature: "Fee-Fi-Fo-Fum", hits: [testHit, testHit]);
+// Sticking this here in global-land feels gross, but makes the flutter rust bridge happy and not crash.
+SearchResults _searchResults = SearchResults(succeeded: false,
+                                                errMsg: "",
+                                                overview: ResultsOverview(numHits: 0, numCategories: 0, categories: []),
+                                                hitLists: []
+                                                );

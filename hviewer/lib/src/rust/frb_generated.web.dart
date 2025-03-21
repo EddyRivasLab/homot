@@ -25,6 +25,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String dco_decode_String(dynamic raw);
 
   @protected
+  bool dco_decode_bool(dynamic raw);
+
+  @protected
   Domain dco_decode_domain(dynamic raw);
 
   @protected
@@ -40,10 +43,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int dco_decode_i_32(dynamic raw);
 
   @protected
+  List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
   List<Domain> dco_decode_list_domain(dynamic raw);
 
   @protected
   List<Hit> dco_decode_list_hit(dynamic raw);
+
+  @protected
+  List<HitList> dco_decode_list_hit_list(dynamic raw);
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
@@ -53,6 +62,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ResultsOverview dco_decode_results_overview(dynamic raw);
+
+  @protected
+  SearchResults dco_decode_search_results(dynamic raw);
 
   @protected
   SigCategory dco_decode_sig_category(dynamic raw);
@@ -65,6 +77,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   String sse_decode_String(SseDeserializer deserializer);
+
+  @protected
+  bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
   Domain sse_decode_domain(SseDeserializer deserializer);
@@ -82,10 +97,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
   List<Domain> sse_decode_list_domain(SseDeserializer deserializer);
 
   @protected
   List<Hit> sse_decode_list_hit(SseDeserializer deserializer);
+
+  @protected
+  List<HitList> sse_decode_list_hit_list(SseDeserializer deserializer);
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
@@ -97,6 +118,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ResultsOverview sse_decode_results_overview(SseDeserializer deserializer);
 
   @protected
+  SearchResults sse_decode_search_results(SseDeserializer deserializer);
+
+  @protected
   SigCategory sse_decode_sig_category(SseDeserializer deserializer);
 
   @protected
@@ -106,10 +130,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_decode_unit(SseDeserializer deserializer);
 
   @protected
-  bool sse_decode_bool(SseDeserializer deserializer);
+  void sse_encode_String(String self, SseSerializer serializer);
 
   @protected
-  void sse_encode_String(String self, SseSerializer serializer);
+  void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
   void sse_encode_domain(Domain self, SseSerializer serializer);
@@ -127,10 +151,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_i_32(int self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_domain(List<Domain> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_hit(List<Hit> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_hit_list(List<HitList> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_prim_u_8_strict(
@@ -151,6 +181,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_search_results(SearchResults self, SseSerializer serializer);
+
+  @protected
   void sse_encode_sig_category(SigCategory self, SseSerializer serializer);
 
   @protected
@@ -158,9 +191,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_bool(bool self, SseSerializer serializer);
 }
 
 // Section: wire_class
