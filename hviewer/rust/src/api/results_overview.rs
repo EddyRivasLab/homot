@@ -53,36 +53,49 @@ pub struct SearchResults{
 pub fn load_data(annotations: String, domtblout_files: Vec<String>) -> SearchResults{
   let dom1 = Domain{
     name: "Domain1".to_string(),
-    start: 1,
-    end: 3,
+    start: 15,
+    end: 40,
     evalue: 0.01,
   };
   let dom2 = Domain{
     name: "Domain2".to_string(),
-    start: 5,
-    end: 7,
+    start: 55,
+    end: 90,
+    evalue: 0.01,
+  };
+  let query1 = Domain{
+    name: "Query1".to_string(),
+    start: 8,
+    end: 50,
+    evalue: 0.01,
+  };
+  let query2 = Domain{
+    name: "Query2".to_string(),
+    start: 70,
+    end: 100,
     evalue: 0.01,
   };
   let hit = Hit{
-    name: "I'm a hit".to_string(),
-    sequence: "AAAAAAAAAAAAAAAAAA".to_string(),
+    name: "sp|Q6GZX4|001R_FRG3G".to_string(),
+    sequence: "MAFSAEDVLKEYDRRRRMEALLLSLYYPNDRKLLDYKEWSPPRVQVECPKAPVEWNNPPSEKGLIVGHFSGIKYKGEKAQASEVDVNKMCCWVSKFKDAMRRYQGIQTCKIPGKVLSDLDAKIKAYNLTVEGVEGFVRYSRVTKQHVAAFLKELRHSKQYENVNLIHYILTDKRVDIQHLEKDLVKDFKALVESAHRMRQGHMINVKYILYQLLKKHGHGPDGPDILTVKTGSKGVLYDDSFRKIYTDLGWKFTP".to_string(),
     domains: vec![dom1.clone(), dom2.clone()],
-    queries: vec![dom1.clone(), dom2.clone()],
+    queries: vec![query1.clone(), query2.clone()],
   };
+
   let category = SigCategory{
-    num_hits: 6,
-    signature: "I'm a Category".to_string(),
+    num_hits: 12,
+    signature: "Sample Domain Architecture".to_string(),
     example: hit.clone(),
   };
   let hit_list = HitList{
     num_hits: 12,
-    signature: "Glorb".to_string(),
+    signature: "Sample Domain Architecture".to_string(),
     hits: vec![hit.clone(), hit.clone(),hit.clone(),hit.clone(), hit.clone(),hit.clone(),hit.clone(), hit.clone(),hit.clone(),hit.clone(), hit.clone(),hit.clone(),], 
   };
   let overview = ResultsOverview{
-    num_hits: 12,
-    num_categories: 1,
-    categories: vec![category.clone(), category.clone()],
+    num_hits: 60,
+    num_categories: 5,
+    categories: vec![category.clone(), category.clone(), category.clone(), category.clone(), category.clone()],
   };
 
   let mut results = SearchResults{
@@ -91,6 +104,9 @@ pub fn load_data(annotations: String, domtblout_files: Vec<String>) -> SearchRes
     hit_lists: Vec::new(),
     overview: overview,
   };
+  results.hit_lists.push(hit_list.clone());
+  results.hit_lists.push(hit_list.clone());
+  results.hit_lists.push(hit_list.clone());
   results.hit_lists.push(hit_list.clone());
   results.hit_lists.push(hit_list.clone());
   results
