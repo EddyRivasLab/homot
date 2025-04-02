@@ -178,7 +178,8 @@ class _DrawHitState extends State<DrawHit> {
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.max,
                         children:[
                           Text("Sequence: "+ widget.hit.name, style: textStyle),
                           Text("Domain Structure:", style: textStyle),
