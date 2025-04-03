@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.8.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -954622062;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 231861380;
 
 // Section: executor
 
@@ -140,7 +140,7 @@ fn wire__crate__api__simple__init_app_impl(
         },
     )
 }
-fn wire__crate__api__results_overview__load_data_impl(
+fn wire__crate__api__gather_hits__load_data_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
@@ -161,12 +161,12 @@ fn wire__crate__api__results_overview__load_data_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_annotations = <String>::sse_decode(&mut deserializer);
+            let api_annfile = <String>::sse_decode(&mut deserializer);
             let api_domtblout_files = <Vec<String>>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
-                let output_ok = Result::<_, ()>::Ok(crate::api::results_overview::load_data(
-                    api_annotations,
+                let output_ok = Result::<_, ()>::Ok(crate::api::gather_hits::load_data(
+                    api_annfile,
                     api_domtblout_files,
                 ))?;
                 Ok(output_ok)
@@ -192,18 +192,22 @@ impl SseDecode for bool {
     }
 }
 
-impl SseDecode for crate::api::results_overview::Domain {
+impl SseDecode for crate::api::gather_hits::Domain {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_start = <i32>::sse_decode(deserializer);
         let mut var_end = <i32>::sse_decode(deserializer);
-        let mut var_evalue = <f64>::sse_decode(deserializer);
-        return crate::api::results_overview::Domain {
+        let mut var_domEvalue = <f64>::sse_decode(deserializer);
+        let mut var_fullMatchStart = <bool>::sse_decode(deserializer);
+        let mut var_fullMatchEnd = <bool>::sse_decode(deserializer);
+        return crate::api::gather_hits::Domain {
             name: var_name,
             start: var_start,
             end: var_end,
-            evalue: var_evalue,
+            dom_evalue: var_domEvalue,
+            full_match_start: var_fullMatchStart,
+            full_match_end: var_fullMatchEnd,
         };
     }
 }
@@ -215,29 +219,34 @@ impl SseDecode for f64 {
     }
 }
 
-impl SseDecode for crate::api::results_overview::Hit {
+impl SseDecode for crate::api::gather_hits::Hit {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_sequence = <String>::sse_decode(deserializer);
-        let mut var_domains = <Vec<crate::api::results_overview::Domain>>::sse_decode(deserializer);
-        let mut var_queries = <Vec<crate::api::results_overview::Domain>>::sse_decode(deserializer);
-        return crate::api::results_overview::Hit {
+        let mut var_seqEvalue = <f64>::sse_decode(deserializer);
+        let mut var_structureDomains =
+            <Vec<crate::api::gather_hits::Domain>>::sse_decode(deserializer);
+        let mut var_domains = <Vec<crate::api::gather_hits::Domain>>::sse_decode(deserializer);
+        let mut var_queries = <Vec<crate::api::gather_hits::Domain>>::sse_decode(deserializer);
+        return crate::api::gather_hits::Hit {
             name: var_name,
             sequence: var_sequence,
+            seq_evalue: var_seqEvalue,
+            structure_domains: var_structureDomains,
             domains: var_domains,
             queries: var_queries,
         };
     }
 }
 
-impl SseDecode for crate::api::results_overview::HitList {
+impl SseDecode for crate::api::gather_hits::HitList {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_numHits = <i32>::sse_decode(deserializer);
         let mut var_signature = <String>::sse_decode(deserializer);
-        let mut var_hits = <Vec<crate::api::results_overview::Hit>>::sse_decode(deserializer);
-        return crate::api::results_overview::HitList {
+        let mut var_hits = <Vec<crate::api::gather_hits::Hit>>::sse_decode(deserializer);
+        return crate::api::gather_hits::HitList {
             num_hits: var_numHits,
             signature: var_signature,
             hits: var_hits,
@@ -264,43 +273,37 @@ impl SseDecode for Vec<String> {
     }
 }
 
-impl SseDecode for Vec<crate::api::results_overview::Domain> {
+impl SseDecode for Vec<crate::api::gather_hits::Domain> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::api::results_overview::Domain>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<crate::api::gather_hits::Domain>::sse_decode(deserializer));
         }
         return ans_;
     }
 }
 
-impl SseDecode for Vec<crate::api::results_overview::Hit> {
+impl SseDecode for Vec<crate::api::gather_hits::Hit> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::api::results_overview::Hit>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<crate::api::gather_hits::Hit>::sse_decode(deserializer));
         }
         return ans_;
     }
 }
 
-impl SseDecode for Vec<crate::api::results_overview::HitList> {
+impl SseDecode for Vec<crate::api::gather_hits::HitList> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::api::results_overview::HitList>::sse_decode(
-                deserializer,
-            ));
+            ans_.push(<crate::api::gather_hits::HitList>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -318,13 +321,13 @@ impl SseDecode for Vec<u8> {
     }
 }
 
-impl SseDecode for Vec<crate::api::results_overview::SigCategory> {
+impl SseDecode for Vec<crate::api::gather_hits::SigCategory> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::api::results_overview::SigCategory>::sse_decode(
+            ans_.push(<crate::api::gather_hits::SigCategory>::sse_decode(
                 deserializer,
             ));
         }
@@ -332,14 +335,14 @@ impl SseDecode for Vec<crate::api::results_overview::SigCategory> {
     }
 }
 
-impl SseDecode for crate::api::results_overview::ResultsOverview {
+impl SseDecode for crate::api::gather_hits::ResultsOverview {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_numHits = <i32>::sse_decode(deserializer);
         let mut var_numCategories = <i32>::sse_decode(deserializer);
         let mut var_categories =
-            <Vec<crate::api::results_overview::SigCategory>>::sse_decode(deserializer);
-        return crate::api::results_overview::ResultsOverview {
+            <Vec<crate::api::gather_hits::SigCategory>>::sse_decode(deserializer);
+        return crate::api::gather_hits::ResultsOverview {
             num_hits: var_numHits,
             num_categories: var_numCategories,
             categories: var_categories,
@@ -347,16 +350,14 @@ impl SseDecode for crate::api::results_overview::ResultsOverview {
     }
 }
 
-impl SseDecode for crate::api::results_overview::SearchResults {
+impl SseDecode for crate::api::gather_hits::SearchResults {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_succeeded = <bool>::sse_decode(deserializer);
         let mut var_errMsg = <String>::sse_decode(deserializer);
-        let mut var_overview =
-            <crate::api::results_overview::ResultsOverview>::sse_decode(deserializer);
-        let mut var_hitLists =
-            <Vec<crate::api::results_overview::HitList>>::sse_decode(deserializer);
-        return crate::api::results_overview::SearchResults {
+        let mut var_overview = <crate::api::gather_hits::ResultsOverview>::sse_decode(deserializer);
+        let mut var_hitLists = <Vec<crate::api::gather_hits::HitList>>::sse_decode(deserializer);
+        return crate::api::gather_hits::SearchResults {
             succeeded: var_succeeded,
             err_msg: var_errMsg,
             overview: var_overview,
@@ -365,13 +366,13 @@ impl SseDecode for crate::api::results_overview::SearchResults {
     }
 }
 
-impl SseDecode for crate::api::results_overview::SigCategory {
+impl SseDecode for crate::api::gather_hits::SigCategory {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_numHits = <i32>::sse_decode(deserializer);
         let mut var_signature = <String>::sse_decode(deserializer);
-        let mut var_example = <crate::api::results_overview::Hit>::sse_decode(deserializer);
-        return crate::api::results_overview::SigCategory {
+        let mut var_example = <crate::api::gather_hits::Hit>::sse_decode(deserializer);
+        return crate::api::gather_hits::SigCategory {
             num_hits: var_numHits,
             signature: var_signature,
             example: var_example,
@@ -415,7 +416,7 @@ fn pde_ffi_dispatcher_sync_impl(
     match func_id {
         1 => wire__crate__api__simple__add_impl(ptr, rust_vec_len, data_len),
         2 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__results_overview__load_data_impl(ptr, rust_vec_len, data_len),
+        4 => wire__crate__api__gather_hits__load_data_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -423,53 +424,54 @@ fn pde_ffi_dispatcher_sync_impl(
 // Section: rust2dart
 
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::results_overview::Domain {
+impl flutter_rust_bridge::IntoDart for crate::api::gather_hits::Domain {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.name.into_into_dart().into_dart(),
             self.start.into_into_dart().into_dart(),
             self.end.into_into_dart().into_dart(),
-            self.evalue.into_into_dart().into_dart(),
+            self.dom_evalue.into_into_dart().into_dart(),
+            self.full_match_start.into_into_dart().into_dart(),
+            self.full_match_end.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::results_overview::Domain
+    for crate::api::gather_hits::Domain
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::results_overview::Domain>
-    for crate::api::results_overview::Domain
+impl flutter_rust_bridge::IntoIntoDart<crate::api::gather_hits::Domain>
+    for crate::api::gather_hits::Domain
 {
-    fn into_into_dart(self) -> crate::api::results_overview::Domain {
+    fn into_into_dart(self) -> crate::api::gather_hits::Domain {
         self
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::results_overview::Hit {
+impl flutter_rust_bridge::IntoDart for crate::api::gather_hits::Hit {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.name.into_into_dart().into_dart(),
             self.sequence.into_into_dart().into_dart(),
+            self.seq_evalue.into_into_dart().into_dart(),
+            self.structure_domains.into_into_dart().into_dart(),
             self.domains.into_into_dart().into_dart(),
             self.queries.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::results_overview::Hit
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::gather_hits::Hit {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::gather_hits::Hit>
+    for crate::api::gather_hits::Hit
 {
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::results_overview::Hit>
-    for crate::api::results_overview::Hit
-{
-    fn into_into_dart(self) -> crate::api::results_overview::Hit {
+    fn into_into_dart(self) -> crate::api::gather_hits::Hit {
         self
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::results_overview::HitList {
+impl flutter_rust_bridge::IntoDart for crate::api::gather_hits::HitList {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.num_hits.into_into_dart().into_dart(),
@@ -480,18 +482,18 @@ impl flutter_rust_bridge::IntoDart for crate::api::results_overview::HitList {
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::results_overview::HitList
+    for crate::api::gather_hits::HitList
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::results_overview::HitList>
-    for crate::api::results_overview::HitList
+impl flutter_rust_bridge::IntoIntoDart<crate::api::gather_hits::HitList>
+    for crate::api::gather_hits::HitList
 {
-    fn into_into_dart(self) -> crate::api::results_overview::HitList {
+    fn into_into_dart(self) -> crate::api::gather_hits::HitList {
         self
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::results_overview::ResultsOverview {
+impl flutter_rust_bridge::IntoDart for crate::api::gather_hits::ResultsOverview {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.num_hits.into_into_dart().into_dart(),
@@ -502,18 +504,18 @@ impl flutter_rust_bridge::IntoDart for crate::api::results_overview::ResultsOver
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::results_overview::ResultsOverview
+    for crate::api::gather_hits::ResultsOverview
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::results_overview::ResultsOverview>
-    for crate::api::results_overview::ResultsOverview
+impl flutter_rust_bridge::IntoIntoDart<crate::api::gather_hits::ResultsOverview>
+    for crate::api::gather_hits::ResultsOverview
 {
-    fn into_into_dart(self) -> crate::api::results_overview::ResultsOverview {
+    fn into_into_dart(self) -> crate::api::gather_hits::ResultsOverview {
         self
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::results_overview::SearchResults {
+impl flutter_rust_bridge::IntoDart for crate::api::gather_hits::SearchResults {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.succeeded.into_into_dart().into_dart(),
@@ -525,18 +527,18 @@ impl flutter_rust_bridge::IntoDart for crate::api::results_overview::SearchResul
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::results_overview::SearchResults
+    for crate::api::gather_hits::SearchResults
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::results_overview::SearchResults>
-    for crate::api::results_overview::SearchResults
+impl flutter_rust_bridge::IntoIntoDart<crate::api::gather_hits::SearchResults>
+    for crate::api::gather_hits::SearchResults
 {
-    fn into_into_dart(self) -> crate::api::results_overview::SearchResults {
+    fn into_into_dart(self) -> crate::api::gather_hits::SearchResults {
         self
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::api::results_overview::SigCategory {
+impl flutter_rust_bridge::IntoDart for crate::api::gather_hits::SigCategory {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.num_hits.into_into_dart().into_dart(),
@@ -547,13 +549,13 @@ impl flutter_rust_bridge::IntoDart for crate::api::results_overview::SigCategory
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::results_overview::SigCategory
+    for crate::api::gather_hits::SigCategory
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::results_overview::SigCategory>
-    for crate::api::results_overview::SigCategory
+impl flutter_rust_bridge::IntoIntoDart<crate::api::gather_hits::SigCategory>
+    for crate::api::gather_hits::SigCategory
 {
-    fn into_into_dart(self) -> crate::api::results_overview::SigCategory {
+    fn into_into_dart(self) -> crate::api::gather_hits::SigCategory {
         self
     }
 }
@@ -572,13 +574,15 @@ impl SseEncode for bool {
     }
 }
 
-impl SseEncode for crate::api::results_overview::Domain {
+impl SseEncode for crate::api::gather_hits::Domain {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.name, serializer);
         <i32>::sse_encode(self.start, serializer);
         <i32>::sse_encode(self.end, serializer);
-        <f64>::sse_encode(self.evalue, serializer);
+        <f64>::sse_encode(self.dom_evalue, serializer);
+        <bool>::sse_encode(self.full_match_start, serializer);
+        <bool>::sse_encode(self.full_match_end, serializer);
     }
 }
 
@@ -589,22 +593,24 @@ impl SseEncode for f64 {
     }
 }
 
-impl SseEncode for crate::api::results_overview::Hit {
+impl SseEncode for crate::api::gather_hits::Hit {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.name, serializer);
         <String>::sse_encode(self.sequence, serializer);
-        <Vec<crate::api::results_overview::Domain>>::sse_encode(self.domains, serializer);
-        <Vec<crate::api::results_overview::Domain>>::sse_encode(self.queries, serializer);
+        <f64>::sse_encode(self.seq_evalue, serializer);
+        <Vec<crate::api::gather_hits::Domain>>::sse_encode(self.structure_domains, serializer);
+        <Vec<crate::api::gather_hits::Domain>>::sse_encode(self.domains, serializer);
+        <Vec<crate::api::gather_hits::Domain>>::sse_encode(self.queries, serializer);
     }
 }
 
-impl SseEncode for crate::api::results_overview::HitList {
+impl SseEncode for crate::api::gather_hits::HitList {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.num_hits, serializer);
         <String>::sse_encode(self.signature, serializer);
-        <Vec<crate::api::results_overview::Hit>>::sse_encode(self.hits, serializer);
+        <Vec<crate::api::gather_hits::Hit>>::sse_encode(self.hits, serializer);
     }
 }
 
@@ -625,32 +631,32 @@ impl SseEncode for Vec<String> {
     }
 }
 
-impl SseEncode for Vec<crate::api::results_overview::Domain> {
+impl SseEncode for Vec<crate::api::gather_hits::Domain> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::results_overview::Domain>::sse_encode(item, serializer);
+            <crate::api::gather_hits::Domain>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for Vec<crate::api::results_overview::Hit> {
+impl SseEncode for Vec<crate::api::gather_hits::Hit> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::results_overview::Hit>::sse_encode(item, serializer);
+            <crate::api::gather_hits::Hit>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for Vec<crate::api::results_overview::HitList> {
+impl SseEncode for Vec<crate::api::gather_hits::HitList> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::results_overview::HitList>::sse_encode(item, serializer);
+            <crate::api::gather_hits::HitList>::sse_encode(item, serializer);
         }
     }
 }
@@ -665,41 +671,41 @@ impl SseEncode for Vec<u8> {
     }
 }
 
-impl SseEncode for Vec<crate::api::results_overview::SigCategory> {
+impl SseEncode for Vec<crate::api::gather_hits::SigCategory> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::api::results_overview::SigCategory>::sse_encode(item, serializer);
+            <crate::api::gather_hits::SigCategory>::sse_encode(item, serializer);
         }
     }
 }
 
-impl SseEncode for crate::api::results_overview::ResultsOverview {
+impl SseEncode for crate::api::gather_hits::ResultsOverview {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.num_hits, serializer);
         <i32>::sse_encode(self.num_categories, serializer);
-        <Vec<crate::api::results_overview::SigCategory>>::sse_encode(self.categories, serializer);
+        <Vec<crate::api::gather_hits::SigCategory>>::sse_encode(self.categories, serializer);
     }
 }
 
-impl SseEncode for crate::api::results_overview::SearchResults {
+impl SseEncode for crate::api::gather_hits::SearchResults {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.succeeded, serializer);
         <String>::sse_encode(self.err_msg, serializer);
-        <crate::api::results_overview::ResultsOverview>::sse_encode(self.overview, serializer);
-        <Vec<crate::api::results_overview::HitList>>::sse_encode(self.hit_lists, serializer);
+        <crate::api::gather_hits::ResultsOverview>::sse_encode(self.overview, serializer);
+        <Vec<crate::api::gather_hits::HitList>>::sse_encode(self.hit_lists, serializer);
     }
 }
 
-impl SseEncode for crate::api::results_overview::SigCategory {
+impl SseEncode for crate::api::gather_hits::SigCategory {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.num_hits, serializer);
         <String>::sse_encode(self.signature, serializer);
-        <crate::api::results_overview::Hit>::sse_encode(self.example, serializer);
+        <crate::api::gather_hits::Hit>::sse_encode(self.example, serializer);
     }
 }
 

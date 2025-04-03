@@ -1,2 +1,2 @@
 pub mod simple;
-pub mod results_overview;
+pub mod gather_hits;

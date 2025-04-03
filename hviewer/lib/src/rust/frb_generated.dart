@@ -3,7 +3,7 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
-import 'api/results_overview.dart';
+import 'api/gather_hits.dart';
 import 'api/simple.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -65,7 +65,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.8.0';
 
   @override
-  int get rustContentHash => -954622062;
+  int get rustContentHash => 231861380;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -82,8 +82,8 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiSimpleInitApp();
 
-  SearchResults crateApiResultsOverviewLoadData({
-    required String annotations,
+  SearchResults crateApiGatherHitsLoadData({
+    required String annfile,
     required List<String> domtbloutFiles,
   });
 }
@@ -171,15 +171,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "init_app", argNames: []);
 
   @override
-  SearchResults crateApiResultsOverviewLoadData({
-    required String annotations,
+  SearchResults crateApiGatherHitsLoadData({
+    required String annfile,
     required List<String> domtbloutFiles,
   }) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(annotations, serializer);
+          sse_encode_String(annfile, serializer);
           sse_encode_list_String(domtbloutFiles, serializer);
           return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4)!;
         },
@@ -187,18 +187,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_search_results,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiResultsOverviewLoadDataConstMeta,
-        argValues: [annotations, domtbloutFiles],
+        constMeta: kCrateApiGatherHitsLoadDataConstMeta,
+        argValues: [annfile, domtbloutFiles],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiResultsOverviewLoadDataConstMeta =>
-      const TaskConstMeta(
-        debugName: "load_data",
-        argNames: ["annotations", "domtbloutFiles"],
-      );
+  TaskConstMeta get kCrateApiGatherHitsLoadDataConstMeta => const TaskConstMeta(
+    debugName: "load_data",
+    argNames: ["annfile", "domtbloutFiles"],
+  );
 
   @protected
   String dco_decode_String(dynamic raw) {
@@ -216,13 +215,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Domain dco_decode_domain(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return Domain(
       name: dco_decode_String(arr[0]),
       start: dco_decode_i_32(arr[1]),
       end: dco_decode_i_32(arr[2]),
-      evalue: dco_decode_f_64(arr[3]),
+      domEvalue: dco_decode_f_64(arr[3]),
+      fullMatchStart: dco_decode_bool(arr[4]),
+      fullMatchEnd: dco_decode_bool(arr[5]),
     );
   }
 
@@ -236,13 +237,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Hit dco_decode_hit(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return Hit(
       name: dco_decode_String(arr[0]),
       sequence: dco_decode_String(arr[1]),
-      domains: dco_decode_list_domain(arr[2]),
-      queries: dco_decode_list_domain(arr[3]),
+      seqEvalue: dco_decode_f_64(arr[2]),
+      structureDomains: dco_decode_list_domain(arr[3]),
+      domains: dco_decode_list_domain(arr[4]),
+      queries: dco_decode_list_domain(arr[5]),
     );
   }
 
@@ -372,12 +375,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_name = sse_decode_String(deserializer);
     var var_start = sse_decode_i_32(deserializer);
     var var_end = sse_decode_i_32(deserializer);
-    var var_evalue = sse_decode_f_64(deserializer);
+    var var_domEvalue = sse_decode_f_64(deserializer);
+    var var_fullMatchStart = sse_decode_bool(deserializer);
+    var var_fullMatchEnd = sse_decode_bool(deserializer);
     return Domain(
       name: var_name,
       start: var_start,
       end: var_end,
-      evalue: var_evalue,
+      domEvalue: var_domEvalue,
+      fullMatchStart: var_fullMatchStart,
+      fullMatchEnd: var_fullMatchEnd,
     );
   }
 
@@ -392,11 +399,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_name = sse_decode_String(deserializer);
     var var_sequence = sse_decode_String(deserializer);
+    var var_seqEvalue = sse_decode_f_64(deserializer);
+    var var_structureDomains = sse_decode_list_domain(deserializer);
     var var_domains = sse_decode_list_domain(deserializer);
     var var_queries = sse_decode_list_domain(deserializer);
     return Hit(
       name: var_name,
       sequence: var_sequence,
+      seqEvalue: var_seqEvalue,
+      structureDomains: var_structureDomains,
       domains: var_domains,
       queries: var_queries,
     );
@@ -558,7 +569,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.name, serializer);
     sse_encode_i_32(self.start, serializer);
     sse_encode_i_32(self.end, serializer);
-    sse_encode_f_64(self.evalue, serializer);
+    sse_encode_f_64(self.domEvalue, serializer);
+    sse_encode_bool(self.fullMatchStart, serializer);
+    sse_encode_bool(self.fullMatchEnd, serializer);
   }
 
   @protected
@@ -572,6 +585,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.name, serializer);
     sse_encode_String(self.sequence, serializer);
+    sse_encode_f_64(self.seqEvalue, serializer);
+    sse_encode_list_domain(self.structureDomains, serializer);
     sse_encode_list_domain(self.domains, serializer);
     sse_encode_list_domain(self.queries, serializer);
   }

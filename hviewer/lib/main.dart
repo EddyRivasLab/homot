@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:hviewer/src/rust/api/simple.dart';
-import 'package:hviewer/src/rust/api/results_overview.dart';
+import 'package:hviewer/src/rust/api/gather_hits.dart';
 import 'package:hviewer/src/rust/frb_generated.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
@@ -139,7 +139,7 @@ class DrawHit extends StatefulWidget{
 
 class _DrawHitState extends State<DrawHit> {
   final GlobalKey key = GlobalKey();
-  ScrollController _scrollController = new ScrollController();
+  ScrollController _scrollController = ScrollController();
   Size textSize = Size(0, 0);
 
   @override
@@ -181,7 +181,7 @@ class _DrawHitState extends State<DrawHit> {
                         mainAxisAlignment: MainAxisAlignment.start,
                         mainAxisSize: MainAxisSize.max,
                         children:[
-                          Text("Sequence: "+ widget.hit.name, style: textStyle),
+                          Text("Sequence: ${widget.hit.name}", style: textStyle),
                           Text("Domain Structure:", style: textStyle),
                           Text("Query Hits:", style: textStyle),
                       ],
@@ -374,7 +374,7 @@ class DrawCategory extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(category.numHits.toString() + " hits with domain signature " + category.signature),
+                          Text("${category.numHits} hits with domain signature ${category.signature}"),
                           Text("Example: "),
                           DrawHit(hit: category.example),
                           ],
@@ -394,10 +394,11 @@ class DrawOverview extends StatefulWidget {
     super.key,
   });
 
+  @override
   State<DrawOverview> createState() => _DrawOverviewState();
 }
 class _DrawOverviewState extends State<DrawOverview> {
-  ScrollController _scrollController2 = new ScrollController();
+  final ScrollController _scrollController2 = ScrollController();
   @override
   Widget build(BuildContext context) {
    return Material( 
@@ -410,7 +411,7 @@ class _DrawOverviewState extends State<DrawOverview> {
                     },
                     child: const Text("Back"),
                     ),        
-    Text(overview.numHits.toString()+ " hits found, with "+overview.numCategories.toString()+" different domain signatures."),
+    Text("${overview.numHits} hits found, with ${overview.numCategories} different domain signatures."),
     Expanded( 
       child: Scrollbar(
         controller: _scrollController2,
@@ -492,8 +493,9 @@ class _FileFormState extends State<FileForm>{
                                 fontFamily: 'FiraMono',
                                 ),)));
                           ScaffoldMessenger.of(context).showSnackBar(loadingSnackBar);
-                          _searchResults = loadData(annotations: _annotationsFile, domtbloutFiles: _domtbloutFiles);
-                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+                          _searchResults = loadData(annfile: _annotationsFile, domtbloutFiles: _domtbloutFiles);
+                          ScaffoldMessenger.of(context).clearSnackBars();
                           if(!_searchResults.succeeded){
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             //duration: Duration(days: 1),
@@ -538,11 +540,12 @@ class DrawHitList extends StatefulWidget{
   required this.which});
 
   final int which;
+  @override
   State<DrawHitList> createState() => _DrawHitListState();
 }
 
 class _DrawHitListState extends State<DrawHitList>{
-  ScrollController _scrollController3 = new ScrollController();
+  final ScrollController _scrollController3 = ScrollController();
   @override
   Widget build(BuildContext context){
     return Material(child: Consumer<HitLists>(
@@ -554,7 +557,7 @@ class _DrawHitListState extends State<DrawHitList>{
                     },
                     child: const Text("Back"),
                 ),
-                Text(hitLists.hitLists[widget.which].numHits.toString()+ " hits found with domain structure " + hitLists.hitLists[widget.which].signature),
+                Text("${hitLists.hitLists[widget.which].numHits} hits found with domain structure ${hitLists.hitLists[widget.which].signature}"),
                 Expanded( 
                   child: Scrollbar(
                   controller: _scrollController3,
