@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:hviewer/src/rust/api/simple.dart';
@@ -5,6 +7,32 @@ import 'package:hviewer/src/rust/api/gather_hits.dart';
 import 'package:hviewer/src/rust/frb_generated.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
+
+// List of pairs of background and foregrund colors for displaying
+// domains.  Taken from the ColorBrewer example color sets.
+// Folmat is (BGcolor, FG color)
+const domainColors = [
+  (Color(0xff9e0142), Color(0xffffffff)),
+  (Color(0xff5475b4), Color(0xffffffff)),
+  (Color(0xff40004b), Color(0xffffffff)),
+  (Color(0xff006837), Color(0xffffffff)),
+  (Color(0xffd53e4f), Color(0xffffffff)),
+  (Color(0xff1a9850), Color(0xffffffff)),
+  (Color(0xff0000ff), Color(0xff000000)),
+  (Color(0xfff46d43), Color(0xffffffff)),
+  (Color(0xff6a3d9a), Color(0xffffffff)),
+  (Color(0xffabd9e9), Color(0xff000000)),
+  (Color(0xff68bd63), Color(0xffffffff)),
+  (Color(0xfffdae61), Color(0xffffffff)),
+  (Color(0xffff0000), Color(0xff000000)),
+  (Color(0xfffee08b), Color(0xff000000)),
+  (Color(0xffbc80bd), Color(0xff000000)),
+  (Color(0xffffffbf), Color(0xff000000)),
+  (Color(0xffa6d96a), Color(0xff000000)),
+  (Color(0xffcab2d6), Color(0xff000000)),
+  (Color(0xfffdaaac), Color(0xff000000)),
+  (Color(0xff00ff00), Color(0xffffffff)),
+];
 
 Future<void> main() async {
   await RustLib.init();
@@ -16,7 +44,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => FileData()),
       ],
       child: MyApp(),
-      ),
+    ),
   );
 }
 
@@ -25,54 +53,88 @@ ThemeData _hTheme(brightness) {
     brightness: brightness,
     primaryColor: Colors.black,
     fontFamily: 'FiraMono',
-    textTheme: TextTheme(bodyMedium: TextStyle(fontSize:16)),
+    textTheme: TextTheme(bodyMedium: TextStyle(fontSize: 16)),
   );
 }
 
 //  Top-level application
 class MyApp extends StatelessWidget {
-    const MyApp({super.key});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<OverviewData>(builder: (context, overview, child){
-      return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Hviewer',
-        theme: _hTheme(Brightness.light),
-        initialRoute: '/',
-        routes: {
-          '/': (context) => const FileForm(),
-          '/overview': (context) => const DrawOverview(),
-        },
-      );
-    }
-  );
+    return Consumer<OverviewData>(
+      builder: (context, overview, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Hviewer',
+          theme: _hTheme(Brightness.light),
+          initialRoute: '/',
+          routes: {
+            '/': (context) => const FileForm(),
+            '/overview': (context) => const DrawOverview(),
+          },
+        );
+      },
+    );
   }
 }
 
-
 // ChangeNotifier for state storage
-class OverviewData with ChangeNotifier{
-  ResultsOverview _overview = ResultsOverview(numHits: 0, numCategories: 0, categories: []);
+class OverviewData with ChangeNotifier {
+  ResultsOverview _overview = ResultsOverview(
+    numHits: 0,
+    numCategories: 0,
+    categories: [],
+    domainsContained: [],
+  );
 
+  HashMap<String, (Color, Color)> _domainColors = HashMap();
   int get numHits => _overview.numHits;
   int get numCategories => _overview.numCategories;
   List<SigCategory> get categories => _overview.categories;
 
-  void set(ResultsOverview newOverview){
+  (Color, Color) get_colors(String domain) {
+    if (_domainColors.containsKey(domain)) {
+      return _domainColors[domain]!;
+    } else {
+      // Defarut to black-and-white if we don't have a color for this domain
+      // (this should never happen, but just in case)
+      final color = (Color(0xff000000), Color(0xffffffff));
+      return color;
+    }
+  }
+
+  void set(ResultsOverview newOverview) {
     _overview = newOverview;
+    _domainColors = HashMap();
+    var i = 0;
+    for (String domain in _overview.domainsContained) {
+      if (_domainColors.containsKey(domain)) {
+        // should never happen
+        continue;
+      }
+      // Get the next color from the list
+      final color = domainColors[i % domainColors.length];
+      _domainColors[domain] = color;
+      i++;
+    }
     notifyListeners();
   }
 
-  void clear(){
-    _overview = ResultsOverview(numHits: 0, numCategories: 0, categories: []);
+  void clear() {
+    _overview = ResultsOverview(
+      numHits: 0,
+      numCategories: 0,
+      categories: [],
+      domainsContained: [],
+    );
     notifyListeners();
   }
 }
 
 // ChangeNotifier for input files
-class FileData with ChangeNotifier{
+class FileData with ChangeNotifier {
   String _annotationsFile = "";
   List<String> _domtbloutFiles = [];
 
@@ -81,60 +143,55 @@ class FileData with ChangeNotifier{
 
   // Don't notify listners after these functions,
   // because we want to make all changes, then trigger a load
-  void setAnnotationsFile(String newAnnotations){
+  void setAnnotationsFile(String newAnnotations) {
     _annotationsFile = newAnnotations;
   }
 
-  void addDomtbloutFile(String domtblout){
+  void addDomtbloutFile(String domtblout) {
     _domtbloutFiles.add(domtblout);
   }
 
-  void clearDomtbloutFiles(){
+  void clearDomtbloutFiles() {
     _domtbloutFiles = [];
   }
 
-  // Notify listeners once we've made all changes. 
-  void triggerLoad(){
+  // Notify listeners once we've made all changes.
+  void triggerLoad() {
     notifyListeners();
   }
-
 }
 
 //ChangeNotifier for hit lists
-class HitLists with ChangeNotifier{
+class HitLists with ChangeNotifier {
   List<HitList> _hitLists = [];
 
   List<HitList> get hitLists => _hitLists;
 
-  void clear(){
+  void clear() {
     _hitLists = [];
     notifyListeners();
   }
 
-  void set(int which, HitList newHitList){
+  void set(int which, HitList newHitList) {
     assert(which < _hitLists.length);
     _hitLists[which] = newHitList;
     notifyListeners();
   }
 
-  void init(int numHitLists){
-    for (var q = 0; q < numHitLists; q++){
+  void init(int numHitLists) {
+    for (var q = 0; q < numHitLists; q++) {
       HitList newHit = HitList(numHits: 0, signature: "", hits: []);
       _hitLists.add(newHit);
-    } 
+    }
     notifyListeners();
   }
 }
 
 //Widget to draw the data for a hit
-class DrawHit extends StatefulWidget{
-  const DrawHit({
-    super.key,
-    required this.hit,
-  });
+class DrawHit extends StatefulWidget {
+  const DrawHit({super.key, required this.hit});
   final Hit hit;
   State<DrawHit> createState() => _DrawHitState();
-
 }
 
 class _DrawHitState extends State<DrawHit> {
@@ -145,11 +202,12 @@ class _DrawHitState extends State<DrawHit> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _calculateRenderBoxWidth());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _calculateRenderBoxWidth(),
+    );
   }
 
-   void _calculateRenderBoxWidth() {
+  void _calculateRenderBoxWidth() {
     final RenderBox? renderBox =
         key.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox != null) {
@@ -158,7 +216,7 @@ class _DrawHitState extends State<DrawHit> {
       });
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final TextStyle textStyle = TextStyle(
@@ -168,46 +226,51 @@ class _DrawHitState extends State<DrawHit> {
     );
     return SizedBox(
       width: MediaQuery.sizeOf(context).width,
-      child:  IntrinsicHeight (
-          child: 
-            Row(
-              children: [
-                Center(
-                  child: 
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.max,
-                        children:[
-                          Text("Sequence: ${widget.hit.name}", style: textStyle),
-                          Text("Domain Structure:", style: textStyle),
-                          Text("Query Hits:", style: textStyle),
-                      ],
-                    ),
-                  ),
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Text("Sequence: ${widget.hit.name}", style: textStyle),
+                    Text("Domain Structure:", style: textStyle),
+                    Text("Query Hits:", style: textStyle),
+                  ],
                 ),
-                Expanded(
-                  child: Scrollbar(
-                  controller: _scrollController,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    controller: _scrollController,
-                    scrollDirection: Axis.horizontal,
-                    child: Column(children: [
-                      Text(widget.hit.sequence, style: textStyle, key: key),
-                      DrawDomains(seqlength: widget.hit.sequence.length, domains: widget.hit.domains, dimensions: textSize, queries: widget.hit.queries),
-                        ],),
-                  ),
               ),
+            ),
+            Expanded(
+              child: Scrollbar(
+                controller: _scrollController,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  controller: _scrollController,
+                  scrollDirection: Axis.horizontal,
+                  child: Column(
+                    children: [
+                      Text(widget.hit.sequence, style: textStyle, key: key),
+                      DrawDomains(
+                        seqlength: widget.hit.sequence.length,
+                        domains: widget.hit.domains,
+                        dimensions: textSize,
+                        queries: widget.hit.queries,
+                      ),
+                    ],
+                  ),
                 ),
-          ]),
+              ),
+            ),
+          ],
         ),
-      );
+      ),
+    );
   }
 }
-
 
 /// DrawDomains: draws a representation of the domains that a sequence contains
 class DrawDomains extends StatelessWidget {
@@ -232,12 +295,16 @@ class DrawDomains extends StatelessWidget {
     final width = dimensions.width;
     return Container(
       child: CustomPaint(
-      size: Size(width, height*2 + 4.0),
-      painter: DomainPainter(domains: domains, widthPerChar: widthPerChar, height: height, queries: queries),
-      ),  
-      );
+        size: Size(width, height * 2 + 4.0),
+        painter: DomainPainter(
+          domains: domains,
+          widthPerChar: widthPerChar,
+          height: height,
+          queries: queries,
+        ),
+      ),
+    );
   }
-
 }
 
 class DomainPainter extends CustomPainter {
@@ -250,21 +317,25 @@ class DomainPainter extends CustomPainter {
     required this.domains,
     required this.widthPerChar,
     required this.height,
-    required this.queries
+    required this.queries,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
-      ..color = Colors.red
-      ..style = PaintingStyle.fill;
+    final Paint paint =
+        Paint()
+          ..color = Colors.red
+          ..style = PaintingStyle.fill;
 
     // Draw domain structure of the sequence that the hit matched
     for (final domain in domains) {
-      final double start = domain.start*widthPerChar;
+      final double start = domain.start * widthPerChar;
       final double end = domain.end * widthPerChar;
       final double domainWidth = end - start;
-      final RRect rect = RRect.fromRectAndRadius(Rect.fromLTWH(start, 0, domainWidth, height), const Radius.circular(5));
+      final RRect rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(start, 0, domainWidth, height),
+        const Radius.circular(5),
+      );
       canvas.drawRRect(rect, paint);
 
       TextPainter painter;
@@ -274,15 +345,17 @@ class DomainPainter extends CustomPainter {
       );
       String name = "";
       double textOffset = 0.0;
-      if (domain.name.length <=domain.end - domain.start){
+      if (domain.name.length <= domain.end - domain.start) {
         name = domain.name;
-        textOffset = ((((domain.end - domain.start) - domain.name.length)) / 2 * widthPerChar);
-      }
-      else{
+        textOffset =
+            ((((domain.end - domain.start) - domain.name.length)) /
+                2 *
+                widthPerChar);
+      } else {
         name = domain.name.substring(0, domain.end - domain.start);
         textOffset = 0;
       }
-      painter.text= TextSpan(
+      painter.text = TextSpan(
         text: name,
         style: TextStyle(
           color: Colors.white,
@@ -291,15 +364,18 @@ class DomainPainter extends CustomPainter {
         ),
       );
       painter.layout();
-      Offset position = Offset(start+textOffset, 0);
+      Offset position = Offset(start + textOffset, 0);
       painter.paint(canvas, position);
     }
     // add the representation of the hit(s) to the sequence
-      for (final query in queries) {
-      final double start = query.start*widthPerChar;
+    for (final query in queries) {
+      final double start = query.start * widthPerChar;
       final double end = query.end * widthPerChar;
       final double domainWidth = end - start;
-      final RRect rect = RRect.fromRectAndRadius(Rect.fromLTWH(start, height+4.0, domainWidth, height), const Radius.circular(5));
+      final RRect rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(start, height + 4.0, domainWidth, height),
+        const Radius.circular(5),
+      );
       canvas.drawRRect(rect, paint..color = Colors.blue);
 
       TextPainter painter;
@@ -309,15 +385,17 @@ class DomainPainter extends CustomPainter {
       );
       String name = "";
       double textOffset = 0.0;
-      if (query.name.length <=query.end - query.start){
+      if (query.name.length <= query.end - query.start) {
         name = query.name;
-        textOffset = ((((query.end - query.start) - query.name.length)) / 2 * widthPerChar);
-      }
-      else{
+        textOffset =
+            ((((query.end - query.start) - query.name.length)) /
+                2 *
+                widthPerChar);
+      } else {
         name = query.name.substring(0, query.end - query.start);
         textOffset = 0;
       }
-      painter.text= TextSpan(
+      painter.text = TextSpan(
         text: name,
         style: TextStyle(
           color: Colors.white,
@@ -326,22 +404,18 @@ class DomainPainter extends CustomPainter {
         ),
       );
       painter.layout();
-      Offset position = Offset(start+textOffset, height+4.0);
+      Offset position = Offset(start + textOffset, height + 4.0);
       painter.paint(canvas, position);
-      }
+    }
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
-
 // Widget to display the information for a category of hits
 class DrawCategory extends StatelessWidget {
-  const DrawCategory({
-    super.key,
-    required this.which,
-    required this.category,
-  });
+  const DrawCategory({super.key, required this.which, required this.category});
 
   final SigCategory category;
   final int which;
@@ -349,236 +423,282 @@ class DrawCategory extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<HitLists>(
-            builder: (context, hitLists, child){
-              return InkWell(
-                onTap:() {
-                  Navigator.push(context,
-                  MaterialPageRoute(builder: (context) =>
-                    DrawHitList(which: which)
+      builder: (context, hitLists, child) {
+        return InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DrawHitList(which: which),
+              ),
+            );
+          },
+          hoverColor: Colors.green,
+          child: Padding(
+            padding: EdgeInsets.all(4),
+            child: Material(
+              elevation: 2.0,
+              shadowColor: Colors.black,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12.0),
+                  border: Border.all(color: Colors.black),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "${category.numHits} hits with domain signature ${category.signature}",
                     ),
-                  );
-                },
-                hoverColor: Colors.green,
-                child:
-                  Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Material(
-                    elevation: 2.0,
-                    shadowColor: Colors.black,
-                    child: DecoratedBox(
-                    decoration: BoxDecoration(
-                     borderRadius: BorderRadius.circular(12.0),
-                     border: Border.all(color: Colors.black),
-                      ),
-                    child:
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("${category.numHits} hits with domain signature ${category.signature}"),
-                          Text("Example: "),
-                          DrawHit(hit: category.example),
-                          ],
-                      ),
-                    ), 
-                    ),
-                  ),
-                );
-            }
+                    Text("Example: "),
+                    DrawHit(hit: category.example),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
 
 // Widget that displays the results overview
 class DrawOverview extends StatefulWidget {
-  const DrawOverview({
-    super.key,
-  });
+  const DrawOverview({super.key});
 
   @override
   State<DrawOverview> createState() => _DrawOverviewState();
 }
+
 class _DrawOverviewState extends State<DrawOverview> {
   final ScrollController _scrollController2 = ScrollController();
   @override
   Widget build(BuildContext context) {
-   return Material( 
-    child: Consumer<OverviewData>(
-            builder: (context, overview, child){
-              return Column(children: [
-        ElevatedButton(
-                    onPressed: (){
-                      Navigator.pushNamed(context, '/');
+    return Material(
+      child: Consumer<OverviewData>(
+        builder: (context, overview, child) {
+          return Column(
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/');
+                },
+                child: const Text("Back"),
+              ),
+              Text(
+                "${overview.numHits} hits found, with ${overview.numCategories} different domain signatures.",
+              ),
+              Expanded(
+                child: Scrollbar(
+                  controller: _scrollController2,
+                  child: ListView.builder(
+                    controller: _scrollController2,
+                    itemCount: overview.numCategories,
+                    itemBuilder: (BuildContext context, int index) {
+                      return DrawCategory(
+                        which: index,
+                        category: overview.categories[index],
+                      );
                     },
-                    child: const Text("Back"),
-                    ),        
-    Text("${overview.numHits} hits found, with ${overview.numCategories} different domain signatures."),
-    Expanded( 
-      child: Scrollbar(
-        controller: _scrollController2,
-        child: ListView.builder(
-          controller: _scrollController2,
-        itemCount: overview.numCategories,
-        itemBuilder: (BuildContext context, int index){
-          return DrawCategory(which: index, category: overview.categories[index]);
-        }
-        ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
-    ),
-    ]
     );
-  }));
+  }
 }
-}
-// Widget to enter information about what files to read
-class FileForm extends StatefulWidget{
-  const FileForm({super.key,});
 
+// Widget to enter information about what files to read
+class FileForm extends StatefulWidget {
+  const FileForm({super.key});
 
   @override
   _FileFormState createState() => _FileFormState();
 }
 
-class _FileFormState extends State<FileForm>{
+class _FileFormState extends State<FileForm> {
   List<String> _domtbloutFiles = [];
   String _annotationsFile = "";
-  List<Domain> temp=[];
+  List<Domain> temp = [];
 
-  String _temp="";  // used in converting domtblout file input into list
+  String _temp = ""; // used in converting domtblout file input into list
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
- 
-  @override
-  Widget build(BuildContext context){
-    return Scaffold(
-        appBar: AppBar(
-          title: const Text("Hviewer"),
-        ),
-        body: 
-          Center(
-            child: Consumer2<OverviewData, HitLists>(
-            builder: (context, overview, hitLists, child){
-              return Column(
-                children: [
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        TextFormField(
-                          onSaved: (String? val) => _annotationsFile = (val?? ""),
-                          controller: TextEditingController()..text = _annotationsFile,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: "Annotation File",
-                          ),
-                        ),
-                        TextFormField(
-                          onSaved: (String? val) => _temp = (val?? ""),
-                          controller: TextEditingController()..text = _annotationsFile,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: "Domtblout File(s)",
-                          ),
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Hviewer")),
+      body: Center(
+        child: Consumer2<OverviewData, HitLists>(
+          builder: (context, overview, hitLists, child) {
+            return Column(
+              children: [
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        onSaved:
+                            (String? val) => _annotationsFile = (val ?? ""),
+                        controller:
+                            TextEditingController()..text = _annotationsFile,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: "Annotation File",
                         ),
-                        ElevatedButton(
-                        onPressed: (){
+                      ),
+                      TextFormField(
+                        onSaved: (String? val) => _temp = (val ?? ""),
+                        controller:
+                            TextEditingController()..text = _annotationsFile,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: "Domtblout File(s)",
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
                           _formKey.currentState?.save();
                           _domtbloutFiles = _temp.split(',');
                           const loadingSnackBar = SnackBar(
                             duration: Duration(days: 1),
                             backgroundColor: Colors.yellow,
-                            content: Center(child: Text("Loading Data",
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 24,
-                                fontFamily: 'FiraMono',
-                                ),)));
-                          ScaffoldMessenger.of(context).showSnackBar(loadingSnackBar);
+                            content: Center(
+                              child: Text(
+                                "Loading Data",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 24,
+                                  fontFamily: 'FiraMono',
+                                ),
+                              ),
+                            ),
+                          );
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(loadingSnackBar);
 
-                          _searchResults = loadData(annfile: _annotationsFile, domtbloutFiles: _domtbloutFiles);
+                          _searchResults = loadData(
+                            annfile: _annotationsFile,
+                            domtbloutFiles: _domtbloutFiles,
+                          );
                           ScaffoldMessenger.of(context).clearSnackBars();
-                          if(!_searchResults.succeeded){
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            //duration: Duration(days: 1),
-                            backgroundColor: Colors.red,
-                            content: Center(child: Text("Load Failed: ${_searchResults.errMsg}",
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 24,
-                                fontFamily: 'FiraMono',
-                                ),))));
-                          }
-                          else{
+                          if (!_searchResults.succeeded) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                //duration: Duration(days: 1),
+                                backgroundColor: Colors.red,
+                                content: Center(
+                                  child: Text(
+                                    "Load Failed: ${_searchResults.errMsg}",
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 24,
+                                      fontFamily: 'FiraMono',
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          } else {
                             overview.set(_searchResults.overview);
-                            hitLists.init(_searchResults.overview.numCategories);
-                            for(var iter1 = 0; iter1 < _searchResults.overview.numCategories; iter1++){
-                              hitLists.set(iter1, _searchResults.hitLists[iter1]);
+                            hitLists.init(
+                              _searchResults.overview.numCategories,
+                            );
+                            for (
+                              var iter1 = 0;
+                              iter1 < _searchResults.overview.numCategories;
+                              iter1++
+                            ) {
+                              hitLists.set(
+                                iter1,
+                                _searchResults.hitLists[iter1],
+                              );
                             }
-                              Navigator.pushNamed(context, '/overview');
+                            Navigator.pushNamed(context, '/overview');
                           }
                           //Navigator.pushNamed(context, '/overview');
                         },
-                    child: const Text("Load Data"),
-                    ),
-                        Text("Annotations File Chosen"),
-                        Text(_annotationsFile),
-                        Text("Domtblout Files Selected"),
-                        Text(_domtbloutFiles.join("\n")),
-                      ],),
+                        child: const Text("Load Data"),
+                      ),
+                      Text("Annotations File Chosen"),
+                      Text(_annotationsFile),
+                      Text("Domtblout Files Selected"),
+                      Text(_domtbloutFiles.join("\n")),
+                    ],
                   ),
-                ]
-              );
-            }
-          ),
+                ),
+              ],
+            );
+          },
         ),
-      );
+      ),
+    );
   }
 }
 
 //Widget to display a list of hits
-class DrawHitList extends StatefulWidget{
-  const DrawHitList({super.key,
-  required this.which});
+class DrawHitList extends StatefulWidget {
+  const DrawHitList({super.key, required this.which});
 
   final int which;
   @override
   State<DrawHitList> createState() => _DrawHitListState();
 }
 
-class _DrawHitListState extends State<DrawHitList>{
+class _DrawHitListState extends State<DrawHitList> {
   final ScrollController _scrollController3 = ScrollController();
   @override
-  Widget build(BuildContext context){
-    return Material(child: Consumer<HitLists>(
-            builder: (context, hitLists, child){
-              return Column(children: [
-                ElevatedButton(
-                    onPressed: (){
-                      Navigator.pushNamed(context, '/overview');
-                    },
-                    child: const Text("Back"),
-                ),
-                Text("${hitLists.hitLists[widget.which].numHits} hits found with domain structure ${hitLists.hitLists[widget.which].signature}"),
-                Expanded( 
-                  child: Scrollbar(
+  Widget build(BuildContext context) {
+    return Material(
+      child: Consumer<HitLists>(
+        builder: (context, hitLists, child) {
+          return Column(
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/overview');
+                },
+                child: const Text("Back"),
+              ),
+              Text(
+                "${hitLists.hitLists[widget.which].numHits} hits found with domain structure ${hitLists.hitLists[widget.which].signature}",
+              ),
+              Expanded(
+                child: Scrollbar(
                   controller: _scrollController3,
                   child: ListView.builder(
                     controller: _scrollController3,
                     itemCount: hitLists.hitLists[widget.which].numHits,
-                    itemBuilder: (BuildContext context, int index){
-                      return DrawHit(hit: hitLists.hitLists[widget.which].hits[index]);
-                    }
+                    itemBuilder: (BuildContext context, int index) {
+                      return DrawHit(
+                        hit: hitLists.hitLists[widget.which].hits[index],
+                      );
+                    },
                   ),
                 ),
-                ),
-              ],);
-            }
-    ),);
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 }
 
 // Sticking this here in global-land feels gross, but makes the flutter rust bridge happy and not crash.
-SearchResults _searchResults = SearchResults(succeeded: false,
-                                                errMsg: "",
-                                                overview: ResultsOverview(numHits: 0, numCategories: 0, categories: []),
-                                                hitLists: []
-                                                );
+SearchResults _searchResults = SearchResults(
+  succeeded: false,
+  errMsg: "",
+  overview: ResultsOverview(
+    numHits: 0,
+    numCategories: 0,
+    categories: [],
+    domainsContained: [],
+  ),
+  hitLists: [],
+);
