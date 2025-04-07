@@ -4,6 +4,8 @@ import 'package:hviewer/src/rust/api/simple.dart';
 import 'package:hviewer/src/rust/api/gather_hits.dart';
 import 'package:hviewer/src/rust/frb_generated.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart'; 
+
 import 'dart:io';
 
 Future<void> main() async {
@@ -35,7 +37,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<OverviewData>(builder: (context, overview, child){
+    return Consumer2<OverviewData, FileData>(
+      builder: (context, overview, filedata, child){
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Hviewer',
@@ -429,6 +432,80 @@ class _DrawOverviewState extends State<DrawOverview> {
   }));
 }
 }
+
+//Widget to select annotation data directory
+class annDataSelect extends StatefulWidget{
+  const annDataSelect({super.key,});
+
+  @override
+  _annDataSelectState createState() => _annDataSelectState();
+}
+
+class _annDataSelectState extends State<annDataSelect>{
+  @override
+  bool _selected = false;
+  String _aPath = "";
+  String _annPrompt = "Select directory containing annotated sequence database";
+
+  Widget build(BuildContext context) {
+    return Consumer3<OverviewData, HitLists,FileData>(
+            builder: (context, overview, hitLists, filedata, child){
+              return ElevatedButton(
+                onPressed: () async {
+                  String? annTemp = await FilePicker.platform.getDirectoryPath(dialogTitle: "Select directory containing annotated sequence database");
+                  if (annTemp == null) {
+                  } else {
+                    setState(() {
+                filedata._annotationsFile= annTemp;
+                _selected = true;
+                _annPrompt = "Annotations database: ${filedata._annotationsFile}";
+                });
+              }
+          },
+          child: Text(_annPrompt),
+        );
+      }
+    );
+  }
+}
+
+// Widget to select domtblout files
+class domTblSelect extends StatefulWidget{
+  const domTblSelect({super.key,});
+
+  @override
+  _domTblSelectState createState() => _domTblSelectState();
+}
+
+class _domTblSelectState extends State<domTblSelect>{
+  @override
+  bool _selected = false;
+  String _dPath = "";
+  String _dPrompt = "Select .domtblout files";
+
+  Widget build(BuildContext context) {
+    return Consumer3<OverviewData, HitLists,FileData>(
+            builder: (context, overview, hitLists, filedata, child){
+              return ElevatedButton(
+                onPressed: () async {
+                  FilePickerResult? dTemp = await FilePicker.platform.pickFiles(allowMultiple: true, dialogTitle: "Select .domtblout file(s)");
+                  if (dTemp == null) {
+                  } 
+                  else {
+                    setState(() {
+                      filedata._domtbloutFiles = dTemp.paths.map((path) => path!).toList();
+                      _selected = true;
+                      _dPrompt = ".domtblout files: ${filedata._domtbloutFiles.join('\n')}"; // join the paths for display
+                });
+              }
+          },
+          child: Text(_dPrompt),
+        );
+      }
+    );
+  }
+}
+
 // Widget to enter information about what files to read
 class FileForm extends StatefulWidget{
   const FileForm({super.key,});
@@ -439,10 +516,9 @@ class FileForm extends StatefulWidget{
 }
 
 class _FileFormState extends State<FileForm>{
-  List<String> _domtbloutFiles = [];
-  String _annotationsFile = "";
+  String? _anntemp = "";
   List<Domain> temp=[];
-
+  FilePickerResult? result; // used in file picker
   String _temp="";  // used in converting domtblout file input into list
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
  
@@ -454,35 +530,18 @@ class _FileFormState extends State<FileForm>{
         ),
         body: 
           Center(
-            child: Consumer2<OverviewData, HitLists>(
-            builder: (context, overview, hitLists, child){
+            child: Consumer3<OverviewData, HitLists,FileData>(
+            builder: (context, overview, hitLists, filedata, child){
               return Column(
                 children: [
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        TextFormField(
-                          onSaved: (String? val) => _annotationsFile = (val?? ""),
-                          controller: TextEditingController()..text = _annotationsFile,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: "Annotation File",
-                          ),
-                        ),
-                        TextFormField(
-                          onSaved: (String? val) => _temp = (val?? ""),
-                          controller: TextEditingController()..text = _annotationsFile,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: "Domtblout File(s)",
-                          ),
-
-                        ),
-                        ElevatedButton(
-                        onPressed: (){
-                          _formKey.currentState?.save();
-                          _domtbloutFiles = _temp.split(',');
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      annDataSelect(),
+                      domTblSelect(),
+                      ],),
+                  ElevatedButton(
+                    onPressed: (){
                           const loadingSnackBar = SnackBar(
                             duration: Duration(days: 1),
                             backgroundColor: Colors.yellow,
@@ -494,7 +553,7 @@ class _FileFormState extends State<FileForm>{
                                 ),)));
                           ScaffoldMessenger.of(context).showSnackBar(loadingSnackBar);
 
-                          _searchResults = loadData(annfile: _annotationsFile, domtbloutFiles: _domtbloutFiles);
+                          _searchResults = loadData(annfile: filedata._annotationsFile, domtbloutFiles: filedata._domtbloutFiles);
                           ScaffoldMessenger.of(context).clearSnackBars();
                           if(!_searchResults.succeeded){
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -519,13 +578,7 @@ class _FileFormState extends State<FileForm>{
                         },
                     child: const Text("Load Data"),
                     ),
-                        Text("Annotations File Chosen"),
-                        Text(_annotationsFile),
-                        Text("Domtblout Files Selected"),
-                        Text(_domtbloutFiles.join("\n")),
-                      ],),
-                  ),
-                ]
+                ],
               );
             }
           ),
