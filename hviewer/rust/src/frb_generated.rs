@@ -342,10 +342,12 @@ impl SseDecode for crate::api::gather_hits::ResultsOverview {
         let mut var_numCategories = <i32>::sse_decode(deserializer);
         let mut var_categories =
             <Vec<crate::api::gather_hits::SigCategory>>::sse_decode(deserializer);
+        let mut var_domainsContained = <Vec<String>>::sse_decode(deserializer);
         return crate::api::gather_hits::ResultsOverview {
             num_hits: var_numHits,
             num_categories: var_numCategories,
             categories: var_categories,
+            domains_contained: var_domainsContained,
         };
     }
 }
@@ -499,6 +501,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::gather_hits::ResultsOverview 
             self.num_hits.into_into_dart().into_dart(),
             self.num_categories.into_into_dart().into_dart(),
             self.categories.into_into_dart().into_dart(),
+            self.domains_contained.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -687,6 +690,7 @@ impl SseEncode for crate::api::gather_hits::ResultsOverview {
         <i32>::sse_encode(self.num_hits, serializer);
         <i32>::sse_encode(self.num_categories, serializer);
         <Vec<crate::api::gather_hits::SigCategory>>::sse_encode(self.categories, serializer);
+        <Vec<String>>::sse_encode(self.domains_contained, serializer);
     }
 }
 

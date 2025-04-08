@@ -308,12 +308,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ResultsOverview dco_decode_results_overview(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return ResultsOverview(
       numHits: dco_decode_i_32(arr[0]),
       numCategories: dco_decode_i_32(arr[1]),
       categories: dco_decode_list_sig_category(arr[2]),
+      domainsContained: dco_decode_list_String(arr[3]),
     );
   }
 
@@ -505,10 +506,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_numHits = sse_decode_i_32(deserializer);
     var var_numCategories = sse_decode_i_32(deserializer);
     var var_categories = sse_decode_list_sig_category(deserializer);
+    var var_domainsContained = sse_decode_list_String(deserializer);
     return ResultsOverview(
       numHits: var_numHits,
       numCategories: var_numCategories,
       categories: var_categories,
+      domainsContained: var_domainsContained,
     );
   }
 
@@ -672,6 +675,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.numHits, serializer);
     sse_encode_i_32(self.numCategories, serializer);
     sse_encode_list_sig_category(self.categories, serializer);
+    sse_encode_list_String(self.domainsContained, serializer);
   }
 
   @protected

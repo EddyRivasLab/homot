@@ -40,6 +40,7 @@ pub struct ResultsOverview{
     pub num_hits: i32,
     pub num_categories: i32,
     pub categories: Vec<SigCategory>,
+    pub domains_contained: Vec<String>,
   }
 
 #[derive(Clone)]
@@ -313,6 +314,38 @@ fn read_domtblout(mut sequences: HashMap<String, Hit>, clan_map: &HashMap<u16, S
     }
     Ok(sequences)
 }
+
+// Creates a list, sorted in descending order by number of hits, of the domains that were found in the input
+fn count_domains(hit_lists: &Vec<HitList>) -> Vec<String>{
+    let mut domain_map:HashMap<String, i32> = HashMap::new();
+    for hit_list in hit_lists{
+        for hit in &hit_list.hits{
+            for domain in &hit.queries{ // Count all the queries that hit the sequence
+                match domain_map.get_mut(&domain.name){
+                    Some(v) => *v += 1,
+                    None => {
+                        domain_map.insert(domain.name.clone(), 1);
+                    }
+                }
+            }
+            for domain in &hit.domains{ // Count all the domains that hit the sequence
+                match domain_map.get_mut(&domain.name){
+                    Some(v) => *v += 1,
+                    None => {
+                        domain_map.insert(domain.name.clone(), 1);
+                    }
+                }
+            }
+        }
+    }
+    let mut domains:Vec<(String, i32)> = domain_map.into_iter().collect();
+    domains.sort_by_key(|x| Reverse(x.1));
+    let mut result = Vec::new();
+    for (name, _) in domains{
+        result.push(name);
+    }
+    result
+}
 // Top-level function to read search data results from domtblout files
 // This is the ony one we want to expose on the Flutter side
 #[frb(serialize)]
@@ -323,6 +356,7 @@ pub fn load_data(annfile: String, domtblout_files: Vec<String>) -> SearchResults
         num_hits: 0,
         num_categories: 0,
         categories: Vec::new(),
+        domains_contained: Vec::new(),
     };
     let mut results= SearchResults{
         succeeded: false,
@@ -391,6 +425,8 @@ pub fn load_data(annfile: String, domtblout_files: Vec<String>) -> SearchResults
     // Turn th ehashmap of hits into hitlists.  Has no failure cases
     results.hit_lists = create_hitlists(hit_sequences);
 
+    // Gather the ranked list of domains found for coloring purposes in the GUI
+    results.overview.domains_contained = count_domains (&results.hit_lists);
     // Now, build the overview structure
     let mut total_hits = 0;
     match i32::try_from(results.hit_lists.len()) {
