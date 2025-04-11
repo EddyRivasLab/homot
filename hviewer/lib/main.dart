@@ -1,5 +1,5 @@
 import 'dart:collection';
-
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:hviewer/src/rust/api/simple.dart';
@@ -307,8 +307,87 @@ class DomainPainter extends CustomPainter {
     required this.overview,
   });
   
+  void _draw_domain(Canvas canvas, Paint paint, Offset position, double width, double height, double lastEnd, Domain domain) {
+    // First, the line preceeding the domain
+    final double start = position.dx;
+    if (start > lastEnd) {
+        final p1 = Offset(lastEnd, position.dy +(heightPerLine * 0.55));
+        final p2 = Offset(start, position.dy + (heightPerLine * 0.55));
+        canvas.drawLine(p1, p2, paint..color = Colors.black);
+      } 
+    if (width <= height){ // domain too small to draw pretty edges
+      canvas.drawRect(
+        Rect.fromLTWH(position.dx, position.dy, width, height),
+        paint..color = overview.get_colors(domain.name).$1,
+      );
+    } else { // Have enough room to draw the edges we want
+      Path path = Path();
+      // start at bottom left of domain 
+      path.moveTo(position.dx+ height/2, position.dy+height);
+      if (domain.fullMatchStart) {  // Round end to start
+        Rect oval = Rect.fromLTWH(
+          position.dx,
+          position.dy,
+          height,
+          height,
+        );
+        path.arcTo(oval, pi/2, pi, false);
+      } else { // jagged end
+        path.lineTo(position.dx, position.dy + 5*height/6);
+        path.lineTo(position.dx+height/2, position.dy + 4*height/6);
+        path.lineTo(position.dx, position.dy + 3*height/6);
+        path.lineTo(position.dx+height/2, position.dy + 2*height/6);
+        path.lineTo(position.dx, position.dy + 1*height/6);
+        path.lineTo(position.dx+height/2, position.dy);
+      } 
+      path.lineTo(position.dx +(width -(height/2)), position.dy); // top edge of domain
+      if (domain.fullMatchEnd) {  // Round end to start
+        Rect oval = Rect.fromLTWH(
+          position.dx + width - (height),
+          position.dy,
+          height,
+          height,
+        );
+        path.arcTo(oval, 3*pi/2, pi, false);
+      } else { // jagged end
+        path.lineTo(position.dx+width, position.dy+ height/6);
+        path.lineTo(position.dx+(width-height/2), position.dy + 2*height/6);
+        path.lineTo(position.dx+width, position.dy+ 3*height/6);
+        path.lineTo(position.dx+(width-height/2), position.dy + 4*height/6);
+        path.lineTo(position.dx+width, position.dy+ 5*height/6);
+        path.lineTo(position.dx+(width-height/2), position.dy + height);
+      } 
+      path.lineTo(position.dx+height/2, position.dy+height);
+      canvas.drawPath(path, paint..color = overview.get_colors(domain.name).$1);
+    }
 
+    // Now, add the name of the domain
+      TextPainter painter;
+      painter = TextPainter(
+        textAlign: TextAlign.start,
+        textDirection: TextDirection.ltr,
+      );
+      String name = "";
+      double textOffset = position.dx + (width/2);
+      if (domain.name.length <= (domain.end - domain.start)-2) { // -2 to make sure domain extends past name 
+        name = domain.name;
+      } else {
 
+        name = domain.name.substring(0, max(0, (domain.end - domain.start)-2));
+      }
+      painter.text = TextSpan(
+        text: name,
+        style: TextStyle(
+          color: overview.get_colors(domain.name).$2,
+          fontSize: 16,
+        ),
+      );
+      painter.layout();
+      Offset textPosition = Offset(textOffset-painter.width/2, position.dy);
+      painter.paint(canvas, textPosition); 
+
+  }
+ 
   @override
   void paint(Canvas canvas, Size size) {
     // Draw domain structure of the sequence that the hit matched
@@ -351,39 +430,7 @@ class DomainPainter extends CustomPainter {
       final double end = domain.end * widthPerChar + widthOffset;
       lastEnd = end;
       final double domainWidth = end - start;
-      final RRect rect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(start, 0, domainWidth, heightPerLine),
-        const Radius.circular(5),
-      );
-      canvas.drawRRect(rect, paint..color = overview.get_colors(domain.name).$1);
-
-      TextPainter painter;
-      painter = TextPainter(
-        textAlign: TextAlign.center,
-        textDirection: TextDirection.ltr,
-      );
-      String name = "";
-      double textOffset = 0.0;
-      if (domain.name.length <= domain.end - domain.start) {
-        name = domain.name;
-        textOffset =
-            ((((domain.end - domain.start) - domain.name.length)) /
-                2 *
-                widthPerChar);
-      } else {
-        name = domain.name.substring(0, domain.end - domain.start);
-        textOffset = 0;
-      }
-      painter.text = TextSpan(
-        text: name,
-        style: TextStyle(
-          color: overview.get_colors(domain.name).$2,
-          fontSize: 16,
-        ),
-      );
-      painter.layout();
-      Offset position = Offset(start + textOffset, 0);
-      painter.paint(canvas, position);
+      _draw_domain(canvas, paint, Offset(start, 0), domainWidth, heightPerLine, lastEnd, domain);
     }
     if (lastEnd < totalWidth) {
       final p1 = Offset(lastEnd, heightPerLine * 0.55);
@@ -394,47 +441,10 @@ class DomainPainter extends CustomPainter {
     lastEnd = widthOffset;
     for (final query in queries) {
       final double start = query.start * widthPerChar + widthOffset;
-      if (start != lastEnd) {
-        final p1 = Offset(lastEnd, heightPerLine * 1.65);
-        final p2 = Offset(start, heightPerLine * 1.65);
-        canvas.drawLine(p1, p2, paint..color = Colors.black);
-      }
       final double end = query.end * widthPerChar + widthOffset;
+      final double domainWidth = end-start;
+      _draw_domain(canvas, paint, Offset(start, 1.1*heightPerLine), domainWidth, heightPerLine, lastEnd, query);
       lastEnd = end;
-      final double domainWidth = end - start;
-      final RRect rect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(start, (heightPerLine*1.1), domainWidth, heightPerLine),
-        const Radius.circular(5),
-      );
-      canvas.drawRRect(rect, paint..color = overview.get_colors(query.name).$1);
-
-      TextPainter painter;
-      painter = TextPainter(
-        textAlign: TextAlign.center,
-        textDirection: TextDirection.ltr,
-      );
-      String name = "";
-      double textOffset = 0.0;
-      if (query.name.length <= query.end - query.start) {
-        name = query.name;
-        textOffset =
-            ((((query.end - query.start) - query.name.length)) /
-                2 *
-                widthPerChar);
-      } else {
-        name = query.name.substring(0, query.end - query.start);
-        textOffset = 0;
-      }
-      painter.text = TextSpan(
-        text: name,
-        style: TextStyle(
-          color: overview.get_colors(query.name).$2,
-          fontSize: 16,
-        ),
-      );
-      painter.layout();
-      Offset position = Offset(start + textOffset, (heightPerLine*1.2)); 
-      painter.paint(canvas, position);
     }
     if (lastEnd < totalWidth) {
       final p1 = Offset(lastEnd, heightPerLine * 1.65);
@@ -473,12 +483,7 @@ class DrawCategory extends StatelessWidget {
             child: Material(
               elevation: 2.0,
               shadowColor: Colors.black,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12.0),
-                  border: Border.all(color: Colors.black),
-                ),
-                child: Column(
+              child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -490,7 +495,6 @@ class DrawCategory extends StatelessWidget {
                 ),
               ),
             ),
-          ),
         );
       },
     );
