@@ -2,13 +2,14 @@ import 'dart:collection';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:hviewer/src/rust/api/simple.dart';
-import 'package:hviewer/src/rust/api/gather_hits.dart';
-import 'package:hviewer/src/rust/frb_generated.dart';
+import 'package:flutter/services.dart';
+import 'package:HMMot/src/rust/api/simple.dart';
+import 'package:HMMot/src/rust/api/gather_hits.dart';
+import 'package:HMMot/src/rust/frb_generated.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart'; 
 
-import 'dart:io';
+import 'dart:io' show Platform;
 
 // List of pairs of background and foregrund colors for displaying
 // domains.  Taken from the ColorBrewer example color sets.
@@ -50,17 +51,64 @@ Future<void> main() async {
   );
 }
 
-ThemeData _hTheme(brightness) {
+ThemeData _hTheme() {
   return ThemeData(
-    brightness: brightness,
-    primaryColor: Colors.black,
-    textTheme: TextTheme(bodyMedium: TextStyle(fontSize: 16)),
+    colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
+    textTheme: TextTheme(bodyMedium: TextStyle(fontSize: 18)),
+    useMaterial3: true
   );
 }
-
-//  Top-level application
-class MyApp extends StatelessWidget {
+class MyApp extends StatelessWidget{
   const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'HMMot',
+        theme: _hTheme(),
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const MainPage(),
+          '/overview': (context) => const OverviewPage(),
+        },
+      );
+}
+}
+
+class MacMenu extends StatefulWidget {
+  const MacMenu({super.key});
+
+  @override
+  State<MacMenu> createState() => _MacMenuBarState();
+}
+class _MacMenuBarState extends State<MacMenu> {
+  Widget build(BuildContext context) {
+    return PlatformMenuBar(
+      menus: <PlatformMenuItem>[
+        PlatformMenu(
+          label: 'HMMot',
+          menus: <PlatformMenuItem>[
+            PlatformMenuItem(
+              label: 'About HMMot',
+              onSelected: () {
+                showAboutDialog(
+                  context:context,
+                  applicationName: "HMMot",
+                  applicationVersion: "0.0.1",
+                );
+              },
+            ),
+          ],
+        ),
+      ],
+      child: TopLevel(),
+    );
+  }
+}
+//  Top-level application
+class TopLevel extends StatelessWidget {
+  const TopLevel({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -68,12 +116,12 @@ class MyApp extends StatelessWidget {
       builder: (context, overview, filedata, child){
       return MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Hviewer',
-        theme: _hTheme(Brightness.light),
+        title: 'HMMot',
+        theme: _hTheme(),
         initialRoute: '/',
         routes: {
-          '/': (context) => const FileForm(),
-          '/overview': (context) => const DrawOverview(),
+          '/': (context) => const MainPage(),
+          '/overview': (context) => const OverviewPage(),
         },
       );
     }
@@ -138,22 +186,31 @@ class OverviewData with ChangeNotifier {
 class FileData with ChangeNotifier {
   String _annotationsFile = "";
   List<String> _domtbloutFiles = [];
+  bool _annFileSet = false;
+  bool _domtbloutFilesSet = false;  
 
   String get annotationsFile => _annotationsFile;
   List<String> get domtbloutFiles => _domtbloutFiles;
-
+  bool get annFileSet => _annFileSet;
+  bool get domtbloutFilesSet => _domtbloutFilesSet;
   // Don't notify listners after these functions,
   // because we want to make all changes, then trigger a load
   void setAnnotationsFile(String newAnnotations) {
     _annotationsFile = newAnnotations;
+    _annFileSet = true;
+    notifyListeners();
   }
 
   void addDomtbloutFile(String domtblout) {
     _domtbloutFiles.add(domtblout);
+    _domtbloutFilesSet = true;
+    notifyListeners();
   }
 
   void clearDomtbloutFiles() {
     _domtbloutFiles = [];
+    _domtbloutFilesSet = false;
+    notifyListeners();
   }
 
   // Notify listeners once we've made all changes.
@@ -220,10 +277,6 @@ class _DrawHitState extends State<DrawHit> {
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle textStyle = TextStyle(
-      color: Colors.black,
-      fontSize: 16,
-    );
     final width = MediaQuery.sizeOf(context).width;
     return DrawDomains(
                         sequence: widget.hit.sequence,
@@ -261,9 +314,6 @@ class DrawDomains extends StatelessWidget {
     );
     testPainter.text = TextSpan(
         text: "Domain Structure:",
-        style: TextStyle(
-          fontSize: 16,
-        ),
       );
     testPainter.layout();
     return (testPainter.width, testPainter.preferredLineHeight);
@@ -379,7 +429,6 @@ class DomainPainter extends CustomPainter {
         text: name,
         style: TextStyle(
           color: overview.get_colors(domain.name).$2,
-          fontSize: 16,
         ),
       );
       painter.layout();
@@ -400,20 +449,12 @@ class DomainPainter extends CustomPainter {
     );
     legendPainter.text = TextSpan(
         text: "Domain Structure:",
-        style: TextStyle(
-          fontSize: 16,
-          color: Colors.black,
-        ),
       );
 
     legendPainter.layout();
     legendPainter.paint(canvas, Offset(0,0));
     legendPainter.text = TextSpan(
         text: "Queries:",
-        style: TextStyle(
-          fontSize: 16,
-          color: Colors.black,
-        ),
       );
 
     legendPainter.layout();
@@ -502,28 +543,30 @@ class DrawCategory extends StatelessWidget {
 }
 
 // Widget that displays the results overview
-class DrawOverview extends StatefulWidget {
-  const DrawOverview({super.key});
+class OverviewPage extends StatefulWidget {
+  const OverviewPage({super.key});
 
   @override
-  State<DrawOverview> createState() => _DrawOverviewState();
+  State<OverviewPage> createState() => _OverviewPageState();
 }
 
-class _DrawOverviewState extends State<DrawOverview> {
+class _OverviewPageState extends State<OverviewPage> {
   final ScrollController _scrollController2 = ScrollController();
   @override
   Widget build(BuildContext context) {
     return Material(
-      child: Consumer<OverviewData>(
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).primaryColor,
+          title: Text(style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+          "Results Overview"),
+          leading:BackButton(color: Theme.of(context).colorScheme.onPrimary), 
+        ),
+        
+        body: Consumer<OverviewData>(
         builder: (context, overview, child) {
           return Column(
             children: [
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/');
-                },
-                child: const Text("Back"),
-              ),
               Text(
                 "${overview.numHits} hits found, with ${overview.numCategories} different domain signatures.",
               ),
@@ -547,6 +590,7 @@ class _DrawOverviewState extends State<DrawOverview> {
           );
         },
       ),
+      ),
     );
   }
 }
@@ -562,10 +606,7 @@ class annDataSelect extends StatefulWidget{
 
 class _annDataSelectState extends State<annDataSelect>{
   @override
-  bool _selected = false;
-  String _aPath = "";
-  String _annPrompt = "Select directory containing annotated sequence database";
-
+  String _baseAnnPrompt = "Select directory containing annotated sequence database";
   Widget build(BuildContext context) {
     return Consumer3<OverviewData, HitLists,FileData>(
             builder: (context, overview, hitLists, filedata, child){
@@ -575,13 +616,12 @@ class _annDataSelectState extends State<annDataSelect>{
                   if (annTemp == null) {
                   } else {
                     setState(() {
-                filedata._annotationsFile= annTemp;
-                _selected = true;
-                _annPrompt = "Annotations database: ${filedata._annotationsFile}";
+                filedata.setAnnotationsFile(annTemp);
+                //_annPrompt = "Annotations database: ${filedata.annotationsFile}";
                 });
               }
           },
-          child: Text(_annPrompt),
+          child: Text(_baseAnnPrompt),
         );
       }
     );
@@ -599,7 +639,6 @@ class domTblSelect extends StatefulWidget{
 class _domTblSelectState extends State<domTblSelect>{
   @override
   bool _selected = false;
-  String _dPath = "";
   String _dPrompt = "Select .domtblout files";
 
   Widget build(BuildContext context) {
@@ -614,7 +653,7 @@ class _domTblSelectState extends State<domTblSelect>{
                     setState(() {
                       filedata._domtbloutFiles = dTemp.paths.map((path) => path!).toList();
                       _selected = true;
-                      _dPrompt = ".domtblout files: ${filedata._domtbloutFiles.join('\n')}"; // join the paths for display
+                      filedata.notifyListeners();
                 });
               }
           },
@@ -626,14 +665,14 @@ class _domTblSelectState extends State<domTblSelect>{
 }
 
 // Widget to enter information about what files to read
-class FileForm extends StatefulWidget {
-  const FileForm({super.key});
+class MainPage extends StatefulWidget {
+  const MainPage({super.key});
 
   @override
-  _FileFormState createState() => _FileFormState();
+  _MainPageState createState() => _MainPageState();
 }
 
-class _FileFormState extends State<FileForm>{
+class _MainPageState extends State<MainPage>{
   String? _anntemp = "";
   List<Domain> temp=[];
   FilePickerResult? result; // used in file picker
@@ -644,21 +683,16 @@ class _FileFormState extends State<FileForm>{
   Widget build(BuildContext context){
     return Scaffold(
         appBar: AppBar(
-          title: const Text("Hviewer"),
-        ),
-        body: 
-          Center(
-            child: Consumer3<OverviewData, HitLists,FileData>(
+          automaticallyImplyLeading: false,
+          backgroundColor: Theme.of(context).primaryColor,
+          title: Text(style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+          "HMMot"),
+          actions: <Widget>[
+            annDataSelect(),
+            domTblSelect(), 
+            Consumer3<OverviewData, HitLists,FileData>(
             builder: (context, overview, hitLists, filedata, child){
-              return Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      annDataSelect(),
-                      domTblSelect(),
-                      ],),
-                  ElevatedButton(
+             return ElevatedButton(
                     onPressed: (){
                           const loadingSnackBar = SnackBar(
                             duration: Duration(days: 1),
@@ -666,13 +700,10 @@ class _FileFormState extends State<FileForm>{
                             content: Center(
                               child: Text(
                                 "Loading Data",
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 24,
                                 ),
                               ),
-                            ),
-                          );
+                            );
+  
                           ScaffoldMessenger.of(
                             context,
                           ).showSnackBar(loadingSnackBar);
@@ -687,10 +718,6 @@ class _FileFormState extends State<FileForm>{
                                 content: Center(
                                   child: Text(
                                     "Load Failed: ${_searchResults.errMsg}",
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 24,
-                                    ),
                                   ),
                                 ),
                               ),
@@ -712,15 +739,19 @@ class _FileFormState extends State<FileForm>{
                             }
                             Navigator.pushNamed(context, '/overview');
                           }
-                          //Navigator.pushNamed(context, '/overview');
                         },
                     child: const Text("Load Data"),
-                    ),
-                ],
-              );
-            }
-          ),
+                    );
+            },
+            ),
+          ]
         ),
+        body: Consumer<FileData>(
+            builder: (context, filedata, child){
+             return Text("Annotated Database Selected: ${filedata.annotationsFile}\nDomtblout File(s) Selected: ${filedata.domtbloutFiles.join("\n")}"
+             );
+             },
+             ),   
       );
   }
 }
@@ -740,19 +771,21 @@ class _DrawHitListState extends State<DrawHitList> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      child: Consumer<HitLists>(
-        builder: (context, hitLists, child) {
-          return Column(
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).primaryColor,
+          title: Consumer<HitLists>(
+            builder: (context, hitLists, child) {
+            return Text(style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+          "${hitLists.hitLists[widget.which].numHits} hits found with domain structure ${hitLists.hitLists[widget.which].signature}",);
+            },
+          ),
+          leading:BackButton(color: Theme.of(context).colorScheme.onPrimary), 
+        ),
+        body: Consumer<HitLists>(
+          builder: (context, hitLists, child) {
+            return Column(
             children: [
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/overview');
-                },
-                child: const Text("Back"),
-              ),
-              Text(
-                "${hitLists.hitLists[widget.which].numHits} hits found with domain structure ${hitLists.hitLists[widget.which].signature}",
-              ),
               Expanded(
                 child: Scrollbar(
                   controller: _scrollController3,
@@ -772,6 +805,7 @@ class _DrawHitListState extends State<DrawHitList> {
           );
         },
       ),
+    ),
     );
   }
 }
