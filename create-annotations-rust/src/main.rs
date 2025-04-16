@@ -133,11 +133,76 @@ fn parse_domtblout(domtblout: PathBuf, clan_map:&HashMap<String, (u16, u16)>, do
 
     }
 }
+fn print_domainlist(the_list: &Vec<Domain>){
+    for domain in the_list{
+        print!("{}, {}, {}, {}, {}: ", domain.domain, domain.clan, domain.alifrom, domain.alito, domain.eval);
+    }
+    println!("");
+}
 
-fn remove_overlaps(mut sequence: AnnotatedSequence)->AnnotatedSequence{
-    // First, sort the list of domains by start position of the hit
-    sequence.domains.sort_by_key(|x| x.alifrom);
-    sequence.structure_domains = sequence.domains.clone();
+fn handle_overlaps(mut sequence: AnnotatedSequence)->AnnotatedSequence{
+    // First, sort the list of domains by start position
+    sequence.domains.sort_by_key(|x| (x.alifrom));  // First, sort by start position
+    sequence.structure_domains = sequence.domains.clone(); // make copy into  structure domains
+
+    // Organize the full domain list for easy display.  Goal is to have the domains with the best 
+    // evalues display in the top rows of the detail list.
+    // Do this by sorting the domains by evalue, then placing them in the top row where they fit
+    // in ascending order by evalue
+
+    // Sort domains in the full list of domains by evalue
+    sequence.domains.sort_by(|a, b| a.eval.partial_cmp(&b.eval).unwrap_or(std::cmp::Ordering::Equal));
+
+    let mut domain_rows = Vec::new(); // Will generate a list of rows, each row containing a list of domains
+    let new_row: Vec<Domain> = Vec::new();
+    domain_rows.push(new_row);
+    for domain in &sequence.domains {
+        let mut found_position = false;
+        for row in domain_rows.iter_mut(){
+            if row.is_empty() || row.last().unwrap().alito < domain.alifrom{
+                // If the row is empty or the last domain in the row doesn't overlap with this one,
+                // add it to the row
+                row.push(domain.clone());
+                found_position = true;
+                break; // move on to the next domain
+            }
+            if row.first().unwrap().alifrom > domain.alito{
+                // The new domain can go at the beginning of the row
+                row.insert(0, domain.clone());
+                found_position = true;
+                break;  // move on to the next domain
+            }
+
+            // Otherwise, we need to search and see if there's space between
+            if row.len()>2 { 
+                for x in 0..row.len()-2{
+                    if row[x].alito < domain.alifrom && row[x+1].alifrom > domain.alito{
+                        // Found a gap, so insert the new domain here
+                        row.insert(x+1, domain.clone());
+                        found_position = true;
+                        break; // stop looking in this row, since we've found a place for the domain
+                    }
+                }
+            }
+        }
+        if found_position{
+            continue; // move on to the next domain
+        }
+        // if we get here without finding a place for the domain, add a row
+        let mut added_row: Vec<Domain> = Vec::new();
+        added_row.push(domain.clone()); // there must be room, since the row is empty
+        domain_rows.push(added_row);
+    }
+
+    let mut new_domains: Vec<Domain> = Vec::new();
+    for mut row in domain_rows{
+        new_domains.append(&mut row);
+    }
+    sequence.domains = new_domains; // Replace the old domain list with the new ordered one
+    print!("{} ", sequence.name);
+    print_domainlist(&sequence.domains);
+
+    // And then, eliminate overlaps in the structure domains
     let mut current = 0;
     let mut next = 1;
     while current < sequence.structure_domains.len(){
@@ -149,14 +214,15 @@ fn remove_overlaps(mut sequence: AnnotatedSequence)->AnnotatedSequence{
             else{
                 // overlap
                 if (sequence.structure_domains[current].alito - sequence.structure_domains[next].alifrom < 5) ||
-                    (sequence.structure_domains[current].clan != 0xffff && (sequence.structure_domains[current].clan == sequence.structure_domains[next].clan)){
+                    (sequence.structure_domains[current].clan != 0xffff && (sequence.structure_domains[current].clan != sequence.structure_domains[next].clan)){
                     // either small overlap or domains not in same clan, so shrink the one with the
                     // worse evalue
                     if sequence.structure_domains[current].eval < sequence.structure_domains[next].eval{
                         // Current has better eval, so shrink next
                         sequence.structure_domains[next].alifrom = sequence.structure_domains[current].alito +1;
-                        if sequence.structure_domains[next].alito <= sequence.structure_domains[next].alifrom{
-                            // next domain was shrunk out of existence, so remove it
+                        if sequence.structure_domains[next].alito <= sequence.structure_domains[next].alifrom || 
+                            sequence.structure_domains[next].alito - sequence.structure_domains[next].alifrom <= 5{
+                            // next domain was shrunk out of existence or to a tiny set, so remove it
                             sequence.structure_domains.remove(next);
                             // don't increment next, because everything slides down
                         }
@@ -168,8 +234,9 @@ fn remove_overlaps(mut sequence: AnnotatedSequence)->AnnotatedSequence{
                     else{
                         // shrink current
                         sequence.structure_domains[current].alito = sequence.structure_domains[next].alifrom -1;
-                        if sequence.structure_domains[current].alito <= sequence.structure_domains[current].alifrom{
-                            // current domain was shrunk out of existence, remove it
+                        if sequence.structure_domains[current].alito <= sequence.structure_domains[current].alifrom ||
+                            sequence.structure_domains[current].alito - sequence.structure_domains[current].alifrom <= 5{
+                            // current domain was shrunk out of existence or to a tiny set, remove it
                             sequence.structure_domains.remove(current);
                             next = current +1; 
                             // because we've removed current, start checking at the domain after it
@@ -199,7 +266,6 @@ fn remove_overlaps(mut sequence: AnnotatedSequence)->AnnotatedSequence{
         current = current+1;
         next = current +1;
     }
-
     sequence
 }
 
@@ -291,7 +357,7 @@ seqfile: PathBuf, ofile: String){
         for domain in annotations{
             annotated.domains.push(domain.clone());
         }
-        annotated = remove_overlaps(annotated);
+        annotated = handle_overlaps(annotated);
 
         db.insert(&annotated.name, &annotated).expect("Failed to insert domain into output db");
 
