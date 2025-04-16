@@ -133,12 +133,14 @@ fn parse_domtblout(domtblout: PathBuf, clan_map:&HashMap<String, (u16, u16)>, do
 
     }
 }
-fn print_domainlist(the_list: &Vec<Domain>){
+
+// comment this out to defang the dead code warning
+/*fn print_domainlist(the_list: &Vec<Domain>){
     for domain in the_list{
         print!("{}, {}, {}, {}, {}: ", domain.domain, domain.clan, domain.alifrom, domain.alito, domain.eval);
     }
     println!("");
-}
+}*/  
 
 fn handle_overlaps(mut sequence: AnnotatedSequence)->AnnotatedSequence{
     // First, sort the list of domains by start position
@@ -199,8 +201,8 @@ fn handle_overlaps(mut sequence: AnnotatedSequence)->AnnotatedSequence{
         new_domains.append(&mut row);
     }
     sequence.domains = new_domains; // Replace the old domain list with the new ordered one
-    print!("{} ", sequence.name);
-    print_domainlist(&sequence.domains);
+    //print!("{} ", sequence.name);
+    
 
     // And then, eliminate overlaps in the structure domains
     let mut current = 0;
