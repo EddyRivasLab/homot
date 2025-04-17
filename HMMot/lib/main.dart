@@ -21,7 +21,7 @@ const domainColors = [
   (Color(0xff006837), Color(0xffffffff)),
   (Color(0xffd53e4f), Color(0xffffffff)),
   (Color(0xff1a9850), Color(0xffffffff)),
-  (Color(0xff0000ff), Color(0xff000000)),
+  (Color(0xff0000ff), Color(0xffffffff)),
   (Color(0xfff46d43), Color(0xffffffff)),
   (Color(0xff6a3d9a), Color(0xffffffff)),
   (Color(0xffabd9e9), Color(0xff000000)),
@@ -34,7 +34,7 @@ const domainColors = [
   (Color(0xffa6d96a), Color(0xff000000)),
   (Color(0xffcab2d6), Color(0xff000000)),
   (Color(0xfffdaaac), Color(0xff000000)),
-  (Color(0xff00ff00), Color(0xffffffff)),
+  (Color(0xff00ff00), Color(0xff000000)),
 ];
 
 Future<void> main() async {
@@ -306,7 +306,7 @@ class DrawDomains extends StatelessWidget {
   final List<Domain> queries;
   final OverviewData overview;
 
-  (double, double) _calc_text_dimensions(){ // The easiest way to get the dimensions of some
+  (double, double) _calc_text_dimensions(TextTheme textTheme){ // The easiest way to get the dimensions of some
   // text seems to be to try rendering them and then measure the result. 
     TextPainter testPainter = TextPainter(
     textAlign: TextAlign.start,
@@ -314,6 +314,7 @@ class DrawDomains extends StatelessWidget {
     );
     testPainter.text = TextSpan(
         text: "Domain Structure:",
+        style: textTheme.bodyMedium,
       );
     testPainter.layout();
     return (testPainter.width, testPainter.preferredLineHeight);
@@ -323,15 +324,17 @@ class DrawDomains extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container( 
       child: CustomPaint(
-        size: Size(width, _calc_text_dimensions().$2 *2.2),
+        size: Size(width, _calc_text_dimensions(Theme.of(context).textTheme).$2 *2.2),
         painter: DomainPainter(
           domains: domains,
           totalWidth: width,
-          widthPerChar: (width -_calc_text_dimensions().$1) / sequence.length,
-          widthOffset:_calc_text_dimensions().$1,
-          heightPerLine: _calc_text_dimensions().$2,
+          widthPerChar: (width -_calc_text_dimensions(Theme.of(context).textTheme).$1) / sequence.length,
+          widthOffset:_calc_text_dimensions(Theme.of(context).textTheme).$1,
+          heightPerLine: _calc_text_dimensions(Theme.of(context).textTheme).$2,
           queries: queries,
-          overview: overview
+          overview: overview,
+          textTheme: Theme.of(context).textTheme,
+          colorScheme: Theme.of(context).colorScheme,
         ),
       ),
     );
@@ -346,6 +349,9 @@ class DomainPainter extends CustomPainter {
   final double heightPerLine;
   final List<Domain> queries;
   final OverviewData overview;
+  final TextTheme textTheme;
+  final ColorScheme colorScheme;
+
   
   DomainPainter({
     required this.domains,
@@ -355,9 +361,11 @@ class DomainPainter extends CustomPainter {
     required this.heightPerLine,
     required this.queries,
     required this.overview,
+    required this.textTheme,
+    required this.colorScheme,
   });
   
-  void _draw_domain(Canvas canvas, Paint paint, Offset position, double width, double height, double lastEnd, Domain domain) {
+  void _draw_domain(Canvas canvas, Paint paint, Offset position, double width, double height, double lastEnd, Domain domain, TextTheme textTheme) {
     // First, the line preceeding the domain
     final double start = position.dx;
     if (start > lastEnd) {
@@ -419,22 +427,45 @@ class DomainPainter extends CustomPainter {
       );
       String name = "";
       double textOffset = position.dx + (width/2);
-      if (domain.name.length <= (domain.end - domain.start)-2) { // -2 to make sure domain extends past name 
-        name = domain.name;
-      } else {
-
-        name = domain.name.substring(0, max(0, (domain.end - domain.start)-2));
-      }
-      painter.text = TextSpan(
+      String evalString = domain.domEvalue.toStringAsExponential(2);
+      
+      // see if all the data we'd like to display fits in the domain
+      name = domain.name + " (" + evalString + ")";
+      painter.text = painter.text = TextSpan(
         text: name,
-        style: TextStyle(
-          color: overview.get_colors(domain.name).$2,
-        ),
-      );
+        style: textTheme.bodyMedium!.copyWith(color: overview.get_colors(domain.name).$2),
+        );
       painter.layout();
-      Offset textPosition = Offset(textOffset-painter.width/2, position.dy);
-      painter.paint(canvas, textPosition); 
-
+      if(painter.width <= (width - heightPerLine)) { // -2 to make sure domain extends past name
+        Offset textPosition = Offset(textOffset-painter.width/2, position.dy);
+        painter.paint(canvas, textPosition); 
+      }
+      else{ //see if the domain name fits
+        name = domain.name;
+        painter.text = TextSpan(
+          text: name,
+          style: textTheme.bodyMedium!.copyWith(color: overview.get_colors(domain.name).$2),
+          );
+        painter.layout();
+        if(painter.width <= (width - heightPerLine)) { // -2 to make sure domain extends past name
+          Offset textPosition = Offset(textOffset-painter.width/2, position.dy);
+          painter.paint(canvas, textPosition); 
+        }
+        else{ //Cram in what we can
+          int numChars = domain.name.length;
+          while (painter.width > (width-heightPerLine) && numChars >= 0) {
+            numChars -=1;
+            name = domain.name.substring(0, numChars);
+            painter.text = TextSpan(
+              text: name,
+              style: textTheme.bodyMedium!.copyWith(color: overview.get_colors(domain.name).$2),
+            );
+            painter.layout(); 
+          }
+          Offset textPosition = Offset(textOffset-painter.width/2, position.dy);
+          painter.paint(canvas, textPosition); 
+        } 
+      }
   }
  
   @override
@@ -449,12 +480,14 @@ class DomainPainter extends CustomPainter {
     );
     legendPainter.text = TextSpan(
         text: "Domain Structure:",
+        style: textTheme.bodyMedium!.copyWith(color: colorScheme.onSurface),
       );
 
     legendPainter.layout();
     legendPainter.paint(canvas, Offset(0,0));
     legendPainter.text = TextSpan(
         text: "Queries:",
+        style: textTheme.bodyMedium!.copyWith(color: colorScheme.onSurface),
       );
 
     legendPainter.layout();
@@ -471,7 +504,7 @@ class DomainPainter extends CustomPainter {
       final double end = domain.end * widthPerChar + widthOffset;
       lastEnd = end;
       final double domainWidth = end - start;
-      _draw_domain(canvas, paint, Offset(start, 0), domainWidth, heightPerLine, lastEnd, domain);
+      _draw_domain(canvas, paint, Offset(start, 0), domainWidth, heightPerLine, lastEnd, domain, textTheme);
     }
     if (lastEnd < totalWidth) {
       final p1 = Offset(lastEnd, heightPerLine * 0.55);
@@ -484,7 +517,7 @@ class DomainPainter extends CustomPainter {
       final double start = query.start * widthPerChar + widthOffset;
       final double end = query.end * widthPerChar + widthOffset;
       final double domainWidth = end-start;
-      _draw_domain(canvas, paint, Offset(start, 1.1*heightPerLine), domainWidth, heightPerLine, lastEnd, query);
+      _draw_domain(canvas, paint, Offset(start, 1.1*heightPerLine), domainWidth, heightPerLine, lastEnd, query, textTheme);
       lastEnd = end;
     }
     if (lastEnd < totalWidth) {
@@ -520,15 +553,15 @@ class DrawCategory extends StatelessWidget {
           },
           hoverColor: Colors.green,
           child: Padding(
-            padding: EdgeInsets.all(4),
+            padding: EdgeInsets.all(2),
             child: Material(
-              elevation: 2.0,
+              elevation: 0.0,
               shadowColor: Colors.black,
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "${category.numHits} hits with domain signature ${category.signature}",
+                    Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
+                      "${category.numHits} sequences with domain signature ${category.signature}",
                     ),
                     Text("Example: "+category.example.name),
                     DrawHit(hit: category.example, overview: overview),
@@ -577,10 +610,13 @@ class _OverviewPageState extends State<OverviewPage> {
                     controller: _scrollController2,
                     itemCount: overview.numCategories,
                     itemBuilder: (BuildContext context, int index) {
-                      return DrawCategory(
-                        which: index,
-                        category: overview.categories[index],
-                        overview: overview,
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 8),
+                        child: DrawCategory(
+                            which: index,
+                            category: overview.categories[index],
+                          overview: overview,
+                      ),
                       );
                     },
                   ),
@@ -793,10 +829,21 @@ class _DrawHitListState extends State<DrawHitList> {
                     controller: _scrollController3,
                     itemCount: hitLists.hitLists[widget.which].numHits,
                     itemBuilder: (BuildContext context, int index) {
-                      return DrawHit(
-                        hit: hitLists.hitLists[widget.which].hits[index],
-                        overview: widget.overview,
-                      );
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 24),
+                        child: Column(
+                        children: [
+                          Text(
+                              style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
+                              "Sequence: "+hitLists.hitLists[widget.which].hits[index].name+", E-Value: "+hitLists.hitLists[widget.which].hits[index].seqEvalue.toStringAsExponential(4),
+                          ),
+                            DrawHit(
+                              hit: hitLists.hitLists[widget.which].hits[index],
+                              overview: widget.overview,
+                            ), 
+                        ], 
+                      ), 
+                      );;
                     },
                   ),
                 ),

@@ -137,7 +137,7 @@ fn domains_to_structure(domains: &Vec<Domain>)->String{
     for domain in domains{
         if structure != ""{
             // There's already at least one domain in it
-            structure.push_str("-");
+            structure.push_str(", ");
         }
         structure.push_str(&domain.name);
     }
