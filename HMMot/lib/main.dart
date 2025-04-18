@@ -7,7 +7,8 @@ import 'package:HMMot/src/rust/api/simple.dart';
 import 'package:HMMot/src/rust/api/gather_hits.dart';
 import 'package:HMMot/src/rust/frb_generated.dart';
 import 'package:provider/provider.dart';
-import 'package:file_picker/file_picker.dart'; 
+import 'package:file_picker/file_picker.dart';
+import 'package:menu_bar/menu_bar.dart';
 
 import 'dart:io' show Platform;
 
@@ -46,7 +47,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => HitLists()),
         ChangeNotifierProvider(create: (_) => FileData()),
       ],
-      child: MyApp(),
+      child: MenuWrapper(),
     ),
   );
 }
@@ -55,33 +56,32 @@ ThemeData _hTheme() {
   return ThemeData(
     colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
     textTheme: TextTheme(bodyMedium: TextStyle(fontSize: 18)),
-    useMaterial3: true
+    useMaterial3: true,
   );
 }
-class MyApp extends StatelessWidget{
-  const MyApp({super.key});
+
+// Wrapper that selects the correct menu bar for the platform
+class MenuWrapper extends StatelessWidget {
+  const MenuWrapper();
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'HMMot',
-        theme: _hTheme(),
-        initialRoute: '/',
-        routes: {
-          '/': (context) => const MainPage(),
-          '/overview': (context) => const OverviewPage(),
-        },
-      );
-}
+    if (Platform.isMacOS) {
+      return MacMenu();
+    } else {
+      return TopLevel();
+    }
+  }
 }
 
+// Mac menus3
 class MacMenu extends StatefulWidget {
   const MacMenu({super.key});
 
   @override
   State<MacMenu> createState() => _MacMenuBarState();
 }
+
 class _MacMenuBarState extends State<MacMenu> {
   Widget build(BuildContext context) {
     return PlatformMenuBar(
@@ -93,7 +93,7 @@ class _MacMenuBarState extends State<MacMenu> {
               label: 'About HMMot',
               onSelected: () {
                 showAboutDialog(
-                  context:context,
+                  context: context,
                   applicationName: "HMMot",
                   applicationVersion: "0.0.1",
                 );
@@ -106,6 +106,124 @@ class _MacMenuBarState extends State<MacMenu> {
     );
   }
 }
+
+// Gratuitiously stolen from the documentation for the MenuBar class
+class MenuEntry {
+  const MenuEntry({
+    required this.label,
+    this.shortcut,
+    this.onPressed,
+    this.menuChildren,
+  }) : assert(
+         menuChildren == null || onPressed == null,
+         'onPressed is ignored if menuChildren are provided',
+       );
+
+  final String label;
+  final MenuSerializableShortcut? shortcut;
+  final VoidCallback? onPressed;
+  final List<MenuEntry>? menuChildren;
+
+  static List<Widget> build(List<MenuEntry> selections) {
+    Widget buildSelection(MenuEntry selection) {
+      if (selection.menuChildren != null) {
+        return SubmenuButton(
+          menuChildren: MenuEntry.build(selection.menuChildren!),
+          child: Text(selection.label),
+        );
+      }
+      return Consumer3<OverviewData, HitLists, FileData>(
+        builder: (context, overview, hitLists, filedata, child) {
+          return MenuItemButton(
+            shortcut: selection.shortcut,
+            onPressed: selection.onPressed,
+            child: Text(selection.label),
+          );
+        },
+      );
+    }
+
+    return selections.map<Widget>(buildSelection).toList();
+  }
+
+  static Map<MenuSerializableShortcut, Intent> shortcuts(
+    List<MenuEntry> selections,
+  ) {
+    final Map<MenuSerializableShortcut, Intent> result =
+        <MenuSerializableShortcut, Intent>{};
+    for (final MenuEntry selection in selections) {
+      if (selection.menuChildren != null) {
+        result.addAll(MenuEntry.shortcuts(selection.menuChildren!));
+      } else {
+        if (selection.shortcut != null && selection.onPressed != null) {
+          result[selection.shortcut!] = VoidCallbackIntent(
+            selection.onPressed!,
+          );
+        }
+      }
+    }
+    return result;
+  }
+}
+
+class NonMacMenuBar extends StatefulWidget {
+  const NonMacMenuBar();
+
+  @override
+  State<NonMacMenuBar> createState() => _NonMacMenuBarState();
+}
+
+class _NonMacMenuBarState extends State<NonMacMenuBar> {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer3<OverviewData, HitLists, FileData>(
+      builder: (context, overview, hitLists, filedata, child) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Expanded(child: MenuBar(children: MenuEntry.build(_getMenus()))),
+          ],
+        );
+      },
+    );
+  }
+
+  List<MenuEntry> _getMenus() {
+    return [
+      MenuEntry(
+        label: 'File',
+        menuChildren: [
+          MenuEntry(
+            label: 'About',
+            onPressed: () {
+              showAboutDialog(
+                context: context,
+                applicationName: 'HMMot: The HMMer Observation Tool',
+                applicationVersion: '0.0.1',
+              );
+            },
+          ),
+          MenuEntry(
+            label: 'Select Annotated Database',
+            onPressed: () async {
+              String? annTemp = await FilePicker.platform.getDirectoryPath(
+                dialogTitle:
+                    "Select directory containing annotated sequence database",
+              );
+              if (annTemp == null) {
+              } else {
+                /*setState(() {
+                  filedata.setAnnotationsFile(annTemp);
+                });*/
+              }
+            },
+          ),
+        ],
+      ),
+    ];
+  }
+}
+
 //  Top-level application
 class TopLevel extends StatelessWidget {
   const TopLevel({super.key});
@@ -113,19 +231,19 @@ class TopLevel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer2<OverviewData, FileData>(
-      builder: (context, overview, filedata, child){
-      return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'HMMot',
-        theme: _hTheme(),
-        initialRoute: '/',
-        routes: {
-          '/': (context) => const MainPage(),
-          '/overview': (context) => const OverviewPage(),
-        },
-      );
-    }
-  );
+      builder: (context, overview, filedata, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'HMMot',
+          theme: _hTheme(),
+          initialRoute: '/',
+          routes: {
+            '/': (context) => const MainPage(),
+            '/overview': (context) => const OverviewPage(),
+          },
+        );
+      },
+    );
   }
 }
 
@@ -187,7 +305,7 @@ class FileData with ChangeNotifier {
   String _annotationsFile = "";
   List<String> _domtbloutFiles = [];
   bool _annFileSet = false;
-  bool _domtbloutFilesSet = false;  
+  bool _domtbloutFilesSet = false;
 
   String get annotationsFile => _annotationsFile;
   List<String> get domtbloutFiles => _domtbloutFiles;
@@ -279,11 +397,11 @@ class _DrawHitState extends State<DrawHit> {
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     return DrawDomains(
-                        sequence: widget.hit.sequence,
-                        domains: widget.hit.structureDomains,
-                        width: width,
-                        queries: widget.hit.queries,
-                        overview: widget.overview,
+      sequence: widget.hit.sequence,
+      domains: widget.hit.structureDomains,
+      width: width,
+      queries: widget.hit.queries,
+      overview: widget.overview,
     );
   }
 }
@@ -306,30 +424,36 @@ class DrawDomains extends StatelessWidget {
   final List<Domain> queries;
   final OverviewData overview;
 
-  (double, double) _calc_text_dimensions(TextTheme textTheme){ // The easiest way to get the dimensions of some
-  // text seems to be to try rendering them and then measure the result. 
+  (double, double) _calc_text_dimensions(TextTheme textTheme) {
+    // The easiest way to get the dimensions of some
+    // text seems to be to try rendering them and then measure the result.
     TextPainter testPainter = TextPainter(
-    textAlign: TextAlign.start,
-    textDirection: TextDirection.ltr,
+      textAlign: TextAlign.start,
+      textDirection: TextDirection.ltr,
     );
     testPainter.text = TextSpan(
-        text: "Domain Structure:",
-        style: textTheme.bodyMedium,
-      );
+      text: "Domain Structure:",
+      style: textTheme.bodyMedium,
+    );
     testPainter.layout();
     return (testPainter.width, testPainter.preferredLineHeight);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container( 
+    return Container(
       child: CustomPaint(
-        size: Size(width, _calc_text_dimensions(Theme.of(context).textTheme).$2 *2.2),
+        size: Size(
+          width,
+          _calc_text_dimensions(Theme.of(context).textTheme).$2 * 2.2,
+        ),
         painter: DomainPainter(
           domains: domains,
           totalWidth: width,
-          widthPerChar: (width -_calc_text_dimensions(Theme.of(context).textTheme).$1) / sequence.length,
-          widthOffset:_calc_text_dimensions(Theme.of(context).textTheme).$1,
+          widthPerChar:
+              (width - _calc_text_dimensions(Theme.of(context).textTheme).$1) /
+              sequence.length,
+          widthOffset: _calc_text_dimensions(Theme.of(context).textTheme).$1,
           heightPerLine: _calc_text_dimensions(Theme.of(context).textTheme).$2,
           queries: queries,
           overview: overview,
@@ -352,7 +476,6 @@ class DomainPainter extends CustomPainter {
   final TextTheme textTheme;
   final ColorScheme colorScheme;
 
-  
   DomainPainter({
     required this.domains,
     required this.totalWidth,
@@ -364,134 +487,167 @@ class DomainPainter extends CustomPainter {
     required this.textTheme,
     required this.colorScheme,
   });
-  
-  void _draw_domain(Canvas canvas, Paint paint, Offset position, double width, double height, double lastEnd, Domain domain, TextTheme textTheme) {
+
+  void _draw_domain(
+    Canvas canvas,
+    Paint paint,
+    Offset position,
+    double width,
+    double height,
+    double lastEnd,
+    Domain domain,
+    TextTheme textTheme,
+  ) {
     // First, the line preceeding the domain
     final double start = position.dx;
     if (start > lastEnd) {
-        final p1 = Offset(lastEnd, position.dy +(heightPerLine * 0.55));
-        final p2 = Offset(start, position.dy + (heightPerLine * 0.55));
-        canvas.drawLine(p1, p2, paint..color = Colors.black);
-      } 
-    if (width <= height){ // domain too small to draw pretty edges
+      final p1 = Offset(lastEnd, position.dy + (heightPerLine * 0.55));
+      final p2 = Offset(start, position.dy + (heightPerLine * 0.55));
+      canvas.drawLine(p1, p2, paint..color = Colors.black);
+    }
+    if (width <= height) {
+      // domain too small to draw pretty edges
       canvas.drawRect(
         Rect.fromLTWH(position.dx, position.dy, width, height),
         paint..color = overview.get_colors(domain.name).$1,
       );
-    } else { // Have enough room to draw the edges we want
+    } else {
+      // Have enough room to draw the edges we want
       Path path = Path();
-      // start at bottom left of domain 
-      path.moveTo(position.dx+ height/2, position.dy+height);
-      if (domain.fullMatchStart) {  // Round end to start
-        Rect oval = Rect.fromLTWH(
-          position.dx,
-          position.dy,
-          height,
-          height,
-        );
-        path.arcTo(oval, pi/2, pi, false);
-      } else { // jagged end
-        path.lineTo(position.dx, position.dy + 5*height/6);
-        path.lineTo(position.dx+height/2, position.dy + 4*height/6);
-        path.lineTo(position.dx, position.dy + 3*height/6);
-        path.lineTo(position.dx+height/2, position.dy + 2*height/6);
-        path.lineTo(position.dx, position.dy + 1*height/6);
-        path.lineTo(position.dx+height/2, position.dy);
-      } 
-      path.lineTo(position.dx +(width -(height/2)), position.dy); // top edge of domain
-      if (domain.fullMatchEnd) {  // Round end to start
+      // start at bottom left of domain
+      path.moveTo(position.dx + height / 2, position.dy + height);
+      if (domain.fullMatchStart) {
+        // Round end to start
+        Rect oval = Rect.fromLTWH(position.dx, position.dy, height, height);
+        path.arcTo(oval, pi / 2, pi, false);
+      } else {
+        // jagged end
+        path.lineTo(position.dx, position.dy + 5 * height / 6);
+        path.lineTo(position.dx + height / 2, position.dy + 4 * height / 6);
+        path.lineTo(position.dx, position.dy + 3 * height / 6);
+        path.lineTo(position.dx + height / 2, position.dy + 2 * height / 6);
+        path.lineTo(position.dx, position.dy + 1 * height / 6);
+        path.lineTo(position.dx + height / 2, position.dy);
+      }
+      path.lineTo(
+        position.dx + (width - (height / 2)),
+        position.dy,
+      ); // top edge of domain
+      if (domain.fullMatchEnd) {
+        // Round end to start
         Rect oval = Rect.fromLTWH(
           position.dx + width - (height),
           position.dy,
           height,
           height,
         );
-        path.arcTo(oval, 3*pi/2, pi, false);
-      } else { // jagged end
-        path.lineTo(position.dx+width, position.dy+ height/6);
-        path.lineTo(position.dx+(width-height/2), position.dy + 2*height/6);
-        path.lineTo(position.dx+width, position.dy+ 3*height/6);
-        path.lineTo(position.dx+(width-height/2), position.dy + 4*height/6);
-        path.lineTo(position.dx+width, position.dy+ 5*height/6);
-        path.lineTo(position.dx+(width-height/2), position.dy + height);
-      } 
-      path.lineTo(position.dx+height/2, position.dy+height);
+        path.arcTo(oval, 3 * pi / 2, pi, false);
+      } else {
+        // jagged end
+        path.lineTo(position.dx + width, position.dy + height / 6);
+        path.lineTo(
+          position.dx + (width - height / 2),
+          position.dy + 2 * height / 6,
+        );
+        path.lineTo(position.dx + width, position.dy + 3 * height / 6);
+        path.lineTo(
+          position.dx + (width - height / 2),
+          position.dy + 4 * height / 6,
+        );
+        path.lineTo(position.dx + width, position.dy + 5 * height / 6);
+        path.lineTo(position.dx + (width - height / 2), position.dy + height);
+      }
+      path.lineTo(position.dx + height / 2, position.dy + height);
       canvas.drawPath(path, paint..color = overview.get_colors(domain.name).$1);
     }
 
     // Now, add the name of the domain
-      TextPainter painter;
-      painter = TextPainter(
-        textAlign: TextAlign.start,
-        textDirection: TextDirection.ltr,
-      );
-      String name = "";
-      double textOffset = position.dx + (width/2);
-      String evalString = domain.domEvalue.toStringAsExponential(2);
-      
-      // see if all the data we'd like to display fits in the domain
-      name = domain.name + " (" + evalString + ")";
-      painter.text = painter.text = TextSpan(
-        text: name,
-        style: textTheme.bodyMedium!.copyWith(color: overview.get_colors(domain.name).$2),
-        );
-      painter.layout();
-      if(painter.width <= (width - heightPerLine)) { // -2 to make sure domain extends past name
-        Offset textPosition = Offset(textOffset-painter.width/2, position.dy);
-        painter.paint(canvas, textPosition); 
-      }
-      else{ //see if the domain name fits
-        name = domain.name;
+    TextPainter painter;
+    painter = TextPainter(
+      textAlign: TextAlign.start,
+      textDirection: TextDirection.ltr,
+    );
+    String name = "";
+    double textOffset = position.dx + (width / 2);
+    String evalString = domain.domEvalue.toStringAsExponential(2);
+
+    // see if all the data we'd like to display fits in the domain
+    name = domain.name + " (" + evalString + ")";
+    painter.text =
         painter.text = TextSpan(
           text: name,
-          style: textTheme.bodyMedium!.copyWith(color: overview.get_colors(domain.name).$2),
+          style: textTheme.bodyMedium!.copyWith(
+            color: overview.get_colors(domain.name).$2,
+          ),
+        );
+    painter.layout();
+    if (painter.width <= (width - heightPerLine)) {
+      // -2 to make sure domain extends past name
+      Offset textPosition = Offset(textOffset - painter.width / 2, position.dy);
+      painter.paint(canvas, textPosition);
+    } else {
+      //see if the domain name fits
+      name = domain.name;
+      painter.text = TextSpan(
+        text: name,
+        style: textTheme.bodyMedium!.copyWith(
+          color: overview.get_colors(domain.name).$2,
+        ),
+      );
+      painter.layout();
+      if (painter.width <= (width - heightPerLine)) {
+        // -2 to make sure domain extends past name
+        Offset textPosition = Offset(
+          textOffset - painter.width / 2,
+          position.dy,
+        );
+        painter.paint(canvas, textPosition);
+      } else {
+        //Cram in what we can
+        int numChars = domain.name.length;
+        while (painter.width > (width - heightPerLine) && numChars >= 0) {
+          numChars -= 1;
+          name = domain.name.substring(0, numChars);
+          painter.text = TextSpan(
+            text: name,
+            style: textTheme.bodyMedium!.copyWith(
+              color: overview.get_colors(domain.name).$2,
+            ),
           );
-        painter.layout();
-        if(painter.width <= (width - heightPerLine)) { // -2 to make sure domain extends past name
-          Offset textPosition = Offset(textOffset-painter.width/2, position.dy);
-          painter.paint(canvas, textPosition); 
+          painter.layout();
         }
-        else{ //Cram in what we can
-          int numChars = domain.name.length;
-          while (painter.width > (width-heightPerLine) && numChars >= 0) {
-            numChars -=1;
-            name = domain.name.substring(0, numChars);
-            painter.text = TextSpan(
-              text: name,
-              style: textTheme.bodyMedium!.copyWith(color: overview.get_colors(domain.name).$2),
-            );
-            painter.layout(); 
-          }
-          Offset textPosition = Offset(textOffset-painter.width/2, position.dy);
-          painter.paint(canvas, textPosition); 
-        } 
+        Offset textPosition = Offset(
+          textOffset - painter.width / 2,
+          position.dy,
+        );
+        painter.paint(canvas, textPosition);
       }
+    }
   }
- 
+
   @override
   void paint(Canvas canvas, Size size) {
     // Draw domain structure of the sequence that the hit matched
-    Paint paint = new Paint()
-          ..style = PaintingStyle.fill;
+    Paint paint = new Paint()..style = PaintingStyle.fill;
 
     TextPainter legendPainter = TextPainter(
-    textAlign: TextAlign.start,
-    textDirection: TextDirection.ltr,
+      textAlign: TextAlign.start,
+      textDirection: TextDirection.ltr,
     );
     legendPainter.text = TextSpan(
-        text: "Domain Structure:",
-        style: textTheme.bodyMedium!.copyWith(color: colorScheme.onSurface),
-      );
+      text: "Domain Structure:",
+      style: textTheme.bodyMedium!.copyWith(color: colorScheme.onSurface),
+    );
 
     legendPainter.layout();
-    legendPainter.paint(canvas, Offset(0,0));
+    legendPainter.paint(canvas, Offset(0, 0));
     legendPainter.text = TextSpan(
-        text: "Queries:",
-        style: textTheme.bodyMedium!.copyWith(color: colorScheme.onSurface),
-      );
+      text: "Queries:",
+      style: textTheme.bodyMedium!.copyWith(color: colorScheme.onSurface),
+    );
 
     legendPainter.layout();
-    legendPainter.paint(canvas, Offset(0,heightPerLine*1.2));
+    legendPainter.paint(canvas, Offset(0, heightPerLine * 1.2));
 
     var lastEnd = widthOffset;
     for (final domain in domains) {
@@ -504,7 +660,16 @@ class DomainPainter extends CustomPainter {
       final double end = domain.end * widthPerChar + widthOffset;
       lastEnd = end;
       final double domainWidth = end - start;
-      _draw_domain(canvas, paint, Offset(start, 0), domainWidth, heightPerLine, lastEnd, domain, textTheme);
+      _draw_domain(
+        canvas,
+        paint,
+        Offset(start, 0),
+        domainWidth,
+        heightPerLine,
+        lastEnd,
+        domain,
+        textTheme,
+      );
     }
     if (lastEnd < totalWidth) {
       final p1 = Offset(lastEnd, heightPerLine * 0.55);
@@ -516,8 +681,17 @@ class DomainPainter extends CustomPainter {
     for (final query in queries) {
       final double start = query.start * widthPerChar + widthOffset;
       final double end = query.end * widthPerChar + widthOffset;
-      final double domainWidth = end-start;
-      _draw_domain(canvas, paint, Offset(start, 1.1*heightPerLine), domainWidth, heightPerLine, lastEnd, query, textTheme);
+      final double domainWidth = end - start;
+      _draw_domain(
+        canvas,
+        paint,
+        Offset(start, 1.1 * heightPerLine),
+        domainWidth,
+        heightPerLine,
+        lastEnd,
+        query,
+        textTheme,
+      );
       lastEnd = end;
     }
     if (lastEnd < totalWidth) {
@@ -526,13 +700,19 @@ class DomainPainter extends CustomPainter {
       canvas.drawLine(p1, p2, paint..color = Colors.black);
     }
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
 // Widget to display the information for a category of hits
 class DrawCategory extends StatelessWidget {
-  const DrawCategory({super.key, required this.which, required this.category, required this.overview});
+  const DrawCategory({
+    super.key,
+    required this.which,
+    required this.category,
+    required this.overview,
+  });
 
   final SigCategory category;
   final int which;
@@ -547,7 +727,8 @@ class DrawCategory extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => DrawHitList(which: which, overview: overview),
+                builder:
+                    (context) => DrawHitList(which: which, overview: overview),
               ),
             );
           },
@@ -558,17 +739,20 @@ class DrawCategory extends StatelessWidget {
               elevation: 0.0,
               shadowColor: Colors.black,
               child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
-                      "${category.numHits} sequences with domain signature ${category.signature}",
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
-                    Text("Example: "+category.example.name),
-                    DrawHit(hit: category.example, overview: overview),
-                  ],
-                ),
+                    "${category.numHits} sequences with domain signature ${category.signature}",
+                  ),
+                  Text("Example: " + category.example.name),
+                  DrawHit(hit: category.example, overview: overview),
+                ],
               ),
             ),
+          ),
         );
       },
     );
@@ -591,111 +775,119 @@ class _OverviewPageState extends State<OverviewPage> {
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Theme.of(context).primaryColor,
-          title: Text(style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
-          "Results Overview"),
-          leading:BackButton(color: Theme.of(context).colorScheme.onPrimary), 
+          title: Text(
+            style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+            "Results Overview",
+          ),
+          leading: BackButton(color: Theme.of(context).colorScheme.onPrimary),
         ),
-        
+
         body: Consumer<OverviewData>(
-        builder: (context, overview, child) {
-          return Column(
-            children: [
-              Text(
-                "${overview.numHits} hits found, with ${overview.numCategories} different domain signatures.",
-              ),
-              Expanded(
-                child: Scrollbar(
-                  controller: _scrollController2,
-                  child: ListView.builder(
+          builder: (context, overview, child) {
+            return Column(
+              children: [
+                Text(
+                  "${overview.numHits} hits found, with ${overview.numCategories} different domain signatures.",
+                ),
+                Expanded(
+                  child: Scrollbar(
                     controller: _scrollController2,
-                    itemCount: overview.numCategories,
-                    itemBuilder: (BuildContext context, int index) {
-                      return Container(
-                        margin: EdgeInsets.only(bottom: 8),
-                        child: DrawCategory(
+                    child: ListView.builder(
+                      controller: _scrollController2,
+                      itemCount: overview.numCategories,
+                      itemBuilder: (BuildContext context, int index) {
+                        return Container(
+                          margin: EdgeInsets.only(bottom: 8),
+                          child: DrawCategory(
                             which: index,
                             category: overview.categories[index],
-                          overview: overview,
-                      ),
-                      );
-                    },
+                            overview: overview,
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
-      ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 }
 
-
 //Widget to select annotation data directory
-class annDataSelect extends StatefulWidget{
-  const annDataSelect({super.key,});
+class annDataSelect extends StatefulWidget {
+  const annDataSelect({super.key});
 
   @override
   _annDataSelectState createState() => _annDataSelectState();
 }
 
-class _annDataSelectState extends State<annDataSelect>{
+class _annDataSelectState extends State<annDataSelect> {
   @override
-  String _baseAnnPrompt = "Select directory containing annotated sequence database";
+  String _baseAnnPrompt =
+      "Select directory containing annotated sequence database";
   Widget build(BuildContext context) {
-    return Consumer3<OverviewData, HitLists,FileData>(
-            builder: (context, overview, hitLists, filedata, child){
-              return ElevatedButton(
-                onPressed: () async {
-                  String? annTemp = await FilePicker.platform.getDirectoryPath(dialogTitle: "Select directory containing annotated sequence database");
-                  if (annTemp == null) {
-                  } else {
-                    setState(() {
+    return Consumer3<OverviewData, HitLists, FileData>(
+      builder: (context, overview, hitLists, filedata, child) {
+        return ElevatedButton(
+          onPressed: () async {
+            String? annTemp = await FilePicker.platform.getDirectoryPath(
+              dialogTitle:
+                  "Select directory containing annotated sequence database",
+            );
+            if (annTemp == null) {
+            } else {
+              setState(() {
                 filedata.setAnnotationsFile(annTemp);
                 //_annPrompt = "Annotations database: ${filedata.annotationsFile}";
-                });
-              }
+              });
+            }
           },
           child: Text(_baseAnnPrompt),
         );
-      }
+      },
     );
   }
 }
 
 // Widget to select domtblout files
-class domTblSelect extends StatefulWidget{
-  const domTblSelect({super.key,});
+class domTblSelect extends StatefulWidget {
+  const domTblSelect({super.key});
 
   @override
   _domTblSelectState createState() => _domTblSelectState();
 }
 
-class _domTblSelectState extends State<domTblSelect>{
+class _domTblSelectState extends State<domTblSelect> {
   @override
   bool _selected = false;
   String _dPrompt = "Select .domtblout files";
 
   Widget build(BuildContext context) {
-    return Consumer3<OverviewData, HitLists,FileData>(
-            builder: (context, overview, hitLists, filedata, child){
-              return ElevatedButton(
-                onPressed: () async {
-                  FilePickerResult? dTemp = await FilePicker.platform.pickFiles(allowMultiple: true, dialogTitle: "Select .domtblout file(s)");
-                  if (dTemp == null) {
-                  } 
-                  else {
-                    setState(() {
-                      filedata._domtbloutFiles = dTemp.paths.map((path) => path!).toList();
-                      _selected = true;
-                      filedata.notifyListeners();
-                });
-              }
+    return Consumer3<OverviewData, HitLists, FileData>(
+      builder: (context, overview, hitLists, filedata, child) {
+        return ElevatedButton(
+          onPressed: () async {
+            FilePickerResult? dTemp = await FilePicker.platform.pickFiles(
+              allowMultiple: true,
+              dialogTitle: "Select .domtblout file(s)",
+            );
+            if (dTemp == null) {
+            } else {
+              setState(() {
+                filedata._domtbloutFiles =
+                    dTemp.paths.map((path) => path!).toList();
+                _selected = true;
+                filedata.notifyListeners();
+              });
+            }
           },
           child: Text(_dPrompt),
         );
-      }
+      },
     );
   }
 }
@@ -708,87 +900,100 @@ class MainPage extends StatefulWidget {
   _MainPageState createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage>{
-  String? _anntemp = "";
-  List<Domain> temp=[];
-  FilePickerResult? result; // used in file picker
-  String _temp="";  // used in converting domtblout file input into list
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
- 
+class _MainPageState extends State<MainPage> {
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          backgroundColor: Theme.of(context).primaryColor,
-          title: Text(style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
-          "HMMot"),
-          actions: <Widget>[
-            annDataSelect(),
-            domTblSelect(), 
-            Consumer3<OverviewData, HitLists,FileData>(
-            builder: (context, overview, hitLists, filedata, child){
-             return ElevatedButton(
-                    onPressed: (){
-                          const loadingSnackBar = SnackBar(
-                            duration: Duration(days: 1),
-                            backgroundColor: Colors.yellow,
-                            content: Center(
-                              child: Text(
-                                "Loading Data",
-                                ),
-                              ),
-                            );
-  
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(loadingSnackBar);
-
-                          _searchResults = loadData(annfile: filedata._annotationsFile, domtbloutFiles: filedata._domtbloutFiles);
-                          ScaffoldMessenger.of(context).clearSnackBars();
-                          if (!_searchResults.succeeded) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                //duration: Duration(days: 1),
-                                backgroundColor: Colors.red,
-                                content: Center(
-                                  child: Text(
-                                    "Load Failed: ${_searchResults.errMsg}",
-                                  ),
-                                ),
-                              ),
-                            );
-                          } else {
-                            overview.set(_searchResults.overview);
-                            hitLists.init(
-                              _searchResults.overview.numCategories,
-                            );
-                            for (
-                              var iter1 = 0;
-                              iter1 < _searchResults.overview.numCategories;
-                              iter1++
-                            ) {
-                              hitLists.set(
-                                iter1,
-                                _searchResults.hitLists[iter1],
-                              );
-                            }
-                            Navigator.pushNamed(context, '/overview');
-                          }
-                        },
-                    child: const Text("Load Data"),
-                    );
+      body: Column(
+        children: [
+          SafeArea(child: NonMacMenuBar()),
+          Consumer<FileData>(
+            builder: (context, filedata, child) {
+              return Text(
+                "Annotated Database Selected: ${filedata.annotationsFile}\nDomtblout File(s) Selected: ${filedata.domtbloutFiles.join("\n")}",
+              );
             },
-            ),
-          ]
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MainPageState_old extends State<MainPage> {
+  String? _anntemp = "";
+  List<Domain> temp = [];
+  FilePickerResult? result; // used in file picker
+  String _temp = ""; // used in converting domtblout file input into list
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: Theme.of(context).primaryColor,
+        title: Text(
+          style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+          "HMMot",
         ),
-        body: Consumer<FileData>(
-            builder: (context, filedata, child){
-             return Text("Annotated Database Selected: ${filedata.annotationsFile}\nDomtblout File(s) Selected: ${filedata.domtbloutFiles.join("\n")}"
-             );
-             },
-             ),   
-      );
+        actions: <Widget>[
+          annDataSelect(),
+          domTblSelect(),
+          Consumer3<OverviewData, HitLists, FileData>(
+            builder: (context, overview, hitLists, filedata, child) {
+              return ElevatedButton(
+                onPressed: () {
+                  const loadingSnackBar = SnackBar(
+                    duration: Duration(days: 1),
+                    backgroundColor: Colors.yellow,
+                    content: Center(child: Text("Loading Data")),
+                  );
+
+                  ScaffoldMessenger.of(context).showSnackBar(loadingSnackBar);
+
+                  _searchResults = loadData(
+                    annfile: filedata._annotationsFile,
+                    domtbloutFiles: filedata._domtbloutFiles,
+                  );
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                  if (!_searchResults.succeeded) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        //duration: Duration(days: 1),
+                        backgroundColor: Colors.red,
+                        content: Center(
+                          child: Text("Load Failed: ${_searchResults.errMsg}"),
+                        ),
+                      ),
+                    );
+                  } else {
+                    overview.set(_searchResults.overview);
+                    hitLists.init(_searchResults.overview.numCategories);
+                    for (
+                      var iter1 = 0;
+                      iter1 < _searchResults.overview.numCategories;
+                      iter1++
+                    ) {
+                      hitLists.set(iter1, _searchResults.hitLists[iter1]);
+                    }
+                    Navigator.pushNamed(context, '/overview');
+                  }
+                },
+                child: const Text("Load Data"),
+              );
+            },
+          ),
+        ],
+      ),
+      body: Consumer<FileData>(
+        builder: (context, filedata, child) {
+          return Text(
+            "Annotated Database Selected: ${filedata.annotationsFile}\nDomtblout File(s) Selected: ${filedata.domtbloutFiles.join("\n")}",
+          );
+        },
+      ),
+    );
   }
 }
 
@@ -812,47 +1017,68 @@ class _DrawHitListState extends State<DrawHitList> {
           backgroundColor: Theme.of(context).primaryColor,
           title: Consumer<HitLists>(
             builder: (context, hitLists, child) {
-            return Text(style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
-          "${hitLists.hitLists[widget.which].numHits} hits found with domain structure ${hitLists.hitLists[widget.which].signature}",);
+              return Text(
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
+                "${hitLists.hitLists[widget.which].numHits} hits found with domain structure ${hitLists.hitLists[widget.which].signature}",
+              );
             },
           ),
-          leading:BackButton(color: Theme.of(context).colorScheme.onPrimary), 
+          leading: BackButton(color: Theme.of(context).colorScheme.onPrimary),
         ),
         body: Consumer<HitLists>(
           builder: (context, hitLists, child) {
             return Column(
-            children: [
-              Expanded(
-                child: Scrollbar(
-                  controller: _scrollController3,
-                  child: ListView.builder(
+              children: [
+                Expanded(
+                  child: Scrollbar(
                     controller: _scrollController3,
-                    itemCount: hitLists.hitLists[widget.which].numHits,
-                    itemBuilder: (BuildContext context, int index) {
-                      return Container(
-                        margin: EdgeInsets.only(bottom: 24),
-                        child: Column(
-                        children: [
-                          Text(
-                              style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
-                              "Sequence: "+hitLists.hitLists[widget.which].hits[index].name+", E-Value: "+hitLists.hitLists[widget.which].hits[index].seqEvalue.toStringAsExponential(4),
+                    child: ListView.builder(
+                      controller: _scrollController3,
+                      itemCount: hitLists.hitLists[widget.which].numHits,
+                      itemBuilder: (BuildContext context, int index) {
+                        return Container(
+                          margin: EdgeInsets.only(bottom: 24),
+                          child: Column(
+                            children: [
+                              Text(
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium!.copyWith(
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                                "Sequence: " +
+                                    hitLists
+                                        .hitLists[widget.which]
+                                        .hits[index]
+                                        .name +
+                                    ", E-Value: " +
+                                    hitLists
+                                        .hitLists[widget.which]
+                                        .hits[index]
+                                        .seqEvalue
+                                        .toStringAsExponential(4),
+                              ),
+                              DrawHit(
+                                hit:
+                                    hitLists.hitLists[widget.which].hits[index],
+                                overview: widget.overview,
+                              ),
+                            ],
                           ),
-                            DrawHit(
-                              hit: hitLists.hitLists[widget.which].hits[index],
-                              overview: widget.overview,
-                            ), 
-                        ], 
-                      ), 
-                      );;
-                    },
+                        );
+                        ;
+                      },
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
-    ),
     );
   }
 }
