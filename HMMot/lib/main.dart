@@ -8,7 +8,6 @@ import 'package:HMMot/src/rust/api/gather_hits.dart';
 import 'package:HMMot/src/rust/frb_generated.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:menu_bar/menu_bar.dart';
 
 import 'dart:io' show Platform;
 
@@ -181,14 +180,14 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Expanded(child: MenuBar(children: MenuEntry.build(_getMenus()))),
+            Expanded(child: MenuBar(children: MenuEntry.build(_getMenus(filedata)))),
           ],
         );
       },
     );
   }
 
-  List<MenuEntry> _getMenus() {
+  List<MenuEntry> _getMenus(FileData filedata) {
     return [
       MenuEntry(
         label: 'File',
@@ -211,12 +210,29 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
                     "Select directory containing annotated sequence database",
               );
               if (annTemp == null) {
-              } else {
-                /*setState(() {
-                  filedata.setAnnotationsFile(annTemp);
-                });*/
+              } 
+              else {
+                filedata.setAnnotationsFile(annTemp);
+                };
               }
-            },
+          ),
+          MenuEntry(
+            label: "Select .domtblout files",
+            onPressed: () async{
+              FilePickerResult? dTemp = await FilePicker.platform.pickFiles(
+              allowMultiple: true,
+              dialogTitle: "Select .domtblout file(s)",
+              );
+            if (dTemp == null) {
+            } 
+            else {
+              setState(() {
+                filedata._domtbloutFiles =
+                    dTemp.paths.map((path) => path!).toList();
+                filedata.notifyListeners();
+              });
+            }
+            }
           ),
         ],
       ),
@@ -311,6 +327,14 @@ class FileData with ChangeNotifier {
   List<String> get domtbloutFiles => _domtbloutFiles;
   bool get annFileSet => _annFileSet;
   bool get domtbloutFilesSet => _domtbloutFilesSet;
+
+  String get annFilePrompt {
+    if (_annotationsFile.isEmpty) {
+      return "Select";
+    } else {
+      return "Change";
+    }
+  }
   // Don't notify listners after these functions,
   // because we want to make all changes, then trigger a load
   void setAnnotationsFile(String newAnnotations) {
@@ -331,6 +355,13 @@ class FileData with ChangeNotifier {
     notifyListeners();
   }
 
+  void deleteDomtbloutFile(String domtblout) {
+    _domtbloutFiles.remove(domtblout);
+    if (_domtbloutFiles.isEmpty) {
+      _domtbloutFilesSet = false;
+    }
+    notifyListeners();
+  }
   // Notify listeners once we've made all changes.
   void triggerLoad() {
     notifyListeners();
@@ -827,8 +858,6 @@ class annDataSelect extends StatefulWidget {
 
 class _annDataSelectState extends State<annDataSelect> {
   @override
-  String _baseAnnPrompt =
-      "Select directory containing annotated sequence database";
   Widget build(BuildContext context) {
     return Consumer3<OverviewData, HitLists, FileData>(
       builder: (context, overview, hitLists, filedata, child) {
@@ -846,7 +875,7 @@ class _annDataSelectState extends State<annDataSelect> {
               });
             }
           },
-          child: Text(_baseAnnPrompt),
+          child: Text(filedata.annFilePrompt),
         );
       },
     );
@@ -892,6 +921,56 @@ class _domTblSelectState extends State<domTblSelect> {
   }
 }
 
+class MainNavBar extends StatefulWidget {
+  const MainNavBar({super.key});
+
+    @override
+  _MainNavBarState createState() => _MainNavBarState();
+}
+
+class _MainNavBarState extends State<MainNavBar> {
+  static const List<String> _routes = <String>[
+    "/",
+    "/overview",
+    "/overview",
+    "/overview"
+  ];
+  int selectedIndex = 0;
+  bool _dataLoaded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return NavigationBar(
+      onDestinationSelected: (int index) {
+        int oldIndex = selectedIndex;
+          setState(() {
+            selectedIndex = index;
+          });
+          if (selectedIndex != oldIndex){
+            Navigator.pushNamed(context, _routes[index]);
+            };
+      },
+      destinations: <Widget>[
+        NavigationDestination(
+          icon: Icon(Icons.home),
+          label: 'Home',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.public),
+          label: 'Overview',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.details),
+          label: 'Detailed View',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.settings),
+          label: 'Settings',
+        ),
+      ],
+    );
+  }
+}
 // Widget to enter information about what files to read
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -901,21 +980,93 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
+  final ScrollController _mainScrollController = ScrollController();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          SafeArea(child: NonMacMenuBar()),
-          Consumer<FileData>(
+      body:           Consumer<FileData>(
             builder: (context, filedata, child) {
-              return Text(
-                "Annotated Database Selected: ${filedata.annotationsFile}\nDomtblout File(s) Selected: ${filedata.domtbloutFiles.join("\n")}",
+              return Column(
+        //mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          SafeArea(child: NonMacMenuBar()),
+          SafeArea(child: Text("HMMot: HMMer Results Observation Tool")),
+                    Text("Annotated Database:"),
+                    Card(
+                      child: ListTile(
+                        title: Center(
+                          child: Builder(
+                            builder: (context) {
+                              if(filedata.annFileSet){
+                                return Text(filedata.annotationsFile);
+                              } else {
+                                return Text("None Selected");
+                              };
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: <Widget>[
+                        annDataSelect(),
+                      ],
+                    ),
+                    Text("Domtblout File(s):"),
+                    Builder(
+                        builder: (context) {
+                          if(filedata.domtbloutFiles.length > 0){
+                            return 
+                              Flexible(
+                                child: Scrollbar(
+                              controller: _mainScrollController,
+                              child: ListView.builder(
+                              shrinkWrap: true, 
+                              controller: _mainScrollController,
+                              itemCount: filedata.domtbloutFiles.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                return Card(
+                                  child: Column(children: [ListTile(title: Center(child: Text(filedata.domtbloutFiles[index]),
+                                  ),),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: <Widget>[
+                                      ElevatedButton(
+                                        child: Text("Remove"),
+                                        onPressed: () {
+                                          setState(() {
+                                            filedata.deleteDomtbloutFile(filedata.domtbloutFiles[index]);
+                                            filedata.notifyListeners;
+                                          }
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                                ),
+                                );
+                              },
+                              ),
+                              ),);
+                          }
+                          else {
+                            return Card(child: ListTile(title: Center(child: Text("None Selected"),),),);
+                          };
+                        },
+                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: <Widget>[
+                        domTblSelect(),
+                      ],
+                    ),
+                  ],
               );
             },
           ),
-        ],
-      ),
+      bottomNavigationBar: MainNavBar(),
     );
   }
 }
