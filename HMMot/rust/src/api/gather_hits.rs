@@ -1,5 +1,7 @@
 use std::io::BufReader;
 use std::fs::File;
+//use std::thread::sleep;
+//use std::time;
 use std::io::prelude::*;
 use std::collections::HashMap;
 use std::cmp::Reverse;
@@ -199,12 +201,18 @@ fn read_domtblout(mut sequences: HashMap<String, Hit>, clan_map: &HashMap<u16, S
             Err(why) => return Err("Error reading line from ".to_string() +&domtbloutfile.to_string() + &". Reason was " + &why.to_string()),
             Ok(h) => h,
         };
-        if hit.chars().next().unwrap() == '#'{
-            // comment line, skip
-            continue;
+        match hit.chars().next(){
+            None => continue, // empty line, skip
+            Some(c) => if c == '#'{
+                // comment line, skip
+                continue;
+            },
         }
 
         let fields: Vec<&str> = hit.split_whitespace().collect();
+        if fields.len() < 19{
+            return Err("Error parsing domtblout file ".to_string() + &domtbloutfile.to_string() + &".  Not enough fields in line.  Line was: ".to_string() + &hit);
+        }
         let sequence = fields[0].to_string();
         let d_name = fields[3];
         let d_eval:f64 = match fields[12].parse(){
@@ -349,9 +357,9 @@ fn count_domains(hit_lists: &Vec<HitList>) -> Vec<String>{
 // Top-level function to read search data results from domtblout files
 // This is the ony one we want to expose on the Flutter side
 #[frb(serialize)]
-#[frb(sync)] 
 pub fn load_data(annfile: String, domtblout_files: Vec<String>) -> SearchResults{
     // First, open the annotated sequence database and make sure it has the right stuff in it
+    //sleep(time::Duration::from_secs(10));
     let overview = ResultsOverview{
         num_hits: 0,
         num_categories: 0,
