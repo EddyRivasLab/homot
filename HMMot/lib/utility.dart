@@ -28,18 +28,7 @@ class HmmotAppBar extends StatelessWidget implements PreferredSizeWidget {
           style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
           text
         ),
-        leading: 
-          IconButton(icon: const Icon(Icons.info_outline),
-            color: Theme.of(context).colorScheme.onPrimary,
-            tooltip: "About HMMot",
-            onPressed: (){
-              showAboutDialog(
-                context: context,
-                applicationName: "HMMot",
-                applicationVersion: "0.0.1",
-              );
-            },
-          ),
+        leading: NonMacMenuBar(),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),

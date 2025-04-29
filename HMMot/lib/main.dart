@@ -11,7 +11,7 @@ import 'package:HMMot/utility.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:io' show Platform;
+import 'dart:io';
 
 // List of pairs of background and foregrund colors for displaying
 // domains.  Taken from the ColorBrewer example color sets.
@@ -207,22 +207,65 @@ class NonMacMenuBar extends StatefulWidget {
 class _NonMacMenuBarState extends State<NonMacMenuBar> {
   @override
   Widget build(BuildContext context) {
-    return Consumer3<OverviewData, HitLists, FileData>(
-      builder: (context, overview, hitLists, filedata, child) {
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Expanded(child: MenuBar(children: MenuEntry.build(_getMenus(filedata)))),
-          ],
+    return MenuAnchor(
+      menuChildren: <Widget>[
+        MenuItemButton(
+          style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary,),
+          onPressed: () {
+              showAboutDialog(
+                context: context,
+                applicationName: 'HMMot: The HMMer Observation Tool',
+                applicationVersion: '0.0.1',
+              );
+            },
+            child: Text("About",
+              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary,),),
+        ),
+        MenuItemButton(
+            style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary,),
+            onPressed: () {
+              showDialog(context: context,
+                builder: (BuildContext context){
+                return AlertDialog(title: const Text("Quit HMMot?"),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  titleTextStyle: TextStyle(color: Theme.of(context).colorScheme.onPrimary,),
+                  actions: <Widget>[
+                    ElevatedButton(
+                      style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.onPrimary,),
+                      onPressed: (){exit(0);}, child: Text("Quit",style: TextStyle(color: Theme.of(context).colorScheme.primary,),),),
+                    ElevatedButton(
+                      style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.onPrimary,),
+                      onPressed:(){Navigator.pop(context,'Cancel');}, child: Text("Cancel", style: TextStyle(color: Theme.of(context).colorScheme.primary,),),),
+                    ],
+                  );
+                },
+              );
+            },
+            child: Text('Quit HMMot',
+            style: TextStyle(color: Theme.of(context).colorScheme.onPrimary,),),
+          ),
+      ],
+      builder: (BuildContext context, MenuController controller, Widget? child){
+        return IconButton(
+          icon: const Icon(Icons.menu), 
+          color: Theme.of(context).colorScheme.onPrimary,
+          onPressed: () {
+            if (controller.isOpen) {
+              controller.close();
+            } else {
+              controller.open();
+            }
+          },
         );
-      },
+      }
     );
   }
 
-  List<MenuEntry> _getMenus(FileData filedata) {
+
+  List<MenuEntry> _getMenus(BuildContext context) {
     return [
       MenuEntry(
-        label: 'File',
+        label: 'Menu',
         menuChildren: [
           MenuEntry(
             label: 'About',
@@ -235,42 +278,26 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
             },
           ),
           MenuEntry(
-            label: 'Select Annotated Database',
-            onPressed: () async {
-              String? annTemp = await FilePicker.platform.getDirectoryPath(
-                dialogTitle:
-                    "Select directory containing annotated sequence database",
+            label: 'Quit HMMot',
+            onPressed: () {
+              showDialog(context: context,
+                builder: (BuildContext context){
+                return AlertDialog(title: const Text("Quit HMMot?"),
+                  actions: <Widget>[
+                    TextButton(onPressed: (){exit(0);}, child: const Text("Quit"),),
+                    TextButton( onPressed:(){Navigator.pop(context,'Cancel');}, child: const Text("Cancel"),),
+                    ],
+                  );
+                },
               );
-              if (annTemp == null) {
-              } 
-              else {
-                filedata.setAnnotationsFile(annTemp);
-                };
-              }
-          ),
-          MenuEntry(
-            label: "Select .domtblout files",
-            onPressed: () async{
-              FilePickerResult? dTemp = await FilePicker.platform.pickFiles(
-              allowMultiple: true,
-              dialogTitle: "Select .domtblout file(s)",
-              );
-            if (dTemp == null) {
-            } 
-            else {
-              setState(() {
-                filedata._domtbloutFiles =
-                    dTemp.paths.map((path) => path!).toList();
-                filedata.notifyListeners();
-              });
-            }
-            }
+            },
           ),
         ],
       ),
     ];
   }
 }
+ 
 
 //  Top-level application
 class TopLevel extends StatelessWidget {
