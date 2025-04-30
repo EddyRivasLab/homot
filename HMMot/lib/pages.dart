@@ -22,6 +22,8 @@ import 'package:HMMot/draw_data.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'package:input_quantity/input_quantity.dart';
+import 'package:system_fonts/system_fonts.dart';
 
 //Widget to select annotation data directory
 class annDataSelect extends StatefulWidget {
@@ -311,9 +313,31 @@ class _SettingsPageState extends State<SettingsPage> {
       body:           Consumer<HTheme>(
             builder: (context, htheme, child) {
               return Column(
-        //mainAxisSize: MainAxisSize.min,
         children: <Widget>[
                     ElevatedButton(onPressed: htheme.toggleTheme, child: Text("Toggle Theme")),
+                    Column(
+                      children: [
+                        Text("Select Font"),  
+                        SystemFontSelector(
+                          isFontPreviewEnabled: true,
+                          onFontSelected: (font){
+                            htheme.setFont(font);
+                          }
+                        ),
+                        Text("Font Scale Factor"),
+                        InputQty.double(
+                          initVal: htheme.scale,
+                          minVal: 0.001,
+                          steps: 0.1,
+                          decoration: const QtyDecorationProps(
+                            qtyStyle: QtyStyle.btnOnRight
+                          ),
+                          onQtyChanged: (val) {
+                            htheme.setScale(val);
+                          },
+                        ),
+                      ],
+                    ),
                   ],
               );
             },

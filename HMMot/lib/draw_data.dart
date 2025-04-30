@@ -4,7 +4,6 @@
  * - DomainPainter: custom painter object that draws domains
  * - DrawHit: Displays the data for a single hit 
  * - DrawCategory: Displays the data for a category of hits
- * - DrawHitList: Displays the data for a list of hits
 NPC: 4/23/25 [The Cushy Office]
 */
 

@@ -10,6 +10,8 @@ import 'package:HMMot/pages.dart';
 import 'package:HMMot/draw_data.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:input_quantity/input_quantity.dart';
+
 
 class HmmotAppBar extends StatelessWidget implements PreferredSizeWidget {
   const HmmotAppBar({
@@ -99,10 +101,16 @@ class MainNavBar extends StatelessWidget {
                 label: 'All Results',
               ),
               NavigationDestination(
-                icon: Icon(Icons.details,
+                icon: Icon(Icons.search,
                 color: (whereAmI != WhichPage.category) &&hitLists.selected >=0  ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).disabledColor),
                 enabled: (whereAmI != WhichPage.category) && hitLists.selected >=0,
-                label: 'Category View',
+                label: 'Domain Architecture',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.search,
+                color: (whereAmI != WhichPage.category) &&hitLists.selected >=0  ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).disabledColor),
+                enabled: (whereAmI != WhichPage.category) && hitLists.selected >=0,
+                label: 'Sequence',
               ),
             ],
           ),
@@ -112,4 +120,96 @@ class MainNavBar extends StatelessWidget {
   }
 }
 
+enum FontList{
+  courierPrime,
+  firaCode,
+  inconsolata,
+  lato,
+  notoSans,
+  sourceCodePro,
+  sourceSans,
+  sourceSerif
+}
+
+class FontPicker extends StatefulWidget {
+  const FontPicker({super.key});
+
+  @override
+  State<FontPicker> createState() => _fontPickerState();
+}
+class _fontPickerState extends State<FontPicker> {
+  FontList? _font = FontList.courierPrime;
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<HTheme>(
+      builder: (context, htheme, child) {
+        _font = switch(htheme.font){
+      "Courier Prime" => FontList.courierPrime,
+      "Inconsolata" => FontList.inconsolata,
+      "Fira Code" => FontList.firaCode,
+      "Lato" => FontList.lato,
+      "Noto Sans" => FontList.notoSans,
+      _ => FontList.courierPrime
+    };
+        return Column(
+          children: [
+            Text("Font"),
+            ListTile(
+              title: Text("Courier Prime", style: Theme.of(context).textTheme.bodyMedium!.copyWith(fontFamily: "Courier Prime"), textAlign: TextAlign.start),
+              leading: Radio<FontList>(
+                value: FontList.courierPrime,
+                groupValue: _font,
+                onChanged: (FontList? value) {
+                  setState(() {
+                    htheme.setFont("Courier Prime");
+                  _font = FontList.courierPrime;
+                  });
+                },
+              ),
+            ),
+            ListTile(
+              title: Text("Fira Code", style: Theme.of(context).textTheme.bodyMedium!.copyWith(fontFamily: "Fira Code"), textAlign: TextAlign.start),
+              leading: Radio<FontList>(
+                value: FontList.firaCode,
+                groupValue: _font,
+                onChanged: (FontList? value) {
+                  setState(() {
+                    htheme.setFont("Fira Code");
+                  });
+                  _font = FontList.firaCode;
+                },
+              ),
+            ),
+                        ListTile(
+              title: Text("Inconsolata", style: Theme.of(context).textTheme.bodyMedium!.copyWith(fontFamily: "Inconsolata"), textAlign: TextAlign.start),
+              leading: Radio<FontList>(
+                value: FontList.inconsolata,
+                groupValue: _font,
+                onChanged: (FontList? value) {
+                  setState(() {
+                    htheme.setFont("Inconsolata");
+                    _font = FontList.inconsolata;
+                  });
+                },
+              ),
+            ),
+            ListTile(
+              title: Text("Lato", style: Theme.of(context).textTheme.bodyMedium!.copyWith(fontFamily: "Lato Bold"), textAlign: TextAlign.start),
+              leading: Radio<FontList>(
+                value: FontList.lato,
+                groupValue: _font,
+                onChanged: (FontList? value) {
+                  setState(() {
+                    htheme.setFont("Lato");
+                  });
+                  _font = FontList.lato;
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
 

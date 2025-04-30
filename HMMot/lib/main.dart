@@ -8,7 +8,6 @@ import 'package:HMMot/src/rust/frb_generated.dart';
 import 'package:HMMot/draw_data.dart';
 import 'package:HMMot/pages.dart';
 import 'package:HMMot/utility.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
@@ -56,38 +55,30 @@ Future<void> main() async {
   );
 }
 
-ThemeData lightTheme = ThemeData(
-  useMaterial3: true,
-  colorScheme: ColorScheme.fromSeed(
+ColorScheme lightScheme = ColorScheme.fromSeed(
     seedColor: const Color(0xff5475b4),
     primary: const Color(0xff5475b4),
     secondary: const Color(0xff9e0142),
     surface: const Color(0xffffffff),
-    background: const Color(0xffffffff),
     error: const Color(0xfff46d43),
     onPrimary: const Color(0xffffffff),
     onSecondary: const Color(0xffffffff),
     onSurface: const Color(0xff000000),
-    onBackground: const Color(0xff000000),
     onError: const Color(0xffffffff),
-  ),
-);
-ThemeData darkTheme = ThemeData(
-  useMaterial3: true,
-  colorScheme: ColorScheme.fromSeed(
+  );
+
+ColorScheme darkScheme = ColorScheme.fromSeed(
     seedColor: const Color(0xff5475b4),
     primary: const Color(0xff5475b4),
     secondary: const Color(0xff9e0142),
     surface: const Color(0xff000000),
-    background: const Color(0xff000000),
     error: const Color(0xfff46d43),
     onPrimary: const Color(0xffffffff),
     onSecondary: const Color(0xffffffff),
     onSurface: const Color(0xffffffff),
-    onBackground: const Color(0xffffffff),
     onError: const Color(0xff000000),
-  ),
-);
+  );
+
 
 // Wrapper that selects the correct menu bar for the platform
 class MenuWrapper extends StatelessWidget {
@@ -95,7 +86,6 @@ class MenuWrapper extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
-    GoogleFonts.config.allowRuntimeFetching = false;
 
     if (Platform.isMacOS) {
       return MacMenu();
@@ -324,19 +314,85 @@ class TopLevel extends StatelessWidget {
   }
 }
 
-
+enum brightModes {
+  light,
+  dark,
+}
 // ChangeNotifier for theme state
 class HTheme with ChangeNotifier {
-  bool _isDarkMode = false;
+  brightModes _mode = brightModes.light;
+  ThemeData? _themeData;
 
-  bool get isDarkMode => _isDarkMode;
+  String _font = "Courier Prime";
+  double _scale = 1.0;
 
+  ThemeData _updateTheme() {
+    if (_mode == brightModes.light) {
+      return ThemeData(
+        colorScheme: lightScheme,
+        fontFamily: _font,
+        textTheme: TextTheme(
+          displayLarge: TextStyle(fontSize: 57 * _scale),
+          displayMedium: TextStyle(fontSize: 45 * _scale),
+          displaySmall: TextStyle(fontSize: 36 * _scale),
+          headlineLarge: TextStyle(fontSize: 32 * _scale),
+          headlineMedium: TextStyle(fontSize: 28 * _scale),
+          headlineSmall: TextStyle(fontSize: 24 * _scale),
+          titleLarge: TextStyle(fontSize: 22 * _scale),
+          titleMedium: TextStyle(fontSize: 16 * _scale),
+          titleSmall: TextStyle(fontSize: 14 * _scale),
+          bodyLarge: TextStyle(fontSize: 16 * _scale),
+          bodyMedium: TextStyle(fontSize: 14 * _scale),
+          bodySmall: TextStyle(fontSize: 12 * _scale),
+          labelLarge: TextStyle(fontSize: 14* _scale),
+          labelMedium: TextStyle(fontSize: 12 * _scale),
+          labelSmall: TextStyle(fontSize: 11 * _scale),
+        ),
+      );
+    } else {
+      return ThemeData(
+        colorScheme: darkScheme,
+        fontFamily: _font,
+                textTheme: TextTheme(
+          displayLarge: TextStyle(fontSize: 57 * _scale),
+          displayMedium: TextStyle(fontSize: 45 * _scale),
+          displaySmall: TextStyle(fontSize: 36 * _scale),
+          headlineLarge: TextStyle(fontSize: 32 * _scale),
+          headlineMedium: TextStyle(fontSize: 28 * _scale),
+          headlineSmall: TextStyle(fontSize: 24 * _scale),
+          titleLarge: TextStyle(fontSize: 22 * _scale),
+          titleMedium: TextStyle(fontSize: 16 * _scale),
+          titleSmall: TextStyle(fontSize: 14 * _scale),
+          bodyLarge: TextStyle(fontSize: 16 * _scale),
+          bodyMedium: TextStyle(fontSize: 14 * _scale),
+          bodySmall: TextStyle(fontSize: 12 * _scale),
+          labelLarge: TextStyle(fontSize: 14* _scale),
+          labelMedium: TextStyle(fontSize: 12 * _scale),
+          labelSmall: TextStyle(fontSize: 11 * _scale),
+        ),
+      );
+    }
+  }
   void toggleTheme() {
-    _isDarkMode = !_isDarkMode;
+    if (_mode == brightModes.light) {
+      _mode = brightModes.dark;
+    } else {
+      _mode = brightModes.light;
+    }
     notifyListeners();
   }
-
-  ThemeData get themeData => _isDarkMode ? darkTheme : lightTheme;
+  void setFont(String font){
+    _font = font;
+    notifyListeners();
+  }
+  void setScale(double scale){
+    _scale = scale;
+    notifyListeners();
+  }
+  ThemeData get themeData => _updateTheme();
+  double get scale => _scale;
+  String get font => _font;
+  brightModes get mode => _mode;
 }
 
 // ChangeNotifier for the search results

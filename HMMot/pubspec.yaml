@@ -37,12 +37,10 @@ dependencies:
   rust_lib_hviewer:
     path: rust_builder
   flutter_rust_bridge: 2.8.0
-  google_fonts: ^6.2.1
   provider: ^6.1.4
   file_picker: ^10.0.0
-  flex_color_scheme: ^8.0.0
-  adaptive_theme: ^3.7.0
-
+  input_quantity: ^2.5.0
+  system_fonts: ^1.0.1
  
 
 
@@ -72,8 +70,6 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-assets:
-  - google_fonts/
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
@@ -104,4 +100,92 @@ assets:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
-  
+fonts:
+  - family: Courier Prime
+    fonts:
+      - asset: google_fonts/Courier_Prime/CourierPrime-Regular.ttf
+      - asset: google_fonts/Courier_Prime/CourierPrime-Bold.ttf
+        weight: 700
+      - asset: google_fonts/Courier_Prime/CourierPrime-Italic.ttf 
+        style: italic
+      - asset: google_fonts/Courier_Prime/CourierPrime-BoldItalic.ttf
+        style: italic
+        weight: 700 
+  - family: Fira Code
+    fonts:
+      - asset: google_fonts/Fira_Code/FiraCode-Regular.ttf
+      - asset: google_fonts/Fira_Code/FiraCode-Bold.ttf
+        weight: 700
+      - asset: google_fonts/Fira_Code/FiraCode-Light.ttf
+      - asset: google_fonts/Fira_Code/FiraCode-Medium.ttf
+      - asset: google_fonts/Fira_Code/FiraCode-SemiBold.ttf
+  - family: Inconsolata
+    fonts:
+      - asset: google_fonts/Inconsolata/Inconsolata-Regular.ttf
+      - asset: google_fonts/Inconsolata/Inconsolata-Bold.ttf
+        weight: 700
+  - family: Lato
+    fonts:
+      - asset: google_fonts/Lato/Lato-Regular.ttf
+      - asset: google_fonts/Lato/Lato-Bold.ttf
+        weight: 700
+      - asset: google_fonts/Lato/Lato-Italic.ttf
+        style: italic
+      - asset: google_fonts/Lato/Lato-BoldItalic.ttf
+        weight: 700
+      - asset: google_fonts/Lato/Lato-Light.ttf
+      - asset: google_fonts/Lato/Lato-LightItalic.ttf
+        style: italic
+      - asset: google_fonts/Lato/Lato-Thin.ttf
+      - asset: google_fonts/Lato/Lato-ThinItalic.ttf
+        style: italic
+      - asset: google_fonts/Lato/Lato-Black.ttf
+      - asset: google_fonts/Lato/Lato-BlackItalic.ttf
+        style: italic
+  - family: Noto Sans
+    fonts:
+      - asset: google_fonts/Noto_Sans/NotoSans-Regular.ttf
+      - asset: google_fonts/Noto_Sans/NotoSans-Bold.ttf
+        weight: 700
+      - asset: google_fonts/Noto_Sans/NotoSans-Italic.ttf
+        style: italic
+      - asset: google_fonts/Noto_Sans/NotoSans-BoldItalic.ttf
+        style: italic
+        weight: 700
+      - asset: google_fonts/Noto_Sans/NotoSans-Light.ttf
+      - asset: google_fonts/Noto_Sans/NotoSans-LightItalic.ttf
+        style: italic
+  - family: Source Code Pro
+    fonts:
+      - asset: google_fonts/Source_Code_Pro/SourceCodePro-Regular.ttf
+      - asset: google_fonts/Source_Code_Pro/SourceCodePro-Bold.ttf
+        weight: 700
+      - asset: google_fonts/Source_Code_Pro/SourceCodePro-Light.ttf
+      - asset: google_fonts/Source_Code_Pro/SourceCodePro-Medium.ttf
+      - asset: google_fonts/Source_Code_Pro/SourceCodePro-SemiBold.ttf
+  - family: Source Sans 3
+    fonts:
+      - asset: google_fonts/Source_Sans_3/SourceSans3-Regular.ttf
+      - asset: google_fonts/Source_Sans_3/SourceSans3-Bold.ttf
+        weight: 700
+      - asset: google_fonts/Source_Sans_3/SourceSans3-Italic.ttf
+        style: italic
+      - asset: google_fonts/Source_Sans_3/SourceSans3-BoldItalic.ttf
+        style: italic
+        weight: 700
+      - asset: google_fonts/Source_Sans_3/SourceSans3-Light.ttf
+      - asset: google_fonts/Source_Sans_3/SourceSans3-LightItalic.ttf
+        style: italic
+  - family: Source Serif 4
+    fonts:
+      - asset: google_fonts/Source_Serif_4/SourceSerif4-Regular.ttf
+      - asset: google_fonts/Source_Serif_4/SourceSerif4-Bold.ttf
+        weight: 700
+      - asset: google_fonts/Source_Serif_4/SourceSerif4-Italic.ttf
+        style: italic
+      - asset: google_fonts/Source_Serif_4/SourceSerif4-BoldItalic.ttf
+        style: italic
+        weight: 700
+      - asset: google_fonts/Source_Serif_4/SourceSerif4-Light.ttf
+      - asset: google_fonts/Source_Serif_4/SourceSerif4-LightItalic.ttf
+        style: italic
