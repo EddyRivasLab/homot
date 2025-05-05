@@ -307,6 +307,7 @@ class TopLevel extends StatelessWidget {
                 '/overview': (context) => const OverviewPage(),
                 '/category': (context) => const CategoryPage(),
                 '/settings': (context) => const SettingsPage(),
+                "/sequence": (context) => const SequencePage(),
               },
             );
       },
@@ -514,7 +515,13 @@ class FileData with ChangeNotifier {
 class HitLists with ChangeNotifier {
   List<HitList> _hitLists = [];
   int _selected = -1;
+  int _sequence = -1;
 
+  int get sequence => _sequence;
+
+  void setSequence(int seq) {
+    _sequence = seq;
+  }
   List<HitList> get hitLists => _hitLists;
   int get selected => _selected;
   void clear() {

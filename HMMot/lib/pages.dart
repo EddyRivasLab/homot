@@ -237,11 +237,11 @@ class _MainPageState extends State<MainPage> {
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             duration: Duration(days: 1),
                             backgroundColor: Colors.yellow,
-                            content: Center(child: Text("Loading Data")),
+                            content: Center(child: Text("Loading Data", style: TextStyle(color: Colors.black),),),
                             ),
                           ); 
                           //Gather hits from the domtblout files
-                          results =loadData(annfile: filedata.annotationsFile,
+                          results =await loadData(annfile: filedata.annotationsFile,
                                             domtbloutFiles: filedata.domtbloutFiles,
                            );
                           ScaffoldMessenger.of(context).clearSnackBars();
@@ -389,7 +389,7 @@ class _OverviewPageState extends State<OverviewPage> {
   }
 }
 
-// Widget that displays the results overview
+// Widget that displays one domain signature's worth of results
 class CategoryPage extends StatefulWidget {
   const CategoryPage({super.key});
 
@@ -425,6 +425,18 @@ class _CategoryPageState extends State<CategoryPage> {
                           hit: hitLists.hitLists[hitLists.selected].hits[index],
                           overview: overview,
                         ),
+                        ElevatedButton(
+                          onPressed: () {
+                            hitLists.setSequence(index);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SequencePage(),
+                              ),
+                            );
+                          },
+                          child: Text("Show"),
+                        ),
                       ],
                     ),
                   );
@@ -432,6 +444,62 @@ class _CategoryPageState extends State<CategoryPage> {
               ),
             ),
             bottomNavigationBar: MainNavBar(whereAmI: WhichPage.category),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Page that shows the details for a single sequence
+class SequencePage extends StatefulWidget {
+  const SequencePage({super.key});
+
+  @override
+  State<SequencePage> createState() => _SequencePageState();
+}
+
+class _SequencePageState extends State<SequencePage> {
+  final ScrollController _scrollController2 = ScrollController();
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      child: Consumer2<OverviewData, HitLists>(
+        builder: (context, overview, hitLists, child) {
+          return Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            appBar:  HmmotAppBar(text : "Sequence ${hitLists.hitLists[hitLists.selected].hits[hitLists.sequence].name}"),
+            body: SingleChildScrollView(
+              controller: _scrollController2,
+              child: 
+                Card(
+                  child: 
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
+                            "Sequence e-value: ${ 
+                            hitLists.hitLists[hitLists.selected].hits[hitLists.sequence].seqEvalue.toStringAsExponential(4)}"
+                        ),
+                        DrawHit(
+                          hit: hitLists.hitLists[hitLists.selected].hits[hitLists.sequence],
+                          allDomains: true,
+                          overview: overview,
+                        ),
+                        Text(
+                          style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
+                          "Sequence:",                 
+                        ),
+                        Text(
+                          style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
+                          hitLists.hitLists[hitLists.selected].hits[hitLists.sequence].sequence,
+                        ),
+                      ],
+                    ),
+                ),
+            ),
+            bottomNavigationBar: MainNavBar(whereAmI: WhichPage.sequence),
           );
         },
       ),

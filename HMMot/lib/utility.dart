@@ -53,7 +53,8 @@ enum WhichPage{
     home,
     overview,
     category,
-    settings
+    settings,
+    sequence,
   }
 class MainNavBar extends StatelessWidget {
   const MainNavBar({super.key,
@@ -65,6 +66,7 @@ class MainNavBar extends StatelessWidget {
     "/",
     "/overview",
     "/category",
+    "/sequence",
   ];
 
 
@@ -108,8 +110,8 @@ class MainNavBar extends StatelessWidget {
               ),
               NavigationDestination(
                 icon: Icon(Icons.search,
-                color: (whereAmI != WhichPage.category) &&hitLists.selected >=0  ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).disabledColor),
-                enabled: (whereAmI != WhichPage.category) && hitLists.selected >=0,
+                color: (whereAmI != WhichPage.sequence) &&hitLists.sequence >=0  ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).disabledColor),
+                enabled: (whereAmI != WhichPage.sequence) && hitLists.sequence >=0,
                 label: 'Sequence',
               ),
             ],

@@ -321,8 +321,9 @@ class DomainPainter extends CustomPainter {
 
 //Widget to draw the data for a hit
 class DrawHit extends StatefulWidget {
-  const DrawHit({super.key, required this.hit, required this.overview});
+  const DrawHit({super.key, required this.hit, required this.overview, this.allDomains = false});
   final Hit hit;
+  final bool allDomains;
   final OverviewData overview;
   State<DrawHit> createState() => _DrawHitState();
 }
@@ -352,13 +353,22 @@ class _DrawHitState extends State<DrawHit> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    return DrawDomains(
+    if (widget.allDomains){
+      return DrawDomains(
+      sequence: widget.hit.sequence,
+      domains: widget.hit.domains,
+      width: width,
+      queries: widget.hit.queries,
+      overview: widget.overview,
+    );
+    }
+    else{return DrawDomains(
       sequence: widget.hit.sequence,
       domains: widget.hit.structureDomains,
       width: width,
       queries: widget.hit.queries,
       overview: widget.overview,
-    );
+    );}
   }
 }
 
