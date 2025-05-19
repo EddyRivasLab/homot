@@ -304,8 +304,7 @@ class SettingsPage extends StatefulWidget {
   _SettingsPageState createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
-  final ScrollController _mainScrollController = ScrollController();
+class _SettingsPageState extends State<SettingsPage> { 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -314,16 +313,43 @@ class _SettingsPageState extends State<SettingsPage> {
             builder: (context, htheme, child) {
               return Column(
         children: <Widget>[
-                    ElevatedButton(onPressed: htheme.toggleTheme, child: Text("Toggle Theme")),
-                    Column(
+                    Wrap(
+                      spacing: 20,
+                      runSpacing: 20,
                       children: [
+                        Column(children: [
+                          Text("Theme"),
+                          ChoiceChip(label: Text("Light"),
+                          selected: htheme.mode == brightModes.light,
+                          onSelected: (bool selected){
+                            if (selected == true){
+                              htheme.setMode(brightModes.light);
+                            }
+                          }),
+                          ChoiceChip(label: Text("Dark"),
+                          selected: htheme.mode == brightModes.dark,
+                          onSelected: (bool selected){
+                            if (selected == true){
+                              htheme.setMode(brightModes.dark);
+                            }
+                          }),
+                          ChoiceChip(label: Text("System"),
+                          selected: htheme.mode == brightModes.system,
+                          onSelected: (bool selected){
+                            if (selected == true){
+                              htheme.setMode(brightModes.system);
+                            }
+                          }),
+                        ]),
+                        Column(children: [
                         Text("Select Font"),  
                         SystemFontSelector(
                           isFontPreviewEnabled: true,
                           onFontSelected: (font){
                             htheme.setFont(font);
                           }
-                        ),
+                        ),],),
+                        Column(children:[
                         Text("Font Scale Factor"),
                         InputQty.double(
                           initVal: htheme.scale,
@@ -335,7 +361,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           onQtyChanged: (val) {
                             htheme.setScale(val);
                           },
-                        ),
+                        ),],)
                       ],
                     ),
                   ],

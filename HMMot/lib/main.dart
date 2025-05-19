@@ -318,6 +318,7 @@ class TopLevel extends StatelessWidget {
 enum brightModes {
   light,
   dark,
+  system,
 }
 // ChangeNotifier for theme state
 class HTheme with ChangeNotifier {
@@ -328,7 +329,8 @@ class HTheme with ChangeNotifier {
   double _scale = 1.0;
 
   ThemeData _updateTheme() {
-    if (_mode == brightModes.light) {
+    if (_mode == brightModes.light ||
+    (_mode == brightModes.system &&  ThemeMode.system == ThemeMode.light)) {
       return ThemeData(
         colorScheme: lightScheme,
         fontFamily: _font,
@@ -374,12 +376,8 @@ class HTheme with ChangeNotifier {
       );
     }
   }
-  void toggleTheme() {
-    if (_mode == brightModes.light) {
-      _mode = brightModes.dark;
-    } else {
-      _mode = brightModes.light;
-    }
+  void setMode(brightModes newmode){
+    _mode=newmode;
     notifyListeners();
   }
   void setFont(String font){
