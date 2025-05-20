@@ -113,13 +113,15 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.primary,
       appBar: HmmotAppBar(text: "HMMot: HMMer Results Observation Tool"),
-      body:           Consumer3<FileData, HitLists, OverviewData>(
-            builder: (context, filedata, hitLists, overview, child) {
+      body:           Consumer4<FileData, HitLists, OverviewData, HSettings>(
+            builder: (context, filedata, hitLists, overview, hsettings, child) {
               return Column(
         //mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-                    Text("Annotated Database:"),
+                    Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onPrimary),
+                    "Annotated Database:"),
                     Card(
                       child: ListTile(
                         title: Center(
@@ -141,7 +143,8 @@ class _MainPageState extends State<MainPage> {
                         annDataSelect(),
                       ],
                     ),
-                    Text("Domtblout File(s):"),
+                    Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onPrimary),
+                    "Domtblout File(s):"),
                     Builder(
                         builder: (context) {
                           if(filedata.domtbloutFiles.length > 0){
@@ -242,7 +245,7 @@ class _MainPageState extends State<MainPage> {
                           ); 
                           //Gather hits from the domtblout files
                           results =await loadData(annfile: filedata.annotationsFile,
-                                            domtbloutFiles: filedata.domtbloutFiles,
+                                            domtbloutFiles: filedata.domtbloutFiles, evalMax: hsettings.evalMax, domEvalMax: hsettings.domEvalMax
                            );
                           ScaffoldMessenger.of(context).clearSnackBars();
                           // Update the overview data
@@ -305,63 +308,108 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> { 
+  Future<void> _showWarning() async{
+    return showDialog<void>(
+      context:context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {return AlertDialog(
+        title: const Text("Reload Data"),
+        content: const Text("Data must be re-loaded for changes to e-value settings to take effect."),
+        actions: [
+          TextButton(child: const Text('OK'),
+          onPressed: () => Navigator.of(context).pop()),
+        ]
+      );}
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.primary,
       appBar: HmmotAppBar(text: "Settings"),
-      body:           Consumer<HTheme>(
-            builder: (context, htheme, child) {
+      body:           Consumer<HSettings>(
+            builder: (context, hsettings, child) {
               return Column(
         children: <Widget>[
                     Wrap(
                       spacing: 20,
                       runSpacing: 20,
                       children: [
-                        Column(children: [
+                        Card(child:Column(children: [
+                          
                           Text("Theme"),
                           ChoiceChip(label: Text("Light"),
-                          selected: htheme.mode == brightModes.light,
+                          selected: hsettings.mode == brightModes.light,
                           onSelected: (bool selected){
                             if (selected == true){
-                              htheme.setMode(brightModes.light);
+                              hsettings.mode= brightModes.light;
                             }
                           }),
                           ChoiceChip(label: Text("Dark"),
-                          selected: htheme.mode == brightModes.dark,
+                          selected: hsettings.mode == brightModes.dark,
                           onSelected: (bool selected){
                             if (selected == true){
-                              htheme.setMode(brightModes.dark);
+                              hsettings.mode =brightModes.dark;
                             }
                           }),
                           ChoiceChip(label: Text("System"),
-                          selected: htheme.mode == brightModes.system,
+                          selected: hsettings.mode == brightModes.system,
                           onSelected: (bool selected){
                             if (selected == true){
-                              htheme.setMode(brightModes.system);
+                              hsettings.mode =brightModes.system;
                             }
                           }),
-                        ]),
-                        Column(children: [
+                        ]),),
+                        Card(child:Column(children: [
                         Text("Select Font"),  
                         SystemFontSelector(
                           isFontPreviewEnabled: true,
                           onFontSelected: (font){
-                            htheme.setFont(font);
+                            hsettings.font =font;
                           }
-                        ),],),
-                        Column(children:[
+                        ),],),),
+                        Card(child:Column(children:[
                         Text("Font Scale Factor"),
                         InputQty.double(
-                          initVal: htheme.scale,
+                          initVal: hsettings.scale,
                           minVal: 0.001,
                           steps: 0.1,
                           decoration: const QtyDecorationProps(
                             qtyStyle: QtyStyle.btnOnRight
                           ),
                           onQtyChanged: (val) {
-                            htheme.setScale(val);
+                            hsettings.scale =val;
                           },
-                        ),],)
+                        ),],),),
+                        Card(child: IntrinsicWidth(child: Column(children: [
+                          Text("Maximum E-Value to Show"),
+                          TextFormField(
+                            initialValue: hsettings.evalMax.toString(),
+                            decoration: InputDecoration(border: OutlineInputBorder()),
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
+                            onFieldSubmitted: (String? value) async{
+                              double? val = double.tryParse(value!);
+                              if(val != null){hsettings.evalMax = val;
+                                await(_showWarning());}
+                            },
+                            validator: (String? value){
+                              return(value == null || double.tryParse(value) == null) ? "Must be a real number":null;
+                            }),],),),),
+                        Card(child: IntrinsicWidth(child: Column(children: [
+                          Text("Maximum Domain E-Value to Show"),
+                          TextFormField(
+                            initialValue: hsettings.domEvalMax.toString(),
+                            decoration: InputDecoration(border: OutlineInputBorder()),
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
+                            onFieldSubmitted: (String? value) async{
+                              double? val = double.tryParse(value!);
+                              if(val != null){hsettings.domEvalMax = val;
+                              await(_showWarning());
+                            }},
+                            validator: (String? value){
+                              return(value == null || double.tryParse(value) == null) ? "Must be a real number":null;
+                            }),],),),),
                       ],
                     ),
                   ],
@@ -389,6 +437,7 @@ class _OverviewPageState extends State<OverviewPage> {
       child: Consumer<OverviewData>(
         builder: (context, overview, child) {
           return Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.primary,
             appBar:  HmmotAppBar(text:"${overview.numHits} hits found, with ${overview.numCategories} different domain signatures."),
             body: Scrollbar(
               controller: _scrollController2,
@@ -396,7 +445,7 @@ class _OverviewPageState extends State<OverviewPage> {
                 controller: _scrollController2,
                 itemCount: overview.numCategories,
                 itemBuilder: (BuildContext context, int index) {
-                  return Container(
+                  return Card(
                     margin: EdgeInsets.only(bottom: 8),
                     child: DrawCategory(
                       which: index,
@@ -431,6 +480,7 @@ class _CategoryPageState extends State<CategoryPage> {
       child: Consumer2<OverviewData, HitLists>(
         builder: (context, overview, hitLists, child) {
           return Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.primary,
             appBar:  HmmotAppBar(text : "${hitLists.hitLists[hitLists.selected].numHits} hits found with domain structure ${hitLists.hitLists[hitLists.selected].signature}"),
             body: Scrollbar(
               controller: _scrollController2,
@@ -438,9 +488,9 @@ class _CategoryPageState extends State<CategoryPage> {
                 controller: _scrollController2,
                 itemCount: hitLists.hitLists[hitLists.selected].numHits,
                 itemBuilder: (BuildContext context, int index) {
-                  return Container(
-                    margin: EdgeInsets.only(bottom: 24),
+                  return Card(
                     child: Column(
+                      //crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
                           style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
@@ -451,7 +501,8 @@ class _CategoryPageState extends State<CategoryPage> {
                           hit: hitLists.hitLists[hitLists.selected].hits[index],
                           overview: overview,
                         ),
-                        ElevatedButton(
+                        Align( alignment: Alignment(1.0,0.0), child: IconButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
                           onPressed: () {
                             hitLists.setSequence(index);
                             Navigator.push(
@@ -461,8 +512,8 @@ class _CategoryPageState extends State<CategoryPage> {
                               ),
                             );
                           },
-                          child: Text("Show"),
-                        ),
+                          icon: Icon(Icons.search, color: Theme.of(context).colorScheme.onPrimary),
+                        ),),
                       ],
                     ),
                   );

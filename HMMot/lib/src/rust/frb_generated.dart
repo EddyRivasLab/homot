@@ -85,6 +85,8 @@ abstract class RustLibApi extends BaseApi {
   Future<SearchResults> crateApiGatherHitsLoadData({
     required String annfile,
     required List<String> domtbloutFiles,
+    required double evalMax,
+    required double domEvalMax,
   });
 }
 
@@ -174,6 +176,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Future<SearchResults> crateApiGatherHitsLoadData({
     required String annfile,
     required List<String> domtbloutFiles,
+    required double evalMax,
+    required double domEvalMax,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -181,6 +185,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(annfile, serializer);
           sse_encode_list_String(domtbloutFiles, serializer);
+          sse_encode_f_64(evalMax, serializer);
+          sse_encode_f_64(domEvalMax, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -193,7 +199,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGatherHitsLoadDataConstMeta,
-        argValues: [annfile, domtbloutFiles],
+        argValues: [annfile, domtbloutFiles, evalMax, domEvalMax],
         apiImpl: this,
       ),
     );
@@ -201,7 +207,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiGatherHitsLoadDataConstMeta => const TaskConstMeta(
     debugName: "load_data",
-    argNames: ["annfile", "domtbloutFiles"],
+    argNames: ["annfile", "domtbloutFiles", "evalMax", "domEvalMax"],
   );
 
   @protected

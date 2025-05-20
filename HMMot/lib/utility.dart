@@ -121,7 +121,7 @@ class MainNavBar extends StatelessWidget {
     );
   }
 }
-
+/*
 enum FontList{
   courierPrime,
   firaCode,
@@ -143,7 +143,7 @@ class _fontPickerState extends State<FontPicker> {
   FontList? _font = FontList.courierPrime;
   @override
   Widget build(BuildContext context) {
-    return Consumer<HTheme>(
+    return Consumer<HSettings>(
       builder: (context, htheme, child) {
         _font = switch(htheme.font){
       "Courier Prime" => FontList.courierPrime,
@@ -214,4 +214,4 @@ class _fontPickerState extends State<FontPicker> {
     );
   }
 }
-
+*/

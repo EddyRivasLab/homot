@@ -164,12 +164,16 @@ fn wire__crate__api__gather_hits__load_data_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_annfile = <String>::sse_decode(&mut deserializer);
             let api_domtblout_files = <Vec<String>>::sse_decode(&mut deserializer);
+            let api_eval_max = <f64>::sse_decode(&mut deserializer);
+            let api_dom_eval_max = <f64>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, ()>((move || {
                     let output_ok = Result::<_, ()>::Ok(crate::api::gather_hits::load_data(
                         api_annfile,
                         api_domtblout_files,
+                        api_eval_max,
+                        api_dom_eval_max,
                     ))?;
                     Ok(output_ok)
                 })())

@@ -189,7 +189,8 @@ fn create_hitlists(sequences: HashMap<String, Hit>)->Vec<HitList>{
 
 
 
-fn read_domtblout(mut sequences: HashMap<String, Hit>, clan_map: &HashMap<u16, String>, db: &PartitionHandle, domtbloutfile: &String)->Result<HashMap<String, Hit>, String>{
+fn read_domtblout(mut sequences: HashMap<String, Hit>, clan_map: &HashMap<u16, String>, db: &PartitionHandle, 
+    domtbloutfile: &String, eval_max: f64, dom_eval_max: f64)->Result<HashMap<String, Hit>, String>{
     let fp = match File::open(&domtbloutfile){
         Err(why) => return Err("Couldn't open ".to_string() + &domtbloutfile.to_string()+ &" for reading.  Reason was : ".to_string() + &why.to_string()),
         Ok(file) => file,
@@ -244,6 +245,11 @@ fn read_domtblout(mut sequences: HashMap<String, Hit>, clan_map: &HashMap<u16, S
             Ok(v) => v,
         };
         
+        if  s_eval > eval_max || d_eval > dom_eval_max{
+            // This hit doesn't meet our eval standards, ignore
+            continue;
+        } 
+
         // Create a Domain describing this hit
         let hit_domain = Domain{
             name: d_name.to_string(),
@@ -357,7 +363,7 @@ fn count_domains(hit_lists: &Vec<HitList>) -> Vec<String>{
 // Top-level function to read search data results from domtblout files
 // This is the ony one we want to expose on the Flutter side
 #[frb(serialize)]
-pub fn load_data(annfile: String, domtblout_files: Vec<String>) -> SearchResults{
+pub fn load_data(annfile: String, domtblout_files: Vec<String>, eval_max: f64, dom_eval_max: f64) -> SearchResults{
     // First, open the annotated sequence database and make sure it has the right stuff in it
     //sleep(time::Duration::from_secs(10));
     let overview = ResultsOverview{
@@ -421,7 +427,7 @@ pub fn load_data(annfile: String, domtblout_files: Vec<String>) -> SearchResults
     
     let mut hit_sequences= HashMap::new();
     for domtbloutfile in domtblout_files{
-        hit_sequences = match read_domtblout(hit_sequences, &clan_map, &db, &domtbloutfile){
+        hit_sequences = match read_domtblout(hit_sequences, &clan_map, &db, &domtbloutfile, eval_max, dom_eval_max){
             Ok(v) => v,
             Err(msg) => {
                 results.err_msg = "Error parsing domtblout file ".to_string() + &domtbloutfile+ "Error was: " + &msg.to_string();

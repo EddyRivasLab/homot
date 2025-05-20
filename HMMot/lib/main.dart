@@ -48,7 +48,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => OverviewData()),
         ChangeNotifierProvider(create: (_) => HitLists()),
         ChangeNotifierProvider(create: (_) => FileData()),
-        ChangeNotifierProvider(create: (_) => HTheme()),
+        ChangeNotifierProvider(create: (_) => HSettings()),
       ],
       child: MenuWrapper(),
     ),
@@ -295,10 +295,10 @@ class TopLevel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<HTheme>(
-      builder: (context, htheme, child) {
+    return Consumer<HSettings>(
+      builder: (context, hsettings, child) {
         return MaterialApp(
-              theme: htheme.themeData,
+              theme: hsettings.themeData,
               debugShowCheckedModeBanner: false,
               title: 'HMMot',
               initialRoute: '/',
@@ -321,12 +321,14 @@ enum brightModes {
   system,
 }
 // ChangeNotifier for theme state
-class HTheme with ChangeNotifier {
+class HSettings with ChangeNotifier {
   brightModes _mode = brightModes.light;
   ThemeData? _themeData;
 
   String _font = "Courier Prime";
   double _scale = 1.0;
+  double _evalMax = 10.0;  
+  double _domEvalMax = 10.0;
 
   ThemeData _updateTheme() {
     if (_mode == brightModes.light ||
@@ -376,22 +378,35 @@ class HTheme with ChangeNotifier {
       );
     }
   }
-  void setMode(brightModes newmode){
+  void set mode(brightModes newmode){
     _mode=newmode;
     notifyListeners();
   }
-  void setFont(String font){
+  void set font(String font){
     _font = font;
     notifyListeners();
   }
-  void setScale(double scale){
+  void set scale(double scale){
     _scale = scale;
     notifyListeners();
   }
+
+  void set evalMax(double newMax){
+    _evalMax = newMax;
+    notifyListeners();
+  }
+
+  void set domEvalMax(double newMax){
+    _domEvalMax = newMax;
+    notifyListeners();
+  }
+  
   ThemeData get themeData => _updateTheme();
   double get scale => _scale;
   String get font => _font;
   brightModes get mode => _mode;
+  double get evalMax => _evalMax;
+  double get domEvalMax => _domEvalMax; 
 }
 
 // ChangeNotifier for the search results
