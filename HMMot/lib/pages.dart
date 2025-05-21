@@ -316,7 +316,7 @@ class _SettingsPageState extends State<SettingsPage> {
         title: const Text("Reload Data"),
         content: const Text("Data must be re-loaded for changes to e-value settings to take effect."),
         actions: [
-          TextButton(child: const Text('OK'),
+          TextButton(child: Text(style: Theme.of(context).textTheme.bodyMedium, 'OK'),
           onPressed: () => Navigator.of(context).pop()),
         ]
       );}
@@ -332,37 +332,38 @@ class _SettingsPageState extends State<SettingsPage> {
             builder: (context, hsettings, child) {
               return Column(
         children: <Widget>[
-                    Wrap(
-                      spacing: 20,
-                      runSpacing: 20,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Card(child:Column(children: [
-                          
-                          Text("Theme"),
-                          ChoiceChip(label: Text("Light"),
+                        Card(child:Column(
+                          children: [
+                          Text(style: Theme.of(context).textTheme.bodyMedium, "Theme"), Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                          ChoiceChip(label: Text(style: Theme.of(context).textTheme.bodyMedium, "Light"),
                           selected: hsettings.mode == brightModes.light,
                           onSelected: (bool selected){
                             if (selected == true){
                               hsettings.mode= brightModes.light;
                             }
                           }),
-                          ChoiceChip(label: Text("Dark"),
+                          ChoiceChip(label: Text(style: Theme.of(context).textTheme.bodyMedium, "Dark"),
                           selected: hsettings.mode == brightModes.dark,
                           onSelected: (bool selected){
                             if (selected == true){
                               hsettings.mode =brightModes.dark;
                             }
                           }),
-                          ChoiceChip(label: Text("System"),
+                          ChoiceChip(label: Text(style: Theme.of(context).textTheme.bodyMedium, "System"),
                           selected: hsettings.mode == brightModes.system,
                           onSelected: (bool selected){
                             if (selected == true){
                               hsettings.mode =brightModes.system;
                             }
-                          }),
+                          }),],),
                         ]),),
                         Card(child:Column(children: [
-                        Text("Select Font"),  
+                        Text(style: Theme.of(context).textTheme.bodyMedium, "Select Font"),  
                         SystemFontSelector(
                           isFontPreviewEnabled: true,
                           onFontSelected: (font){
@@ -370,7 +371,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           }
                         ),],),),
                         Card(child:Column(children:[
-                        Text("Font Scale Factor"),
+                        Text(style: Theme.of(context).textTheme.bodyMedium, "Font Scale Factor"),
                         InputQty.double(
                           initVal: hsettings.scale,
                           minVal: 0.001,
@@ -383,8 +384,8 @@ class _SettingsPageState extends State<SettingsPage> {
                           },
                         ),],),),
                         Card(child: IntrinsicWidth(child: Column(children: [
-                          Text("Maximum E-Value to Show"),
-                          TextFormField(
+                          Text(style: Theme.of(context).textTheme.bodyMedium, "Maximum E-Value to Show"),
+                          TextFormField(style: Theme.of(context).textTheme.bodyMedium,
                             initialValue: hsettings.evalMax.toString(),
                             decoration: InputDecoration(border: OutlineInputBorder()),
                             autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -397,8 +398,8 @@ class _SettingsPageState extends State<SettingsPage> {
                               return(value == null || double.tryParse(value) == null) ? "Must be a real number":null;
                             }),],),),),
                         Card(child: IntrinsicWidth(child: Column(children: [
-                          Text("Maximum Domain E-Value to Show"),
-                          TextFormField(
+                          Text(style: Theme.of(context).textTheme.bodyMedium,"Maximum Domain E-Value to Show"),
+                          TextFormField(style: Theme.of(context).textTheme.bodyMedium,
                             initialValue: hsettings.domEvalMax.toString(),
                             decoration: InputDecoration(border: OutlineInputBorder()),
                             autovalidateMode: AutovalidateMode.onUserInteraction,
