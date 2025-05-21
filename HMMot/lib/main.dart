@@ -10,6 +10,7 @@ import 'package:HMMot/pages.dart';
 import 'package:HMMot/utility.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 
 // List of pairs of background and foregrund colors for displaying
@@ -41,14 +42,19 @@ const domainColors = [
 Future<void> main() async {
   await RustLib.init();
   WidgetsFlutterBinding.ensureInitialized();
-
+  final SharedPreferencesAsync prefs = SharedPreferencesAsync();
+  String font = await prefs.getString("HMMot_font") ?? "Roboto";
+  double evalMax = await prefs.getDouble("HMMot_evalMax") ?? 10.0;
+  double domEvalMax = await prefs.getDouble("HMMot_domEvalMAx") ?? 10.0;
+  double scale = await prefs.getDouble("HMMot_scale")?? 1.0;
+  int mode = await prefs.getInt("HMMot_mode") ?? 3;
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => OverviewData()),
         ChangeNotifierProvider(create: (_) => HitLists()),
         ChangeNotifierProvider(create: (_) => FileData()),
-        ChangeNotifierProvider(create: (_) => HSettings()),
+        ChangeNotifierProvider(create: (_) => HSettings(prefs, mode, font, scale, evalMax, domEvalMax)),
       ],
       child: MenuWrapper(),
     ),
@@ -82,18 +88,14 @@ ColorScheme darkScheme = ColorScheme.fromSeed(
 
 // Wrapper that selects the correct menu bar for the platform
 class MenuWrapper extends StatelessWidget {
-  const MenuWrapper();
-  
-  @override
-  Widget build(BuildContext context) {
 
-    if (Platform.isMacOS) {
-      return MacMenu();
-    } else {
-      return TopLevel();
-    }
-  }
+  Widget build(BuildContext context) {
+    
+    return (Platform.isMacOS) ? MacMenu(): TopLevel();
+        
+        }
 }
+
 
 // Mac menus3
 class MacMenu extends StatefulWidget {
@@ -297,6 +299,7 @@ class TopLevel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<HSettings>(
       builder: (context, hsettings, child) {
+        print("font set to ${hsettings.font} before theme set");
         return MaterialApp(
               theme: hsettings.themeData,
               debugShowCheckedModeBanner: false,
@@ -322,13 +325,33 @@ enum brightModes {
 }
 // ChangeNotifier for theme state
 class HSettings with ChangeNotifier {
+
   brightModes _mode = brightModes.light;
   ThemeData? _themeData;
 
-  String _font = "Courier Prime";
+  String _font = "Roboto";
   double _scale = 1.0;
-  double _evalMax = 10.0;  
+  double _evalMax = 10.0;
   double _domEvalMax = 10.0;
+  late SharedPreferencesAsync _prefs; 
+
+  HSettings(SharedPreferencesAsync prefs, int mode, String font, double scale, double evalMax, double domEvalMax){
+    _prefs = prefs;
+    _font = font;
+    _scale = scale;
+    _evalMax = evalMax;
+    _domEvalMax = domEvalMax;
+    switch (mode){
+      case 1:
+        _mode = brightModes.light;
+      case 2:
+        _mode = brightModes.dark;
+      case 3:
+        _mode = brightModes.system;
+      default:
+        print("Illegal value passed to mode in HSettings");
+    } 
+  }
 
   ThemeData _updateTheme() {
     if (_mode == brightModes.light ||
@@ -380,24 +403,36 @@ class HSettings with ChangeNotifier {
   }
   void set mode(brightModes newmode){
     _mode=newmode;
+    switch (newmode){
+      case brightModes.light:
+        _prefs.setInt("HMMot_mode", 1);
+      case brightModes.dark:
+        _prefs.setInt("HMMot_mode", 2);
+      case brightModes.system:
+        _prefs.setInt("HMMot_mode", 3);
+    }
     notifyListeners();
   }
-  void set font(String font){
+  void set font(String font) {
     _font = font;
+    _prefs.setString("HMMot_font", font);
     notifyListeners();
   }
   void set scale(double scale){
     _scale = scale;
+    _prefs.setDouble("HMMot_scale", scale);
     notifyListeners();
   }
 
   void set evalMax(double newMax){
     _evalMax = newMax;
+    _prefs.setDouble("HMMot_evalMax", newMax);
     notifyListeners();
   }
 
   void set domEvalMax(double newMax){
     _domEvalMax = newMax;
+    _prefs.setDouble("HMMot_domEvalMax", newMax);
     notifyListeners();
   }
   

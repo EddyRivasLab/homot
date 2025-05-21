@@ -365,9 +365,11 @@ class _SettingsPageState extends State<SettingsPage> {
                         Card(child:Column(children: [
                         Text(style: Theme.of(context).textTheme.bodyMedium, "Select Font"),  
                         SystemFontSelector(
+                          initial: hsettings.font,
                           isFontPreviewEnabled: true,
                           onFontSelected: (font){
                             hsettings.font =font;
+                            print("Font setter called");
                           }
                         ),],),),
                         Card(child:Column(children:[
