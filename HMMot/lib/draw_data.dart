@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:HMMot/src/rust/api/gather_hits.dart';
 import 'package:HMMot/src/rust/frb_generated.dart';
 import 'package:HMMot/main.dart';
+import 'package:HMMot/utility.dart';
 import 'package:provider/provider.dart';
 
 /// DrawDomains: draws a representation of the domains that a sequence contains
@@ -54,11 +55,63 @@ class DrawDomains extends StatelessWidget {
     double textWidth;
     double textHeight;
     (textWidth, textHeight) =_calc_text_dimensions(Theme.of(context).textTheme);
+    var numLines = 1;
+    int lastEnd = -1;
+    // count the number of lines needed for the domain signature
+    for (var domain in domains){
+      if (domain.start < lastEnd){
+        // move on to the next line because domains are sorted that way
+        numLines+=1;
+      }
+      lastEnd = domain.end;
+    }
+    // now, figure out how many lines are needed for the queries.  This is harder,
+    // because they aren't pre-sorted
+    var queryStartRow = numLines;
+    List<List<Pair<int,int>>> queryLines = [[]];
+    List<int> queryRows = [];
+    for (var query in queries){
+      bool foundSpot = false;
+      for (var i=0; i < queryLines.length; i++){
+        // first, see if the query fits at the beginning of the row
+        if(queryLines[i].length ==0 || query.end < queryLines[i][0].a){
+          queryLines[i].insert(0, Pair(query.start, query.end));
+          queryRows.add(i);  // this query fits in row i
+          foundSpot = true;
+          break;
+        }
+        // then, see if it fits at the end 
+        if(query.start > queryLines[i][queryLines[i].length-1].b){
+          // fits at the end of the row
+          queryLines[i].add(Pair(query.start, query.end));
+          queryRows.add(i);
+          foundSpot = true;
+          break;
+        }
+        // If it doesn't fit at the start or the end, see if it fits between existing ones
+        for(var j = 0; j< queryLines[i].length -1; j++){
+          if(query.start > queryLines[i][j].b && query.end < queryLines[i][j+1].a){
+            // fits between items j and J+1
+            queryLines[i].insert(j+1, Pair(query.start, query.end));
+            queryRows.add(i);
+            foundSpot = true;
+            break;
+          }
+        }
+      }
+      // if we get here without finding a spot, we need to start a new row
+      if(!foundSpot){
+        queryRows.add(queryLines.length);
+        queryLines.add([Pair(query.start, query.end)]);
+      }
+    }
+    numLines+= queryLines.length;
+
     return Container(
       child: CustomPaint(
         size: Size(
           width,
-          textHeight * 2.2,
+          textHeight * (numLines* 1.1 + 0.55),
         ),
         painter: DomainPainter(
           domains: domains,
@@ -68,7 +121,9 @@ class DrawDomains extends StatelessWidget {
               sequence.length,
           widthOffset: textWidth,
           heightPerLine: textHeight,
+          queryStartRow: queryStartRow,
           queries: queries,
+          queryRows: queryRows, 
           overview: overview,
           textTheme: Theme.of(context).textTheme,
           colorScheme: Theme.of(context).colorScheme,
@@ -84,7 +139,9 @@ class DomainPainter extends CustomPainter {
   final double widthPerChar;
   final double widthOffset;
   final double heightPerLine;
+  final int queryStartRow;
   final List<Domain> queries;
+  final List<int> queryRows;
   final OverviewData overview;
   final TextTheme textTheme;
   final ColorScheme colorScheme;
@@ -95,7 +152,9 @@ class DomainPainter extends CustomPainter {
     required this.widthPerChar,
     required this.widthOffset,
     required this.heightPerLine,
+    required this.queryStartRow,
     required this.queries,
+    required this.queryRows,
     required this.overview,
     required this.textTheme,
     required this.colorScheme,
@@ -255,19 +314,31 @@ class DomainPainter extends CustomPainter {
     legendPainter.layout();
     legendPainter.paint(canvas, Offset(0, 0));
     legendPainter.text = TextSpan(
-      text: "Queries:",
+      text: "Querie(s)r:",
       style: textTheme.bodyMedium!.copyWith(color: colorScheme.onSurface),
     );
 
     legendPainter.layout();
-    legendPainter.paint(canvas, Offset(0, heightPerLine * 1.2));
+    legendPainter.paint(canvas, Offset(0, (queryStartRow*1.1+0.55) *heightPerLine));
 
     var lastEnd = widthOffset;
+    var row = 0;
     for (final domain in domains) {
       final double start = domain.start * widthPerChar + widthOffset;
+      if(start < lastEnd){
+        //we've wrapped around to a new row, need to handle
+        //draw the line to the end of the row
+        if(lastEnd < totalWidth){
+          final p1 = Offset(lastEnd, (row * heightPerLine*1.1)+(heightPerLine*0.55));
+          final p2 = Offset(totalWidth, (row * heightPerLine*1.1)+(heightPerLine*0.55));
+          canvas.drawLine(p1, p2, paint..color = Colors.black);
+        }
+        row +=1;
+        lastEnd = widthOffset;
+      }
       if (start != lastEnd) {
-        final p1 = Offset(lastEnd, heightPerLine * 0.55);
-        final p2 = Offset(start, heightPerLine * 0.55);
+        final p1 = Offset(lastEnd, (row*heightPerLine*1.1) +(heightPerLine *0.55));
+        final p2 = Offset(start, (row * heightPerLine * 1.1) + (heightPerLine* 0.55));
         canvas.drawLine(p1, p2, paint..color = Colors.black);
       }
       final double end = domain.end * widthPerChar + widthOffset;
@@ -276,7 +347,7 @@ class DomainPainter extends CustomPainter {
       _draw_domain(
         canvas,
         paint,
-        Offset(start, 0),
+        Offset(start, row*heightPerLine*1.1),
         domainWidth,
         heightPerLine,
         lastEnd,
@@ -285,32 +356,38 @@ class DomainPainter extends CustomPainter {
       );
     }
     if (lastEnd < totalWidth) {
-      final p1 = Offset(lastEnd, heightPerLine * 0.55);
-      final p2 = Offset(totalWidth, heightPerLine * 0.55);
+      final p1 = Offset(lastEnd, (row *heightPerLine*1.1) +(heightPerLine * 0.55));
+      final p2 = Offset(totalWidth, (row * heightPerLine*1.1) +(heightPerLine* 0.55));
       canvas.drawLine(p1, p2, paint..color = Colors.black);
     }
     // add the representation of the hit(s) to the sequence
-    lastEnd = widthOffset;
-    for (final query in queries) {
+    row+=1;
+
+    List<double> lastEnds = List<double>.filled(queryRows.reduce(max)+1, widthOffset);
+
+    for (var i = 0; i<queries.length; i++) {
+      final query = queries[i];
       final double start = query.start * widthPerChar + widthOffset;
       final double end = query.end * widthPerChar + widthOffset;
       final double domainWidth = end - start;
       _draw_domain(
         canvas,
         paint,
-        Offset(start, 1.1 * heightPerLine),
+        Offset(start, ((row+ queryRows[i])* 1.1 + 0.55) * heightPerLine),
         domainWidth,
         heightPerLine,
-        lastEnd,
+        lastEnds[queryRows[i]],
         query,
         textTheme,
       );
-      lastEnd = end;
+      lastEnds[queryRows[i]] = end;
     }
-    if (lastEnd < totalWidth) {
-      final p1 = Offset(lastEnd, heightPerLine * 1.65);
-      final p2 = Offset(totalWidth, heightPerLine * 1.65);
-      canvas.drawLine(p1, p2, paint..color = Colors.black);
+    for (int j = 0; j < lastEnds.length; j++){
+      if (lastEnds[j] < totalWidth) {
+        final p1 = Offset(lastEnds[j], ((queryStartRow+j)*1.1 +0.55) *heightPerLine +(heightPerLine * 0.55));
+        final p2 = Offset(totalWidth, ((queryStartRow+j)* 1.1 + 0.55) * heightPerLine + (heightPerLine * 0.55));
+        canvas.drawLine(p1, p2, paint..color = Colors.black);
+    }
     }
   }
 
