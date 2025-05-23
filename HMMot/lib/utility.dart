@@ -11,7 +11,7 @@ import 'package:HMMot/draw_data.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:input_quantity/input_quantity.dart';
-
+import "dart:io";
 
 class HmmotAppBar extends StatelessWidget implements PreferredSizeWidget {
   const HmmotAppBar({
@@ -121,97 +121,73 @@ class MainNavBar extends StatelessWidget {
     );
   }
 }
-/*
-enum FontList{
-  courierPrime,
-  firaCode,
-  inconsolata,
-  lato,
-  notoSans,
-  sourceCodePro,
-  sourceSans,
-  sourceSerif
-}
 
-class FontPicker extends StatefulWidget {
-  const FontPicker({super.key});
-
-  @override
-  State<FontPicker> createState() => _fontPickerState();
-}
-class _fontPickerState extends State<FontPicker> {
-  FontList? _font = FontList.courierPrime;
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<HSettings>(
-      builder: (context, htheme, child) {
-        _font = switch(htheme.font){
-      "Courier Prime" => FontList.courierPrime,
-      "Inconsolata" => FontList.inconsolata,
-      "Fira Code" => FontList.firaCode,
-      "Lato" => FontList.lato,
-      "Noto Sans" => FontList.notoSans,
-      _ => FontList.courierPrime
-    };
-        return Column(
-          children: [
-            Text("Font"),
-            ListTile(
-              title: Text("Courier Prime", style: Theme.of(context).textTheme.bodyMedium!.copyWith(fontFamily: "Courier Prime"), textAlign: TextAlign.start),
-              leading: Radio<FontList>(
-                value: FontList.courierPrime,
-                groupValue: _font,
-                onChanged: (FontList? value) {
-                  setState(() {
-                    htheme.setFont("Courier Prime");
-                  _font = FontList.courierPrime;
-                  });
-                },
-              ),
-            ),
-            ListTile(
-              title: Text("Fira Code", style: Theme.of(context).textTheme.bodyMedium!.copyWith(fontFamily: "Fira Code"), textAlign: TextAlign.start),
-              leading: Radio<FontList>(
-                value: FontList.firaCode,
-                groupValue: _font,
-                onChanged: (FontList? value) {
-                  setState(() {
-                    htheme.setFont("Fira Code");
-                  });
-                  _font = FontList.firaCode;
-                },
-              ),
-            ),
-                        ListTile(
-              title: Text("Inconsolata", style: Theme.of(context).textTheme.bodyMedium!.copyWith(fontFamily: "Inconsolata"), textAlign: TextAlign.start),
-              leading: Radio<FontList>(
-                value: FontList.inconsolata,
-                groupValue: _font,
-                onChanged: (FontList? value) {
-                  setState(() {
-                    htheme.setFont("Inconsolata");
-                    _font = FontList.inconsolata;
-                  });
-                },
-              ),
-            ),
-            ListTile(
-              title: Text("Lato", style: Theme.of(context).textTheme.bodyMedium!.copyWith(fontFamily: "Lato Bold"), textAlign: TextAlign.start),
-              leading: Radio<FontList>(
-                value: FontList.lato,
-                groupValue: _font,
-                onChanged: (FontList? value) {
-                  setState(() {
-                    htheme.setFont("Lato");
-                  });
-                  _font = FontList.lato;
-                },
-              ),
-            ),
-          ],
-        );
-      },
+class DomtblSelect extends StatelessWidget{
+    Widget build(BuildContext context) {
+    return Consumer<FileData>(
+      builder: (context, filedata, child) {
+        return Card(child: Row(children: [
+          Expanded(child: TextFormField(style: Theme.of(context).textTheme.bodyMedium,
+            initialValue: "Select or enter .domtblout file(s)",
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            onFieldSubmitted: (String? value) async{
+              if(value != null&& File(value).existsSync()){filedata.addDomtbloutFile(value);
+                  }},
+            validator: (String? value){
+              return(value == null || !File(value).existsSync()) ? "Must be valid filename":null;
+            },
+        ),),
+        IconButton(icon: Icon(Icons.folder),
+          onPressed: () async {
+            FilePickerResult? dTemp = await FilePicker.platform.pickFiles(
+              initialDirectory: filedata.domtbloutFileDir,
+              allowMultiple: true,
+              dialogTitle: "Select .domtblout file(s)",
+            );
+            if (dTemp == null) {
+            } else {
+                for (String? path in dTemp.paths) {
+                  if (path != null && File(path).existsSync()) {
+                    filedata.addDomtbloutFile(path);
+                  }
+                }
+              };
+          },),
+        ],),);
+      }
     );
   }
 }
-*/
+
+class DomtblEdit extends StatelessWidget{  
+  const DomtblEdit({
+    super.key,
+    required this.which,
+  });
+
+  final int which;
+
+  Widget build(BuildContext context) {
+    return Consumer<FileData>(
+      builder: (context, filedata, child) {
+        return Card(child: Row(children: [
+          Expanded(child: TextFormField(style: Theme.of(context).textTheme.bodyMedium,
+            initialValue: (which >=0 && which < filedata.domtbloutFiles.length)? filedata.domtbloutFiles[which]: "Illegal index passed to DomTblEdit",
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            onFieldSubmitted: (String? value) async{
+              if(value != null&& File(value).existsSync()&& which >=0 && which < filedata.domtbloutFiles.length)
+              {filedata.setDomtbloutFile(which, value);
+                  }},
+            validator: (String? value){
+              return(value == null || !File(value).existsSync()) ? "Must be valid filename":null;
+            },
+        ),),
+        IconButton(icon: Icon(Icons.delete),
+          onPressed: () { if(which >=0 && which < filedata.domtbloutFiles.length){
+            filedata.deleteDomtbloutFile(filedata.domtbloutFiles[which]);
+              };
+          },),
+        ],),);
+      });
+  }
+}

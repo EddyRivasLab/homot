@@ -41,6 +41,7 @@ class _annDataSelectState extends State<annDataSelect> {
         return ElevatedButton(
           onPressed: () async {
             String? annTemp = await FilePicker.platform.getDirectoryPath(
+              initialDirectory: filedata.annFileDir,
               dialogTitle:
                   "Select directory containing annotated sequence database",
             );
@@ -78,6 +79,7 @@ class _domTblSelectState extends State<domTblSelect> {
         return ElevatedButton(
           onPressed: () async {
             FilePickerResult? dTemp = await FilePicker.platform.pickFiles(
+              initialDirectory: filedata.domtbloutFileDir,
               allowMultiple: true,
               dialogTitle: "Select .domtblout file(s)",
             );
@@ -147,7 +149,6 @@ class _MainPageState extends State<MainPage> {
                     "Domtblout File(s):"),
                     Builder(
                         builder: (context) {
-                          if(filedata.domtbloutFiles.length > 0){
                             return 
                               Flexible(
                                 child: Scrollbar(
@@ -157,68 +158,16 @@ class _MainPageState extends State<MainPage> {
                               controller: _mainScrollController,
                               itemCount: filedata.domtbloutFiles.length,
                               itemBuilder: (BuildContext context, int index) {
-                                return Card(
-                                  child: 
-                                  Row(
-                                    children: [Text(filedata.domtbloutFiles[index]),
-                                      Spacer(),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete),
-                                        onPressed: () {
-                                          setState(() {
-                                            filedata.deleteDomtbloutFile(filedata.domtbloutFiles[index]);
-                                          }
-                                          );
-                                        },
-                                      ),
-                        ],
-                                      ),          
-                                );
+                                return DomtblEdit(which: index);
                               },
                               ),
                               ),);
-                          }
-                          else {
-                            return Card(child: ListTile(title: Center(child: Text("None Selected"),),),);
-                          };
                         },
                       ),
+                      DomtblSelect(),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: <Widget>[
-                        ElevatedButton(
-                          onPressed: () async {
-                            FilePickerResult? dTemp = await FilePicker.platform.pickFiles(
-                            allowMultiple: true,
-                            dialogTitle: "Select .domtblout file(s)",
-                            );     ;
-                            if (dTemp != null) {
-                              filedata.clearDomtbloutFiles();
-                              for (String? path in dTemp.paths) {
-                                if (path != null) {
-                                filedata.addDomtbloutFile(path);
-                                }
-                              }
-                            };
-                          },
-                          child: Text("Select"),
-                        ),
-                        ElevatedButton(
-                          onPressed: filedata.domtbloutFiles.isNotEmpty ? () async {
-                            FilePickerResult? dTemp = await FilePicker.platform.pickFiles(
-                            allowMultiple: true,
-                            dialogTitle: "Select additional .domtblout file(s)",
-                            );
-                            if (dTemp != null) {
-                              for (String? path in dTemp.paths) {
-                                if (path != null) {
-                                filedata.addDomtbloutFile(path);
-                                }
-                              }
-                            };
-                          } : null,
-                          child: Text("Add"),
-                        ),
                         ElevatedButton(
                           onPressed: filedata.domtbloutFiles.isNotEmpty ? () async {
                             filedata.clearDomtbloutFiles();

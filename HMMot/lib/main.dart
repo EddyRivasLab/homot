@@ -513,12 +513,15 @@ class FileData with ChangeNotifier {
   List<String> _domtbloutFiles = [];
   bool _annFileSet = false;
   bool _domtbloutFilesSet = false;
+  String _annFileDir = ".";
+  String _domtbloutFileDir = ".";
 
   String get annotationsFile => _annotationsFile;
   List<String> get domtbloutFiles => _domtbloutFiles;
   bool get annFileSet => _annFileSet;
   bool get domtbloutFilesSet => _domtbloutFilesSet;
-
+  String get annFileDir => _annFileDir;
+  String get domtbloutFileDir => _domtbloutFileDir;
   String get annFilePrompt {
     if (_annotationsFile.isEmpty) {
       return "Select";
@@ -531,12 +534,20 @@ class FileData with ChangeNotifier {
   void setAnnotationsFile(String newAnnotations) {
     _annotationsFile = newAnnotations;
     _annFileSet = true;
+    var splits = newAnnotations.split('/');
+    if(splits.length > 1){
+      _annFileDir = splits.getRange(0, splits.length-1).join("/");
+    }
     notifyListeners();
   }
 
   void addDomtbloutFile(String domtblout) {
     _domtbloutFiles.add(domtblout);
     _domtbloutFilesSet = true;
+    var splits = domtblout.split('/');
+    if(splits.length > 1){
+      _domtbloutFileDir = splits.getRange(0, splits.length-1).join("/");
+    }
     notifyListeners();
   }
 
@@ -544,6 +555,16 @@ class FileData with ChangeNotifier {
     _domtbloutFiles = [];
     _domtbloutFilesSet = false;
     notifyListeners();
+  }
+  void setDomtbloutFile(int which, String domtblout){
+    if (which >= 0 && which < _domtbloutFiles.length){
+      _domtbloutFiles[which] = domtblout;
+    var splits = domtblout.split('/');
+    if(splits.length > 1){
+      _domtbloutFileDir = splits.getRange(0, splits.length-1).join("/");
+    }
+      notifyListeners();
+    }
   }
 
   void deleteDomtbloutFile(String domtblout) {
@@ -553,10 +574,7 @@ class FileData with ChangeNotifier {
     }
     notifyListeners();
   }
-  // Notify listeners once we've made all changes.
-  void triggerLoad() {
-    notifyListeners();
-  }
+
 }
 
 //ChangeNotifier for hit lists
