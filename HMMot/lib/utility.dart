@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:input_quantity/input_quantity.dart';
 import "dart:io";
+import "package:go_router/go_router.dart";
 
 class HmmotAppBar extends StatelessWidget implements PreferredSizeWidget {
   const HmmotAppBar({
@@ -37,10 +38,7 @@ class HmmotAppBar extends StatelessWidget implements PreferredSizeWidget {
             color: Theme.of(context).colorScheme.onPrimary,
             tooltip: "Settings",
             onPressed: () {
-              Navigator.popAndPushNamed(
-                context,
-                "/settings"
-              );
+                context.go("/settings");
             },
           ),
           
@@ -87,7 +85,7 @@ class MainNavBar extends StatelessWidget {
           child: NavigationBar(
             backgroundColor: Theme.of(context).primaryColor,
             onDestinationSelected: (int index) {
-              Navigator.popAndPushNamed(context, _routes[index]);
+              context.go(_routes[index]);
             },
             destinations: <Widget>[
               NavigationDestination(

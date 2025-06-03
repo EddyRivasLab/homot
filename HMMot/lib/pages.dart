@@ -24,6 +24,7 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'package:input_quantity/input_quantity.dart';
 import 'package:system_fonts/system_fonts.dart';
+import "package:go_router/go_router.dart";
 
 //Widget to select annotation data directory
 class annDataSelect extends StatefulWidget {
@@ -228,13 +229,8 @@ class _MainPageState extends State<MainPage> {
                             ) {
                               hitLists.set(iter1, results!.hitLists[iter1]);
                             }
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const OverviewPage(),
-                              ),
-                            );
-                        };
+                              context.go("/overview");
+                          }
                         }: null,
                           child: Text("Load Data"),
                         ),
@@ -318,7 +314,6 @@ class _SettingsPageState extends State<SettingsPage> {
                           isFontPreviewEnabled: true,
                           onFontSelected: (font){
                             hsettings.font =font;
-                            print("Font setter called");
                           }
                         ),],),),
                         Card(child:Column(children:[
@@ -457,12 +452,7 @@ class _CategoryPageState extends State<CategoryPage> {
                           style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
                           onPressed: () {
                             hitLists.setSequence(index);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SequencePage(),
-                              ),
-                            );
+                            context.go("/sequence");
                           },
                           icon: Icon(Icons.search, color: Theme.of(context).colorScheme.onPrimary),
                         ),),

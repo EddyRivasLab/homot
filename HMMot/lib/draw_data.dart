@@ -16,6 +16,7 @@ import 'package:HMMot/src/rust/frb_generated.dart';
 import 'package:HMMot/main.dart';
 import 'package:HMMot/utility.dart';
 import 'package:provider/provider.dart';
+import "package:go_router/go_router.dart";
 
 /// DrawDomains: draws a representation of the domains that a sequence contains
 class DrawDomains extends StatelessWidget {
@@ -470,8 +471,7 @@ class DrawCategory extends StatelessWidget {
         return InkWell(
           onTap: () {
             hitLists.setSelected(which);
-            Navigator.popAndPushNamed(
-              context,
+              context.go(
               "/category"
               );
           },

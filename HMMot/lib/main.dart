@@ -12,7 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
-
+import "package:go_router/go_router.dart";
 // List of pairs of background and foregrund colors for displaying
 // domains.  Taken from the ColorBrewer example color sets.
 // Folmat is (BGcolor, FG color)
@@ -56,7 +56,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => FileData()),
         ChangeNotifierProvider(create: (_) => HSettings(prefs, mode, font, scale, evalMax, domEvalMax)),
       ],
-      child: MenuWrapper(),
+      child: TopLevel(),
     ),
   );
 }
@@ -105,7 +105,24 @@ class MacMenu extends StatefulWidget {
   State<MacMenu> createState() => _MacMenuBarState();
 }
 
+enum QuitResponses{
+  quit,
+  cancel
+}
 class _MacMenuBarState extends State<MacMenu> {
+  final _router=GoRouter(routes: <RouteBase>[
+    GoRoute(path: '/',
+    builder: (context, state) => MainPage(),
+    ),
+    GoRoute(path:'/overview',
+     builder:(context, state) => OverviewPage(),),
+    GoRoute(path:'/category',
+    builder:  (context, state) => const CategoryPage(),),
+    GoRoute(path: '/settings',
+    builder: (context, state) => const SettingsPage(),),
+    GoRoute(path: "/sequence",
+    builder: (context, state) => const SequencePage(),),
+  ]);
   Widget build(BuildContext context) {
     return PlatformMenuBar(
       menus: <PlatformMenuItem>[
@@ -122,10 +139,37 @@ class _MacMenuBarState extends State<MacMenu> {
                 );
               },
             ),
+            PlatformMenuItem(
+              label: 'Quit',
+              shortcut: const SingleActivator(
+                LogicalKeyboardKey.keyQ,
+                meta: true,
+              ),
+              
+              onSelected: () {
+              showDialog(context: context,
+                builder: (BuildContext context){
+                return AlertDialog(title: const Text("Quit HMMot?"),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  titleTextStyle: TextStyle(color: Theme.of(context).colorScheme.onPrimary,),
+                  actions: <Widget>[
+                    ElevatedButton(
+                      style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.onPrimary,),
+                      onPressed: (){exit(0);}, child: Text("Quit",style: TextStyle(color: Theme.of(context).colorScheme.primary,),),),
+                    ElevatedButton(
+                      style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.onPrimary,),
+                      onPressed:(){Navigator.pop(context,'Cancel');}, child: Text("Cancel", style: TextStyle(color: Theme.of(context).colorScheme.primary,),),),
+                    ],
+                  );
+                },
+              );
+              },  
+            ),
           ],
         ),
       ],
-      child: TopLevel(),
+
+      child: Router.withConfig(config: _router),
     );
   }
 }
@@ -299,14 +343,14 @@ class TopLevel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<HSettings>(
       builder: (context, hsettings, child) {
-        print("font set to ${hsettings.font} before theme set");
         return MaterialApp(
               theme: hsettings.themeData,
               debugShowCheckedModeBanner: false,
               title: 'HMMot',
+              home: MacMenu(),
               initialRoute: '/',
               routes: {
-                '/': (context) => const MainPage(),
+                '/main': (context) => const MainPage(),
                 '/overview': (context) => const OverviewPage(),
                 '/category': (context) => const CategoryPage(),
                 '/settings': (context) => const SettingsPage(),
