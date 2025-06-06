@@ -120,6 +120,42 @@ class MainNavBar extends StatelessWidget {
   }
 }
 
+class AnnDbSelect extends StatelessWidget{
+    Widget build(BuildContext context) {
+    return Consumer<FileData>(
+      builder: (context, filedata, child) {
+        return Card(child: Row(children: [
+          Expanded(child: TextFormField(style: Theme.of(context).textTheme.bodyMedium,
+            initialValue: "Select or enter annotated database directory",
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            onFieldSubmitted: (String? value) async{
+              if(value != null&& Directory(value).existsSync()){filedata.setAnnotationsFile(value);
+                  }},
+            validator: (String? value){
+              return(value == null || !Directory(value).existsSync()) ? "Must be valid  directory path":null;
+            },
+        ),),
+        IconButton(icon: Icon(Icons.folder),
+          onPressed: () async {
+            FilePickerResult? dTemp = await FilePicker.platform.pickFiles(
+              initialDirectory: filedata.annFileDir,
+              allowMultiple: false,
+              dialogTitle: "Select .annotated database directory",
+            );
+            if (dTemp == null) {
+            } else {
+                for (String? path in dTemp.paths) {
+                  if (path != null && File(path).existsSync()) {
+                    filedata.setAnnotationsFile(path);
+                  }
+                }
+              };
+          },),
+        ],),);
+      }
+    );
+  }
+}
 class DomtblSelect extends StatelessWidget{
     Widget build(BuildContext context) {
     return Consumer<FileData>(

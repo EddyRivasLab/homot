@@ -26,80 +26,6 @@ import 'package:input_quantity/input_quantity.dart';
 import 'package:system_fonts/system_fonts.dart';
 import "package:go_router/go_router.dart";
 
-//Widget to select annotation data directory
-class annDataSelect extends StatefulWidget {
-  const annDataSelect({super.key});
-
-  @override
-  _annDataSelectState createState() => _annDataSelectState();
-}
-
-class _annDataSelectState extends State<annDataSelect> {
-  @override
-  Widget build(BuildContext context) {
-    return Consumer3<OverviewData, HitLists, FileData>(
-      builder: (context, overview, hitLists, filedata, child) {
-        return ElevatedButton(
-          onPressed: () async {
-            String? annTemp = await FilePicker.platform.getDirectoryPath(
-              initialDirectory: filedata.annFileDir,
-              dialogTitle:
-                  "Select directory containing annotated sequence database",
-            );
-            if (annTemp == null) {
-            } else {
-              setState(() {
-                filedata.setAnnotationsFile(annTemp);
-                //_annPrompt = "Annotations database: ${filedata.annotationsFile}";
-              });
-            }
-          },
-          child: Text(filedata.annFilePrompt),
-        );
-      },
-    );
-  }
-}
-
-// Widget to select domtblout files
-class domTblSelect extends StatefulWidget {
-  const domTblSelect({super.key});
-
-  @override
-  _domTblSelectState createState() => _domTblSelectState();
-}
-
-class _domTblSelectState extends State<domTblSelect> {
-  @override
-  bool _selected = false;
-  String _dPrompt = "Select";
-
-  Widget build(BuildContext context) {
-    return Consumer3<OverviewData, HitLists, FileData>(
-      builder: (context, overview, hitLists, filedata, child) {
-        return ElevatedButton(
-          onPressed: () async {
-            FilePickerResult? dTemp = await FilePicker.platform.pickFiles(
-              initialDirectory: filedata.domtbloutFileDir,
-              allowMultiple: true,
-              dialogTitle: "Select .domtblout file(s)",
-            );
-            if (dTemp == null) {
-            } else {
-                for (String? path in dTemp.paths) {
-                  if (path != null) {
-                    filedata.addDomtbloutFile(path);
-                  }
-                }
-              };
-            },
-          child: Text(_dPrompt),
-        );
-      },
-    );
-  }
-}
-
 
 // Widget to enter information about what files to read
 class MainPage extends StatefulWidget {
@@ -125,27 +51,10 @@ class _MainPageState extends State<MainPage> {
         children: <Widget>[
                     Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onPrimary),
                     "Annotated Database:"),
-                    Card(
-                      child: ListTile(
-                        title: Center(
-                          child: Builder(
-                            builder: (context) {
-                              if(filedata.annFileSet){
-                                return Text(filedata.annotationsFile);
-                              } else {
-                                return Text("None Selected");
-                              };
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: <Widget>[
-                        annDataSelect(),
-                      ],
-                    ),
+                   
+                   
+                    AnnDbSelect(),
+    
                     Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onPrimary),
                     "Domtblout File(s):"),
                     Builder(

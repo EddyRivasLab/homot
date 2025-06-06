@@ -468,20 +468,7 @@ class DrawCategory extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<HitLists>(
       builder: (context, hitLists, child) {
-        return InkWell(
-          onTap: () {
-            hitLists.setSelected(which);
-              context.go(
-              "/category"
-              );
-          },
-          hoverColor: Colors.green,
-          child: Padding(
-            padding: EdgeInsets.all(2),
-            child: Material(
-              elevation: 0.0,
-              shadowColor: Colors.black,
-              child: Column(
+        return  Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -492,10 +479,14 @@ class DrawCategory extends StatelessWidget {
                   ),
                   Text("Example: " + category.example.name),
                   DrawHit(hit: category.example, overview: overview),
-                ],
-              ),
-            ),
-          ),
+               Align( alignment: Alignment(1.0,0.0), child: IconButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
+                          onPressed: () {
+                            hitLists.setSelected(which);
+                            context.go("/category");
+                          },
+                          icon: Icon(Icons.search, color: Theme.of(context).colorScheme.onPrimary),
+                        ),), ],
         );
       },
     );
