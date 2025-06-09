@@ -17,6 +17,7 @@ import 'package:HMMot/main.dart';
 import 'package:HMMot/utility.dart';
 import 'package:provider/provider.dart';
 import "package:go_router/go_router.dart";
+import 'package:touchable/touchable.dart';
 
 /// DrawDomains: draws a representation of the domains that a sequence contains
 class DrawDomains extends StatelessWidget {

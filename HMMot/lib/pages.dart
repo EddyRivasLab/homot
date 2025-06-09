@@ -167,10 +167,18 @@ class _SettingsPageState extends State<SettingsPage> {
       context:context,
       barrierDismissible: false,
       builder: (BuildContext context) {return AlertDialog(
-        title: const Text("Reload Data"),
-        content: const Text("Data must be re-loaded for changes to e-value settings to take effect."),
+        title: Text(style: Theme.of(context).textTheme.headlineLarge!.copyWith(color: Theme.of(context).colorScheme.onPrimary), 
+        "Reload Data"),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        content: Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: 
+          Theme.of(context).colorScheme.onPrimary), "Data must be re-loaded for changes to e-value settings to take effect."),
         actions: [
-          TextButton(child: Text(style: Theme.of(context).textTheme.bodyMedium, 'OK'),
+          TextButton(child: Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: 
+          Theme.of(context).colorScheme.primary), 'OK'),
+          style: ButtonStyle(
+            backgroundColor: WidgetStateProperty.all(Theme.of(context).colorScheme.onPrimary),
+            foregroundColor: WidgetStateProperty.all(Theme.of(context).colorScheme.primary),
+          ),
           onPressed: () => Navigator.of(context).pop()),
         ]
       );}
@@ -189,57 +197,83 @@ class _SettingsPageState extends State<SettingsPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Card(child:Column(
+                        Card(
+                          color: Theme.of(context).colorScheme.surface,
+                          child:Column(
                           children: [
-                          Text(style: Theme.of(context).textTheme.bodyMedium, "Theme"), Row(
+                          Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface), "Theme"), Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                          ChoiceChip(label: Text(style: Theme.of(context).textTheme.bodyMedium, "Light"),
+                          ChoiceChip(
+                            backgroundColor: Theme.of(context).colorScheme.surface,
+                            checkmarkColor: Theme.of(context).colorScheme.onSurface, 
+                            selectedColor: Theme.of(context).colorScheme.surface, 
+                            side: BorderSide(color: Theme.of(context).colorScheme.onSurface),
+                            label: Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface), "Light"),
                           selected: hsettings.mode == brightModes.light,
                           onSelected: (bool selected){
                             if (selected == true){
                               hsettings.mode= brightModes.light;
                             }
                           }),
-                          ChoiceChip(label: Text(style: Theme.of(context).textTheme.bodyMedium, "Dark"),
-                          selected: hsettings.mode == brightModes.dark,
-                          onSelected: (bool selected){
-                            if (selected == true){
-                              hsettings.mode =brightModes.dark;
-                            }
-                          }),
-                          ChoiceChip(label: Text(style: Theme.of(context).textTheme.bodyMedium, "System"),
-                          selected: hsettings.mode == brightModes.system,
-                          onSelected: (bool selected){
-                            if (selected == true){
-                              hsettings.mode =brightModes.system;
-                            }
-                          }),],),
-                        ]),),
-                        Card(child:Column(children: [
-                        Text(style: Theme.of(context).textTheme.bodyMedium, "Select Font"),  
-                        SystemFontSelector(
+                          ChoiceChip(label: Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface), "Dark"),
+                            backgroundColor: Theme.of(context).colorScheme.surface,
+                            checkmarkColor: Theme.of(context).colorScheme.onSurface, 
+                            selectedColor: Theme.of(context).colorScheme.surface, 
+                            side: BorderSide(color: Theme.of(context).colorScheme.onSurface),
+                            selected: hsettings.mode == brightModes.dark,
+                            onSelected: (bool selected){
+                              if (selected == true){
+                                hsettings.mode =brightModes.dark;
+                              }
+                            }),
+                          ChoiceChip(
+                            backgroundColor: Theme.of(context).colorScheme.surface,
+                            checkmarkColor: Theme.of(context).colorScheme.onSurface, 
+                            selectedColor: Theme.of(context).colorScheme.surface, 
+                            side: BorderSide(color: Theme.of(context).colorScheme.onSurface),
+                            label: Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface), "System"),
+                            selected: hsettings.mode == brightModes.system,
+                            onSelected: (bool selected){
+                              if (selected == true){
+                                hsettings.mode =brightModes.system;
+                              }
+                            }),],),
+                          ]),),
+                        Card(
+                          color: Theme.of(context).colorScheme.surface,
+                          child:Column(children: [
+                        Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface), "Select Font"),  
+                        HmmotSystemFontSelector(
+                          width: 200*hsettings.scale,
+                          textStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
                           initial: hsettings.font,
                           isFontPreviewEnabled: true,
                           onFontSelected: (font){
                             hsettings.font =font;
                           }
                         ),],),),
-                        Card(child:Column(children:[
-                        Text(style: Theme.of(context).textTheme.bodyMedium, "Font Scale Factor"),
+                        Card(
+                          color: Theme.of(context).colorScheme.surface,
+                          child:Column(children:[
+                        Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface), "Font Scale Factor"),
                         InputQty.double(
                           initVal: hsettings.scale,
                           minVal: 0.001,
                           steps: 0.1,
-                          decoration: const QtyDecorationProps(
-                            qtyStyle: QtyStyle.btnOnRight
+                          decoration: QtyDecorationProps(
+                            qtyStyle: QtyStyle.btnOnRight,
+                            border :OutlineInputBorder(borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.onSurface,)),
                           ),
                           onQtyChanged: (val) {
                             hsettings.scale =val;
                           },
                         ),],),),
-                        Card(child: IntrinsicWidth(child: Column(children: [
-                          Text(style: Theme.of(context).textTheme.bodyMedium, "Maximum E-Value to Show"),
+                        Card(
+                          color: Theme.of(context).colorScheme.surface,
+                          child: IntrinsicWidth(child: Column(children: [
+                          Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface), "Maximum E-Value to Show"),
                           TextFormField(style: Theme.of(context).textTheme.bodyMedium,
                             initialValue: hsettings.evalMax.toString(),
                             decoration: InputDecoration(border: OutlineInputBorder()),
@@ -252,8 +286,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             validator: (String? value){
                               return(value == null || double.tryParse(value) == null) ? "Must be a real number":null;
                             }),],),),),
-                        Card(child: IntrinsicWidth(child: Column(children: [
-                          Text(style: Theme.of(context).textTheme.bodyMedium,"Maximum Domain E-Value to Show"),
+                        Card(
+                          color: Theme.of(context).colorScheme.surface,
+                          child: IntrinsicWidth(child: Column(children: [
+                          Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),"Maximum Domain E-Value to Show"),
                           TextFormField(style: Theme.of(context).textTheme.bodyMedium,
                             initialValue: hsettings.domEvalMax.toString(),
                             decoration: InputDecoration(border: OutlineInputBorder()),

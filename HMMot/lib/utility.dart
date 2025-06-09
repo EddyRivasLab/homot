@@ -13,6 +13,102 @@ import 'package:file_picker/file_picker.dart';
 import 'package:input_quantity/input_quantity.dart';
 import "dart:io";
 import "package:go_router/go_router.dart";
+import "dart:developer";
+
+import 'package:flutter/material.dart';
+import 'package:system_fonts/system_fonts.dart';
+
+
+// This is a very lightly modified version of the SystemFontSelector from the system_fonts package.
+/// [SystemFontSelector] is a [DropdownMenu] widget that displays a list of all the available fonts in the system.
+/// The user can select a font from the list and the font will be loaded and font name will be passed to the `onFontSelected` callback.
+/// All the font names can be showed in their fontfamily if `isFontPreviewEnabled` is set to `true` but this will cause every font to be loaded.
+/// Remember every font can be loaded once and if loaded, font will be available for app lifetime,
+/// so if you somehow loaded every font once you can use font preview without any additional cost in every [SystemFontSelector] instance.
+class HmmotSystemFontSelector extends StatefulWidget {
+  const HmmotSystemFontSelector({
+    this.initial,
+    this.width = 200,
+    this.isFontPreviewEnabled = false,
+    this.textStyle,
+    this.onFontSelected,
+    super.key,
+  });
+
+  final String? initial;
+  final double width;
+  final bool isFontPreviewEnabled;
+  final TextStyle? textStyle;
+
+  final Function(String)? onFontSelected;
+
+  @override
+  State<HmmotSystemFontSelector> createState() => _HmmotSystemFontSelectorState();
+}
+
+class _HmmotSystemFontSelectorState extends State<HmmotSystemFontSelector> {
+  String? dropdownValue;
+  List<String> fontNames = [];
+  String? init;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isFontPreviewEnabled) {
+      _loadAllFonts();
+    } else {
+      setState(() {
+        fontNames = SystemFonts().getFontList();
+      });
+    }
+    if (widget.initial != null) {
+      SystemFonts().loadFont(widget.initial!);
+      setState(() {
+        init = widget.initial;
+      });
+    }
+  }
+
+  _loadAllFonts() async {
+    fontNames = await SystemFonts().loadAllFonts();
+    setState(() {
+      init = widget.initial;
+      widget.onFontSelected?.call(widget.initial ?? '');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownMenu<String>(
+      initialSelection: init,
+      width: widget.width,
+      onSelected: (String? value) {
+        setState(() {
+          dropdownValue = value;
+          widget.onFontSelected?.call(value ?? '');
+        });
+      },
+      textStyle: widget.textStyle != null
+          ? widget.textStyle!.copyWith(fontFamily: widget.isFontPreviewEnabled ? widget.initial : null)
+          : Theme.of(context).textTheme.bodyMedium!.copyWith(
+              fontFamily: widget.isFontPreviewEnabled ? widget.initial : null, overflow: TextOverflow.ellipsis),
+      dropdownMenuEntries: fontNames.map<DropdownMenuEntry<String>>((String value) {
+        return DropdownMenuEntry<String>(
+          value: value,
+          label: value,
+          style: MenuItemButton.styleFrom(
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
+            backgroundColor: Theme.of(context).colorScheme.surface,
+              textStyle: widget.textStyle != null
+                  ? widget.textStyle!.copyWith(fontFamily: widget.isFontPreviewEnabled ? value : null)
+                  : Theme.of(context).textTheme.bodyMedium!.copyWith(
+                      fontFamily: widget.isFontPreviewEnabled ? value : null, overflow: TextOverflow.ellipsis)),
+        );
+      }).toList(),
+    );
+  }
+}
+
 
 class HmmotAppBar extends StatelessWidget implements PreferredSizeWidget {
   const HmmotAppBar({
@@ -124,9 +220,11 @@ class AnnDbSelect extends StatelessWidget{
     Widget build(BuildContext context) {
     return Consumer<FileData>(
       builder: (context, filedata, child) {
-        return Card(child: Row(children: [
-          Expanded(child: TextFormField(style: Theme.of(context).textTheme.bodyMedium,
-            initialValue: "Select or enter annotated database directory",
+        return Card(
+          color: Theme.of(context).colorScheme.surface,
+          child: Row(children: [
+          Expanded(child: TextFormField(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
+            initialValue: filedata.annotationsFile,
             autovalidateMode: AutovalidateMode.onUserInteraction,
             onFieldSubmitted: (String? value) async{
               if(value != null&& Directory(value).existsSync()){filedata.setAnnotationsFile(value);
@@ -136,20 +234,19 @@ class AnnDbSelect extends StatelessWidget{
             },
         ),),
         IconButton(icon: Icon(Icons.folder),
+        color: Theme.of(context).colorScheme.onSurface,
           onPressed: () async {
-            FilePickerResult? dTemp = await FilePicker.platform.pickFiles(
+            String? dTemp = await FilePicker.platform.getDirectoryPath(
               initialDirectory: filedata.annFileDir,
-              allowMultiple: false,
               dialogTitle: "Select .annotated database directory",
             );
             if (dTemp == null) {
             } else {
-                for (String? path in dTemp.paths) {
-                  if (path != null && File(path).existsSync()) {
-                    filedata.setAnnotationsFile(path);
+              print("$dTemp");
+                  if (Directory(dTemp).existsSync()) {
+                    filedata.setAnnotationsFile(dTemp);
                   }
-                }
-              };
+                };
           },),
         ],),);
       }
@@ -160,8 +257,10 @@ class DomtblSelect extends StatelessWidget{
     Widget build(BuildContext context) {
     return Consumer<FileData>(
       builder: (context, filedata, child) {
-        return Card(child: Row(children: [
-          Expanded(child: TextFormField(style: Theme.of(context).textTheme.bodyMedium,
+        return Card(
+          color: Theme.of(context).colorScheme.surface,
+          child: Row(children: [
+          Expanded(child: TextFormField(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
             initialValue: "Select or enter .domtblout file(s)",
             autovalidateMode: AutovalidateMode.onUserInteraction,
             onFieldSubmitted: (String? value) async{
@@ -172,6 +271,7 @@ class DomtblSelect extends StatelessWidget{
             },
         ),),
         IconButton(icon: Icon(Icons.folder),
+        color: Theme.of(context).colorScheme.onSurface,
           onPressed: () async {
             FilePickerResult? dTemp = await FilePicker.platform.pickFiles(
               initialDirectory: filedata.domtbloutFileDir,
@@ -204,8 +304,10 @@ class DomtblEdit extends StatelessWidget{
   Widget build(BuildContext context) {
     return Consumer<FileData>(
       builder: (context, filedata, child) {
-        return Card(child: Row(children: [
-          Expanded(child: TextFormField(style: Theme.of(context).textTheme.bodyMedium,
+        return Card(
+          color: Theme.of(context).colorScheme.surface,
+          child: Row(children: [
+          Expanded(child: TextFormField(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
             initialValue: (which >=0 && which < filedata.domtbloutFiles.length)? filedata.domtbloutFiles[which]: "Illegal index passed to DomTblEdit",
             autovalidateMode: AutovalidateMode.onUserInteraction,
             onFieldSubmitted: (String? value) async{
@@ -217,6 +319,7 @@ class DomtblEdit extends StatelessWidget{
             },
         ),),
         IconButton(icon: Icon(Icons.delete),
+        color: Theme.of(context).colorScheme.onSurface,
           onPressed: () { if(which >=0 && which < filedata.domtbloutFiles.length){
             filedata.deleteDomtbloutFile(filedata.domtbloutFiles[which]);
               };
