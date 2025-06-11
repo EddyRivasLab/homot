@@ -110,12 +110,16 @@ class DrawDomains extends StatelessWidget {
     numLines+= queryLines.length;
 
     return Container(
-      child: CustomPaint(
+      child: CanvasTouchDetector(
+        gesturesToOverride: [GestureType.onPanStart],
+        builder: (context) =>
+        CustomPaint(
         size: Size(
           width,
-          textHeight * (numLines* 1.1 + 0.55),
+          textHeight * (numLines* lineSpace + (lineSpace/2)),
         ),
         painter: DomainPainter(
+          context: context,
           domains: domains,
           totalWidth: width,
           widthPerChar:
@@ -130,12 +134,14 @@ class DrawDomains extends StatelessWidget {
           textTheme: Theme.of(context).textTheme,
           colorScheme: Theme.of(context).colorScheme,
         ),
-      ),
+      ),),
     );
   }
 }
 
+const double lineSpace = 1.2;
 class DomainPainter extends CustomPainter {
+  final BuildContext context;
   final List<Domain> domains;
   final double totalWidth;
   final double widthPerChar;
@@ -149,6 +155,7 @@ class DomainPainter extends CustomPainter {
   final ColorScheme colorScheme;
 
   DomainPainter({
+    required this.context,
     required this.domains,
     required this.totalWidth,
     required this.widthPerChar,
@@ -164,6 +171,7 @@ class DomainPainter extends CustomPainter {
 
   void _draw_domain(
     Canvas canvas,
+    TouchyCanvas myCanvas,
     Paint paint,
     Offset position,
     double width,
@@ -173,11 +181,12 @@ class DomainPainter extends CustomPainter {
     TextTheme textTheme,
   ) {
     // First, the line preceeding the domain
+    
     final double start = position.dx;
     if (start > lastEnd) {
-      final p1 = Offset(lastEnd, position.dy + (heightPerLine * 0.55));
-      final p2 = Offset(start, position.dy + (heightPerLine * 0.55));
-      canvas.drawLine(p1, p2, paint..color = Colors.black);
+      final p1 = Offset(lastEnd, position.dy + (heightPerLine * (lineSpace/2)));
+      final p2 = Offset(start, position.dy + (heightPerLine * (lineSpace/2)));
+      canvas.drawLine(p1, p2, paint..color = Theme.of(context).colorScheme.onSurface..strokeWidth = 2.0);
     }
     if (width <= height) {
       // domain too small to draw pretty edges
@@ -232,9 +241,13 @@ class DomainPainter extends CustomPainter {
         path.lineTo(position.dx + (width - height / 2), position.dy + height);
       }
       path.lineTo(position.dx + height / 2, position.dy + height);
-      canvas.drawPath(path, paint..color = overview.get_colors(domain.name).$1);
+      myCanvas.drawPath(path, paint..color = overview.get_colors(domain.name).$1..style=PaintingStyle.fill,
+        // add a gesture recognizer to the domain
+      onPanStart: (details) {
+        print("ping");},);
+    
+      myCanvas.drawPath(path, paint..color = Theme.of(context).colorScheme.onSurface..style=PaintingStyle.stroke..strokeWidth = 2.0);
     }
-
     // Now, add the name of the domain
     TextPainter painter;
     painter = TextPainter(
@@ -301,9 +314,9 @@ class DomainPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    var myCanvas = TouchyCanvas(context, canvas);
     // Draw domain structure of the sequence that the hit matched
     Paint paint = new Paint()..style = PaintingStyle.fill;
-
     TextPainter legendPainter = TextPainter(
       textAlign: TextAlign.start,
       textDirection: TextDirection.ltr,
@@ -316,12 +329,12 @@ class DomainPainter extends CustomPainter {
     legendPainter.layout();
     legendPainter.paint(canvas, Offset(0, 0));
     legendPainter.text = TextSpan(
-      text: "Querie(s)r:",
+      text: "Query(ies):",
       style: textTheme.bodyMedium!.copyWith(color: colorScheme.onSurface),
     );
 
     legendPainter.layout();
-    legendPainter.paint(canvas, Offset(0, (queryStartRow*1.1+0.55) *heightPerLine));
+    legendPainter.paint(canvas, Offset(0, (queryStartRow*lineSpace+(lineSpace/2)) *heightPerLine));
 
     var lastEnd = widthOffset;
     var row = 0;
@@ -331,25 +344,26 @@ class DomainPainter extends CustomPainter {
         //we've wrapped around to a new row, need to handle
         //draw the line to the end of the row
         if(lastEnd < totalWidth){
-          final p1 = Offset(lastEnd, (row * heightPerLine*1.1)+(heightPerLine*0.55));
-          final p2 = Offset(totalWidth, (row * heightPerLine*1.1)+(heightPerLine*0.55));
-          canvas.drawLine(p1, p2, paint..color = Colors.black);
+          final p1 = Offset(lastEnd, (row * heightPerLine*lineSpace)+(heightPerLine*(lineSpace/2)));
+          final p2 = Offset(totalWidth, (row * heightPerLine*lineSpace)+(heightPerLine*(lineSpace/2)));
+          canvas.drawLine(p1, p2, paint..color =Theme.of(context).colorScheme.onSurface..strokeWidth= 2.0);
         }
         row +=1;
         lastEnd = widthOffset;
       }
       if (start != lastEnd) {
-        final p1 = Offset(lastEnd, (row*heightPerLine*1.1) +(heightPerLine *0.55));
-        final p2 = Offset(start, (row * heightPerLine * 1.1) + (heightPerLine* 0.55));
-        canvas.drawLine(p1, p2, paint..color = Colors.black);
+        final p1 = Offset(lastEnd, (row*heightPerLine*lineSpace) +(heightPerLine *(lineSpace/2)));
+        final p2 = Offset(start, (row * heightPerLine * lineSpace) + (heightPerLine* (lineSpace/2)));
+        canvas.drawLine(p1, p2, paint..color = Theme.of(context).colorScheme.onSurface..strokeWidth= 2.0);
       }
       final double end = domain.end * widthPerChar + widthOffset;
       lastEnd = end;
       final double domainWidth = end - start;
       _draw_domain(
         canvas,
+        myCanvas,
         paint,
-        Offset(start, row*heightPerLine*1.1),
+        Offset(start, row*heightPerLine*lineSpace),
         domainWidth,
         heightPerLine,
         lastEnd,
@@ -358,9 +372,9 @@ class DomainPainter extends CustomPainter {
       );
     }
     if (lastEnd < totalWidth) {
-      final p1 = Offset(lastEnd, (row *heightPerLine*1.1) +(heightPerLine * 0.55));
-      final p2 = Offset(totalWidth, (row * heightPerLine*1.1) +(heightPerLine* 0.55));
-      canvas.drawLine(p1, p2, paint..color = Colors.black);
+      final p1 = Offset(lastEnd, (row *heightPerLine*lineSpace) +(heightPerLine * (lineSpace/2)));
+      final p2 = Offset(totalWidth, (row * heightPerLine*lineSpace) +(heightPerLine* (lineSpace/2)));
+      canvas.drawLine(p1, p2, paint..color = Theme.of(context).colorScheme.onSurface..strokeWidth= 2.0);
     }
     // add the representation of the hit(s) to the sequence
     row+=1;
@@ -374,8 +388,9 @@ class DomainPainter extends CustomPainter {
       final double domainWidth = end - start;
       _draw_domain(
         canvas,
+        myCanvas,
         paint,
-        Offset(start, ((row+ queryRows[i])* 1.1 + 0.55) * heightPerLine),
+        Offset(start, ((row+ queryRows[i])* lineSpace + (lineSpace/2)) * heightPerLine),
         domainWidth,
         heightPerLine,
         lastEnds[queryRows[i]],
@@ -386,9 +401,9 @@ class DomainPainter extends CustomPainter {
     }
     for (int j = 0; j < lastEnds.length; j++){
       if (lastEnds[j] < totalWidth) {
-        final p1 = Offset(lastEnds[j], ((queryStartRow+j)*1.1 +0.55) *heightPerLine +(heightPerLine * 0.55));
-        final p2 = Offset(totalWidth, ((queryStartRow+j)* 1.1 + 0.55) * heightPerLine + (heightPerLine * 0.55));
-        canvas.drawLine(p1, p2, paint..color = Colors.black);
+        final p1 = Offset(lastEnds[j], ((queryStartRow+j)*lineSpace +(lineSpace/2)) *heightPerLine +(heightPerLine * (lineSpace/2)));
+        final p2 = Offset(totalWidth, ((queryStartRow+j)* lineSpace + (lineSpace/2)) * heightPerLine + (heightPerLine * (lineSpace/2)));
+        canvas.drawLine(p1, p2, paint..color=Theme.of(context).colorScheme.onSurface..strokeWidth= 2.0);
     }
     }
   }

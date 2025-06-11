@@ -216,15 +216,41 @@ class MainNavBar extends StatelessWidget {
   }
 }
 
-class AnnDbSelect extends StatelessWidget{
-    Widget build(BuildContext context) {
+class AnnDbSelect extends StatefulWidget{
+  const AnnDbSelect({super.key});
+  @override
+  State<AnnDbSelect> createState() => _AnnDbSelectState();
+}
+
+class _AnnDbSelectState extends State<AnnDbSelect> {
+
+  final myController = TextEditingController();
+  @override
+  void dispose() {
+    myController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if(context.read<FileData>().annotationsFile.isEmpty){
+      myController.text = "None Selected";
+    }
+    else{
+      myController.text = context.read<FileData>().annotationsFile;
+    }
+  }
+
+  Widget build(BuildContext context) {
     return Consumer<FileData>(
       builder: (context, filedata, child) {
         return Card(
           color: Theme.of(context).colorScheme.surface,
           child: Row(children: [
-          Expanded(child: TextFormField(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
-            initialValue: filedata.annotationsFile,
+          Expanded(child: TextFormField(
+            controller: myController,
+            style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
             autovalidateMode: AutovalidateMode.onUserInteraction,
             onFieldSubmitted: (String? value) async{
               if(value != null&& Directory(value).existsSync()){filedata.setAnnotationsFile(value);
@@ -245,6 +271,7 @@ class AnnDbSelect extends StatelessWidget{
               print("$dTemp");
                   if (Directory(dTemp).existsSync()) {
                     filedata.setAnnotationsFile(dTemp);
+                    myController.text = dTemp;
                   }
                 };
           },),
@@ -253,7 +280,19 @@ class AnnDbSelect extends StatelessWidget{
     );
   }
 }
-class DomtblSelect extends StatelessWidget{
+class DomtblSelect extends StatefulWidget{
+  const DomtblSelect({super.key});
+  @override
+  State<DomtblSelect> createState() => _DomtblSelectState();
+}
+class _DomtblSelectState extends State<DomtblSelect> {
+  final myController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    myController.text = "Select or enter .domtblout file(s)";
+  }
     Widget build(BuildContext context) {
     return Consumer<FileData>(
       builder: (context, filedata, child) {
@@ -261,10 +300,11 @@ class DomtblSelect extends StatelessWidget{
           color: Theme.of(context).colorScheme.surface,
           child: Row(children: [
           Expanded(child: TextFormField(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
-            initialValue: "Select or enter .domtblout file(s)",
+            controller: myController,
             autovalidateMode: AutovalidateMode.onUserInteraction,
             onFieldSubmitted: (String? value) async{
               if(value != null&& File(value).existsSync()){filedata.addDomtbloutFile(value);
+                  myController.text = "Select or enter .domtblout file(s)"; 
                   }},
             validator: (String? value){
               return(value == null || !File(value).existsSync()) ? "Must be valid filename":null;
