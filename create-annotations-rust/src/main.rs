@@ -12,6 +12,26 @@ use dashmap::DashMap;
 use std::time::{Instant};
 
 #[derive(Clone, Serialize, Deserialize)]
+struct DomainInfo{
+    name: String,
+    description: String,
+    length: u32, // Length of the domain in amino acids
+}
+
+impl From<&DomainInfo> for Slice{
+    fn from(val: &DomainInfo) ->Self{
+        rmp_serde::to_vec(&val).expect("Serialization error for DomainInfo").into()
+    }
+}
+
+impl From<&UserValue> for DomainInfo{
+    fn from(value: &UserValue) -> Self{
+        let item: DomainInfo = rmp_serde::from_slice(&value).expect("Deserialization error for DomainInfo");
+        item
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 struct Dmap{
     domain: u16,
     name: String,
@@ -60,7 +80,8 @@ struct AnnotatedSequence{
     name: String, 
     sequence: String,
     domains: Vec<Domain>,
-    structure_domains: Vec<Domain>
+    structure_domains: Vec<Domain>,
+    real: bool,
 }
 
 impl From<&AnnotatedSequence> for Slice{
@@ -301,8 +322,54 @@ fn parse_clanfile(clanfile: PathBuf) -> HashMap<String, (u16, u16)>{
     clan_map
 }
 
-fn write_annotated_db(domains: DashMap<String, Vec<Domain>>, clan_map: &HashMap<String, (u16, u16)>,
-seqfile: PathBuf, ofile: String){
+fn parse_hmmfile(hmmfile: PathBuf) -> HashMap<String, DomainInfo>{
+    let fp = match File::open(&hmmfile){
+        Err(why) => panic!("Couldn't open {} for reading: {}", hmmfile.display(), why),
+        Ok(file) => file,
+    };
+    let freader = BufReader::new(fp);
+    let mut the_domain = DomainInfo{name: "none".to_string(), description: "none".to_string(), length: 0};
+
+    let mut domain_map:HashMap<String, DomainInfo> = HashMap::new();
+    for hmm_line in freader.lines(){
+        let line = match hmm_line{
+            Err(why) => panic!("Error reading line from {}: {}", hmmfile.display(), why),
+            Ok(h) => h,
+        };
+        let fields: Vec<&str> = line.split_whitespace().collect();
+        match fields[0]{
+            "HMMER3/f" => 
+                if the_domain.name != "none"{
+                    // If we have a domain, add it to the map
+                    domain_map.insert(the_domain.name.clone(), the_domain.clone());
+                    the_domain = DomainInfo{
+                        name: "none".to_string(),
+                        description: "none".to_string(),
+                        length: 0,
+                    };
+                },
+            "NAME" => {the_domain.name = fields[1].to_string();},
+            "DESC" => {
+                // If the description is empty, use the name
+                if fields.len() > 1{
+                    the_domain.description = fields[1..].join(" ");
+                }
+                else{
+                    the_domain.description = the_domain.name.clone();
+                }
+            },
+            "LENG" => {
+                the_domain.length = fields[1].parse().expect("Error converting length to number");
+            },
+            _ => {
+                // Ignore other lines
+            }
+        };
+    }
+    domain_map
+}
+
+fn write_annotated_db(domains: DashMap<String, Vec<Domain>>, clan_map: &HashMap<String, (u16, u16)>, domain_info: &HashMap<String, DomainInfo>, seqfile: PathBuf, ofile: String){
     let fp = match File::open(&seqfile){
         Err(why) => panic!("Couldn't open {} for reading: {}", seqfile.display(), why),
         Ok(file) => file,
@@ -324,6 +391,7 @@ seqfile: PathBuf, ofile: String){
   
     // Add the domain ID -> name mappings so that the viewer doesn't need the clans file.
     let domain_db = keyspace.open_partition("domainidtoname", PartitionCreateOptions::default()).expect("Unable to create output partition");
+    let d_info = keyspace.open_partition("domaininfo", PartitionCreateOptions::default()).expect("Unable to create output partition");
 
     for key in clan_map.keys(){
         let (did, _) = clan_map.get(key).expect("Couldn't find key we know exists in clan map.");
@@ -332,6 +400,11 @@ seqfile: PathBuf, ofile: String){
             name: key.clone(),
         };
         domain_db.insert(did.to_string(), &foo).expect("Couldn't insert entry into domain ID part of database");
+    }
+
+    for key in domain_info.keys(){
+        let info = domain_info.get(key).expect("Couldn't find key we know exists in domain info map.");
+        d_info.insert(key, info).expect("Couldn't insert entry into domain info part of database");
     }
     //Make sure thoso mappings made it out to disk
     keyspace.persist(PersistMode::SyncAll).expect("Failed to persist output db");
@@ -352,6 +425,7 @@ seqfile: PathBuf, ofile: String){
             sequence: String::from_utf8(sequence.seq().to_vec()).expect("Invalid sequnce data found"),
             domains: Vec::new(),
             structure_domains: Vec::new(),
+	    real: true
         };
 
 
@@ -370,13 +444,14 @@ seqfile: PathBuf, ofile: String){
 
 fn main() {
     let mut args = std::env::args().skip(1);
-    if args.len() != 4{
-        eprintln!("Usage: create_annotations <seqfile> <domtbldir> <clanfile> <outfile>");
+    if args.len() != 5{
+        eprintln!("Usage: create_annotations <seqfile> <hmmfile><domtbldir> <clanfile> <outfile>");
         std::process::exit(1);
     }
 
     // extract arguments
     let seqfile = args.next().unwrap();
+    let hmmfile = args.next().unwrap();
     let mut dname = args.next().unwrap();
     let cfile = args.next().unwrap();
     let ofile = args.next().unwrap();
@@ -386,6 +461,7 @@ fn main() {
     let clan_map:HashMap<String, (u16, u16)> = parse_clanfile(Into::into(cfile));
     println!("{}ms to parse clan map", now.elapsed().as_millis());
 
+    let domain_info: HashMap<String, DomainInfo> = parse_hmmfile(Into::into(hmmfile));
     // Create pattern to match all domtblout files in domtbldir
     if dname.chars().last().unwrap() == '/'{
         dname.push_str("*.domtblout");
@@ -419,7 +495,7 @@ fn main() {
     println!("{}ms to parse domtblouts", now.elapsed().as_millis());
     now = Instant::now();
 
-    write_annotated_db(domains, &clan_map, seqfile.into(), ofile);
+    write_annotated_db(domains, &clan_map, &domain_info, seqfile.into(), ofile);
     //Write the results to a database
     println!("{}ms to write annotated DB", now.elapsed().as_millis());
 
