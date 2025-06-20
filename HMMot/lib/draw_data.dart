@@ -19,11 +19,27 @@ import 'package:provider/provider.dart';
 import "package:go_router/go_router.dart";
 import 'package:touchable/touchable.dart';
 
+
+void _addButton(List<Widget> buttons, double top, double bottom, double left, double right, String text, BuildContext context) {
+    buttons.add(Positioned(
+      top: top,
+      //bottom: bottom,
+      left: left,
+      //right: right,
+      child: Tooltip(
+        message: text,
+        textStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
+          color: Theme.of(context).colorScheme.onSurface),
+        child: Container(width: right - left, height: bottom - top, color: Colors.transparent,),
+      ),
+    ));
+  }
 /// DrawDomains: draws a representation of the domains that a sequence contains
 class DrawDomains extends StatelessWidget {
-  const DrawDomains({
+  DrawDomains({
     super.key,
     required this.sequence,
+    required this.length,
     required this.domains,
     required this.width,
     required this.queries,
@@ -32,6 +48,7 @@ class DrawDomains extends StatelessWidget {
 
   //final List<Domain> domains;
   final String sequence;
+  final int length;
   final List<Domain> domains;
   final double width;
   final List<Domain> queries;
@@ -54,18 +71,17 @@ class DrawDomains extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double textWidth;
-    double textHeight;
+    double textHeight, textWidth;
     (textWidth, textHeight) =_calc_text_dimensions(Theme.of(context).textTheme);
     var numLines = 1;
     int lastEnd = -1;
     // count the number of lines needed for the domain signature
     for (var domain in domains){
-      if (domain.start < lastEnd){
+      if (domain.seqStart < lastEnd){
         // move on to the next line because domains are sorted that way
         numLines+=1;
       }
-      lastEnd = domain.end;
+      lastEnd = domain.seqEnd;
     }
     // now, figure out how many lines are needed for the queries.  This is harder,
     // because they aren't pre-sorted
@@ -76,25 +92,25 @@ class DrawDomains extends StatelessWidget {
       bool foundSpot = false;
       for (var i=0; i < queryLines.length; i++){
         // first, see if the query fits at the beginning of the row
-        if(queryLines[i].length ==0 || query.end < queryLines[i][0].a){
-          queryLines[i].insert(0, Pair(query.start, query.end));
+        if(queryLines[i].length ==0 || query.seqEnd < queryLines[i][0].a){
+          queryLines[i].insert(0, Pair(query.seqStart, query.seqEnd));
           queryRows.add(i);  // this query fits in row i
           foundSpot = true;
           break;
         }
         // then, see if it fits at the end 
-        if(query.start > queryLines[i][queryLines[i].length-1].b){
+        if(query.seqStart > queryLines[i][queryLines[i].length-1].b){
           // fits at the end of the row
-          queryLines[i].add(Pair(query.start, query.end));
+          queryLines[i].add(Pair(query.seqStart, query.seqEnd));
           queryRows.add(i);
           foundSpot = true;
           break;
         }
         // If it doesn't fit at the start or the end, see if it fits between existing ones
         for(var j = 0; j< queryLines[i].length -1; j++){
-          if(query.start > queryLines[i][j].b && query.end < queryLines[i][j+1].a){
+          if(query.seqStart > queryLines[i][j].b && query.seqEnd < queryLines[i][j+1].a){
             // fits between items j and J+1
-            queryLines[i].insert(j+1, Pair(query.start, query.end));
+            queryLines[i].insert(j+1, Pair(query.seqStart, query.seqEnd));
             queryRows.add(i);
             foundSpot = true;
             break;
@@ -104,27 +120,19 @@ class DrawDomains extends StatelessWidget {
       // if we get here without finding a spot, we need to start a new row
       if(!foundSpot){
         queryRows.add(queryLines.length);
-        queryLines.add([Pair(query.start, query.end)]);
+        queryLines.add([Pair(query.seqStart, query.seqEnd)]);
       }
     }
     numLines+= queryLines.length;
-
-    return Container(
-      child: CanvasTouchDetector(
-        gesturesToOverride: [GestureType.onPanStart],
-        builder: (context) =>
-        CustomPaint(
-        size: Size(
-          width,
-          textHeight * (numLines* lineSpace + (lineSpace/2)),
-        ),
-        painter: DomainPainter(
+    List<Widget> buttons = CreateButtons(domains, width, (width - textWidth) /length, textWidth, textHeight, queryStartRow, 
+    queries, queryRows, context);
+    var _myPainter = DomainPainter(
           context: context,
           domains: domains,
           totalWidth: width,
           widthPerChar:
               (width - textWidth) /
-              sequence.length,
+              length,
           widthOffset: textWidth,
           heightPerLine: textHeight,
           queryStartRow: queryStartRow,
@@ -133,13 +141,65 @@ class DrawDomains extends StatelessWidget {
           overview: overview,
           textTheme: Theme.of(context).textTheme,
           colorScheme: Theme.of(context).colorScheme,
+          buttons: buttons,
+        );
+    return Stack(
+      children:<Widget>[CanvasTouchDetector(
+        gesturesToOverride: [GestureType.onTapDown],
+        builder: (context) =>
+        CustomPaint(
+        size: Size(
+          width,
+          textHeight * (numLines* lineSpace + (lineSpace/2)),
         ),
+        painter: _myPainter,
       ),),
+      ]+buttons,
     );
   }
 }
 
 const double lineSpace = 1.2;
+
+List<Widget> CreateButtons(
+  final List<Domain> domains,
+  final double totalWidth,
+  final double widthPerChar,
+  final double widthOffset,
+  final double heightPerLine,
+  final int queryStartRow,
+  final List<Domain> queries,
+  final List<int> queryRows,
+  final BuildContext context
+){
+  List<Widget> buttons = [];
+  var row = 0;
+  double oldEnd = widthOffset;
+  for (var domain in domains){
+    final double start = domain.seqStart * widthPerChar + widthOffset;
+    if(start < oldEnd){
+      row +=1;
+      oldEnd = widthOffset;
+    }
+    double end = domain.seqEnd * widthPerChar + widthOffset;
+    oldEnd = end;
+    double domainWidth = end - start;
+    _addButton(buttons, row*heightPerLine*lineSpace, (row*heightPerLine*lineSpace) + heightPerLine, start, start + domainWidth, 
+    domain.name, context);
+  }
+  row+=1;
+  for (var i = 0; i<queries.length; i++) {
+    final query = queries[i];
+    final double start = query.seqStart * widthPerChar + widthOffset;
+    final double end = query.seqEnd * widthPerChar + widthOffset;
+    final double domainWidth = end - start;
+    _addButton(buttons, ((row+ queryRows[i])* lineSpace + (lineSpace/2)) * heightPerLine, 
+    (((row+ queryRows[i])* lineSpace + (lineSpace/2)) * heightPerLine) + heightPerLine,  
+    start, start + domainWidth, query.name, context);
+
+  }
+  return buttons;
+}
 class DomainPainter extends CustomPainter {
   final BuildContext context;
   final List<Domain> domains;
@@ -153,6 +213,7 @@ class DomainPainter extends CustomPainter {
   final OverviewData overview;
   final TextTheme textTheme;
   final ColorScheme colorScheme;
+  List<Widget> buttons;
 
   DomainPainter({
     required this.context,
@@ -167,9 +228,10 @@ class DomainPainter extends CustomPainter {
     required this.overview,
     required this.textTheme,
     required this.colorScheme,
+    required this.buttons,
   });
 
-  void _draw_domain(
+   _draw_domain(
     Canvas canvas,
     TouchyCanvas myCanvas,
     Paint paint,
@@ -179,9 +241,9 @@ class DomainPainter extends CustomPainter {
     double lastEnd,
     Domain domain,
     TextTheme textTheme,
+    List<Widget> buttons,
   ) {
     // First, the line preceeding the domain
-    
     final double start = position.dx;
     if (start > lastEnd) {
       final p1 = Offset(lastEnd, position.dy + (heightPerLine * (lineSpace/2)));
@@ -192,7 +254,11 @@ class DomainPainter extends CustomPainter {
       // domain too small to draw pretty edges
       canvas.drawRect(
         Rect.fromLTWH(position.dx, position.dy, width, height),
-        paint..color = overview.get_colors(domain.name).$1,
+        paint..color = overview.get_colors(domain.name).$1..style=PaintingStyle.fill,
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(position.dx, position.dy, width, height),
+        paint..color = Theme.of(context).colorScheme.onSurface..style=PaintingStyle.stroke..strokeWidth = 2.0,
       );
     } else {
       // Have enough room to draw the edges we want
@@ -243,8 +309,7 @@ class DomainPainter extends CustomPainter {
       path.lineTo(position.dx + height / 2, position.dy + height);
       myCanvas.drawPath(path, paint..color = overview.get_colors(domain.name).$1..style=PaintingStyle.fill,
         // add a gesture recognizer to the domain
-      onPanStart: (details) {
-        print("ping");},);
+      );
     
       myCanvas.drawPath(path, paint..color = Theme.of(context).colorScheme.onSurface..style=PaintingStyle.stroke..strokeWidth = 2.0);
     }
@@ -339,7 +404,7 @@ class DomainPainter extends CustomPainter {
     var lastEnd = widthOffset;
     var row = 0;
     for (final domain in domains) {
-      final double start = domain.start * widthPerChar + widthOffset;
+      final double start = domain.seqStart * widthPerChar + widthOffset;
       if(start < lastEnd){
         //we've wrapped around to a new row, need to handle
         //draw the line to the end of the row
@@ -356,7 +421,7 @@ class DomainPainter extends CustomPainter {
         final p2 = Offset(start, (row * heightPerLine * lineSpace) + (heightPerLine* (lineSpace/2)));
         canvas.drawLine(p1, p2, paint..color = Theme.of(context).colorScheme.onSurface..strokeWidth= 2.0);
       }
-      final double end = domain.end * widthPerChar + widthOffset;
+      final double end = domain.seqEnd * widthPerChar + widthOffset;
       lastEnd = end;
       final double domainWidth = end - start;
       _draw_domain(
@@ -369,6 +434,7 @@ class DomainPainter extends CustomPainter {
         lastEnd,
         domain,
         textTheme,
+        buttons,
       );
     }
     if (lastEnd < totalWidth) {
@@ -383,8 +449,8 @@ class DomainPainter extends CustomPainter {
 
     for (var i = 0; i<queries.length; i++) {
       final query = queries[i];
-      final double start = query.start * widthPerChar + widthOffset;
-      final double end = query.end * widthPerChar + widthOffset;
+      final double start = query.seqStart * widthPerChar + widthOffset;
+      final double end = query.seqEnd * widthPerChar + widthOffset;
       final double domainWidth = end - start;
       _draw_domain(
         canvas,
@@ -396,6 +462,7 @@ class DomainPainter extends CustomPainter {
         lastEnds[queryRows[i]],
         query,
         textTheme,
+        buttons,
       );
       lastEnds[queryRows[i]] = end;
     }
@@ -450,6 +517,7 @@ class _DrawHitState extends State<DrawHit> {
     if (widget.allDomains){
       return DrawDomains(
       sequence: widget.hit.sequence,
+      length: widget.hit.seqLength,
       domains: widget.hit.domains,
       width: width,
       queries: widget.hit.queries,
@@ -458,6 +526,7 @@ class _DrawHitState extends State<DrawHit> {
     }
     else{return DrawDomains(
       sequence: widget.hit.sequence,
+      length: widget.hit.seqLength,
       domains: widget.hit.structureDomains,
       width: width,
       queries: widget.hit.queries,

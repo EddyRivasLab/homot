@@ -420,6 +420,16 @@ class HSettings with ChangeNotifier {
           labelMedium: TextStyle(fontSize: 12 * _scale),
           labelSmall: TextStyle(fontSize: 11 * _scale),
         ),
+        tooltipTheme: TooltipThemeData(
+          decoration: BoxDecoration(
+            color: lightScheme.surface,
+            border: Border.all(
+              color: lightScheme.onSurface,
+              width: 1.0,
+            ),
+            borderRadius: BorderRadius.circular(4.0),
+          ),
+        ),
       );
     } else {
       return ThemeData(
@@ -442,6 +452,15 @@ class HSettings with ChangeNotifier {
           labelMedium: TextStyle(fontSize: 12 * _scale),
           labelSmall: TextStyle(fontSize: 11 * _scale),
         ),
+        tooltipTheme: TooltipThemeData(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: darkScheme.onSurface,
+              width: 1.0,
+            ),
+            color: darkScheme.surface,
+            borderRadius: BorderRadius.circular(4.0),
+          ),),
       );
     }
   }
