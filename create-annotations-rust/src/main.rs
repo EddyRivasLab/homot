@@ -35,6 +35,9 @@ impl From<&UserValue> for DomainInfo{
 struct Dmap{
     domain: u16,
     name: String,
+    description: String,
+    clan_name: String,
+    hmm_length: u32,
 }
 
 impl From<&Dmap> for Slice{
@@ -57,6 +60,8 @@ struct Domain{
     clan: u16, // numeric ID of the clan, FFFF if none 
     alifrom: u32, // Start of the hit to the domain
     alito: u32,  // End of the hit to the domain
+    hmmfrom: u32, // Start of the HMM match
+    hmmto: u32, // End of the HMM match
     eval: f32, // evalue of the hit
     full_match_start: bool,  // Was the domain a full match to the start of HMM
     full_match_end: bool,  // and/or th end
@@ -79,6 +84,7 @@ impl From<&UserValue> for Domain{
 struct AnnotatedSequence{
     name: String, 
     sequence: String,
+    length: u32,
     domains: Vec<Domain>,
     structure_domains: Vec<Domain>,
     real: bool,
@@ -97,7 +103,7 @@ impl From<&UserValue> for AnnotatedSequence{
     }
 }
 
-fn parse_domtblout(domtblout: PathBuf, clan_map:&HashMap<String, (u16, u16)>, domains:&DashMap<String, Vec<Domain>>){
+fn parse_domtblout(domtblout: PathBuf, clan_map:&HashMap<String, (u16, u16, String)>, domains:&DashMap<String, Vec<Domain>>){
     let fp = match File::open(&domtblout){
         Err(why) => panic!("Couldn't open {} for reading: {}", domtblout.display(), why),
         Ok(file) => file,
@@ -117,7 +123,7 @@ fn parse_domtblout(domtblout: PathBuf, clan_map:&HashMap<String, (u16, u16)>, do
             let fields: Vec<&str> = hit.split_whitespace().collect();
             let sequence = fields[0].to_string();
             let dname = fields[3];
-            let (did, cid) = match clan_map.get(dname){
+            let (did, cid, _) = match clan_map.get(dname){
                 Some(vals) => vals,
                 None => {
                     eprintln!("Domain {} not found in clan map", dname);
@@ -139,6 +145,8 @@ fn parse_domtblout(domtblout: PathBuf, clan_map:&HashMap<String, (u16, u16)>, do
                 clan: *cid,
                 alifrom: alifrom,
                 alito: alito,
+		hmmfrom: hmmfrom,
+		hmmto: hmmto,
                 eval: eval,
                 full_match_start: (hmmfrom == 1),
                 full_match_end: (hmmto == qlen),   
@@ -292,13 +300,13 @@ fn handle_overlaps(mut sequence: AnnotatedSequence)->AnnotatedSequence{
     sequence
 }
 
-fn parse_clanfile(clanfile: PathBuf) -> HashMap<String, (u16, u16)>{
+fn parse_clanfile(clanfile: PathBuf) -> HashMap<String, (u16, u16, String)>{
     let fp = match File::open(&clanfile){
         Err(why) => panic!("Couldn't open {} for reading: {}", clanfile.display(), why),
         Ok(file) => file,
     };
     let freader = BufReader::new(fp);
-    let mut clan_map:HashMap<String, (u16, u16)> = HashMap::new();
+    let mut clan_map:HashMap<String, (u16, u16, String)> = HashMap::new();
     for family_result in freader.lines(){
         let fam = match family_result{
             Err(why) => panic!("Error reading line from {}: {}", clanfile.display(), why),
@@ -307,15 +315,18 @@ fn parse_clanfile(clanfile: PathBuf) -> HashMap<String, (u16, u16)>{
         let fields: Vec<&str> = fam.split('\t').collect();
         let fam_id:u16 = (&fields[0])[2..].parse().expect("Error converting family ID to number");
         let clan_id:u16;
+	let clan_name:String;
         if fields[1].len() > 1{
             clan_id= (&fields[1])[2..].parse().expect("Error converting clan ID to number");
+	    clan_name = fields[2].to_string();
         }
         else{
             clan_id = 0xFFFF;
+	    clan_name = "No Clan".to_string();
         }
         clan_map.insert(
             fields[3].to_string(),
-            (fam_id, clan_id),
+            (fam_id, clan_id, clan_name),
         );
     }
 
@@ -366,10 +377,15 @@ fn parse_hmmfile(hmmfile: PathBuf) -> HashMap<String, DomainInfo>{
             }
         };
     }
+    // handle the last HMM
+    if the_domain.name != "none"{
+       // If we have a domain, add it to the map
+       domain_map.insert(the_domain.name.clone(), the_domain.clone());
+       }		    
     domain_map
 }
 
-fn write_annotated_db(domains: DashMap<String, Vec<Domain>>, clan_map: &HashMap<String, (u16, u16)>, domain_info: &HashMap<String, DomainInfo>, seqfile: PathBuf, ofile: String){
+fn write_annotated_db(domains: DashMap<String, Vec<Domain>>, clan_map: &HashMap<String, (u16, u16, String)>, domain_info: &HashMap<String, DomainInfo>, seqfile: PathBuf, ofile: String){
     let fp = match File::open(&seqfile){
         Err(why) => panic!("Couldn't open {} for reading: {}", seqfile.display(), why),
         Ok(file) => file,
@@ -391,20 +407,18 @@ fn write_annotated_db(domains: DashMap<String, Vec<Domain>>, clan_map: &HashMap<
   
     // Add the domain ID -> name mappings so that the viewer doesn't need the clans file.
     let domain_db = keyspace.open_partition("domainidtoname", PartitionCreateOptions::default()).expect("Unable to create output partition");
-    let d_info = keyspace.open_partition("domaininfo", PartitionCreateOptions::default()).expect("Unable to create output partition");
 
     for key in clan_map.keys(){
-        let (did, _) = clan_map.get(key).expect("Couldn't find key we know exists in clan map.");
+        let (did, _, cname) = clan_map.get(key).expect("Couldn't find key we know exists in clan map.");
+	let dinfo = domain_info.get(key).expect("Couldn't find key we know exists in domain information.");
         let foo:Dmap = Dmap{
             domain: *did,
             name: key.clone(),
+	    clan_name: cname.clone(),
+	    description: dinfo.description.clone(),
+	    hmm_length: dinfo.length,
         };
         domain_db.insert(did.to_string(), &foo).expect("Couldn't insert entry into domain ID part of database");
-    }
-
-    for key in domain_info.keys(){
-        let info = domain_info.get(key).expect("Couldn't find key we know exists in domain info map.");
-        d_info.insert(key, info).expect("Couldn't insert entry into domain info part of database");
     }
     //Make sure thoso mappings made it out to disk
     keyspace.persist(PersistMode::SyncAll).expect("Failed to persist output db");
@@ -422,6 +436,7 @@ fn write_annotated_db(domains: DashMap<String, Vec<Domain>>, clan_map: &HashMap<
     
         let mut annotated = AnnotatedSequence{
             name: sequence.id().to_string(),
+	    length: sequence.id().len() as u32,
             sequence: String::from_utf8(sequence.seq().to_vec()).expect("Invalid sequnce data found"),
             domains: Vec::new(),
             structure_domains: Vec::new(),
@@ -458,7 +473,7 @@ fn main() {
 
     let mut now = Instant::now();
     // first, create a hashmap mapping domain names to IDs and clans 
-    let clan_map:HashMap<String, (u16, u16)> = parse_clanfile(Into::into(cfile));
+    let clan_map:HashMap<String, (u16, u16, String)> = parse_clanfile(Into::into(cfile));
     println!("{}ms to parse clan map", now.elapsed().as_millis());
 
     let domain_info: HashMap<String, DomainInfo> = parse_hmmfile(Into::into(hmmfile));
