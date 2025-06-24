@@ -43,7 +43,7 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.primary,
-      appBar: HmmotAppBar(text: "HMMot: HMMer Results Observation Tool"),
+      appBar: HmmotAppBar(text: "Select Data"),
       body:           Consumer4<FileData, HitLists, OverviewData, HSettings>(
             builder: (context, filedata, hitLists, overview, hsettings, child) {
               return Column(

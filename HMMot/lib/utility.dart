@@ -8,6 +8,7 @@ import 'package:HMMot/src/rust/frb_generated.dart';
 import 'package:HMMot/main.dart';
 import 'package:HMMot/pages.dart';
 import 'package:HMMot/draw_data.dart';
+import 'package:osler_icons/osler_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:input_quantity/input_quantity.dart';
@@ -203,7 +204,7 @@ class MainNavBar extends StatelessWidget {
                 label: 'Domain Architecture',
               ),
               NavigationDestination(
-                icon: Icon(Icons.search,
+                icon: Icon(OslerMonotoneIcons.dna,
                 color: (whereAmI != WhichPage.sequence) &&hitLists.sequence >=0  ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).disabledColor),
                 enabled: (whereAmI != WhichPage.sequence) && hitLists.sequence >=0,
                 label: 'Sequence',
@@ -268,7 +269,6 @@ class _AnnDbSelectState extends State<AnnDbSelect> {
             );
             if (dTemp == null) {
             } else {
-              print("$dTemp");
                   if (Directory(dTemp).existsSync()) {
                     filedata.setAnnotationsFile(dTemp);
                     myController.text = dTemp;

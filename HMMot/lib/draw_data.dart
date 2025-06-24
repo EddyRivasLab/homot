@@ -20,15 +20,17 @@ import "package:go_router/go_router.dart";
 import 'package:touchable/touchable.dart';
 
 
-void _addButton(List<Widget> buttons, double top, double bottom, double left, double right, String text, BuildContext context) {
-    buttons.add(Positioned(
-      top: top,
-      //bottom: bottom,
-      left: left,
-      //right: right,
-      child: Tooltip(
-        message: text,
-        textStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
+void _addButton(List<Widget> buttons, double top, double bottom, double left, double right, String dName, String dDesc, String cName,
+double sEval, double dEval, int sLen, int hLen, int sStart, int sEnd, int hStart, int hEnd, BuildContext context) {
+  String tooltipText = "Domain: ${dName}\nDescription: ${dDesc} \nClan: C${cName}\nDomain e-value:${dEval.toStringAsExponential(2)} Sequence e-value: ${sEval.toStringAsExponential(2)}\nSequence length: ${sLen} HMMlength: ${hLen}\nDomain matched sequence positions ${sStart}-${sEnd}\nDomain matched HMM positions: ${hStart}-${hEnd}";
+  buttons.add(Positioned(
+    top: top,
+    //bottom: bottom,
+    left: left,
+    //right: right,
+    child: Tooltip(
+      message: tooltipText,
+      textStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
           color: Theme.of(context).colorScheme.onSurface),
         child: Container(width: right - left, height: bottom - top, color: Colors.transparent,),
       ),
@@ -44,6 +46,8 @@ class DrawDomains extends StatelessWidget {
     required this.width,
     required this.queries,
     required this.overview,
+    required this.seqLength,
+    required this.seqEvalue,
   });
 
   //final List<Domain> domains;
@@ -53,6 +57,8 @@ class DrawDomains extends StatelessWidget {
   final double width;
   final List<Domain> queries;
   final OverviewData overview;
+  final int seqLength;
+  final double seqEvalue;
 
   (double, double) _calc_text_dimensions(TextTheme textTheme) {
     // The easiest way to get the dimensions of some
@@ -125,7 +131,7 @@ class DrawDomains extends StatelessWidget {
     }
     numLines+= queryLines.length;
     List<Widget> buttons = CreateButtons(domains, width, (width - textWidth) /length, textWidth, textHeight, queryStartRow, 
-    queries, queryRows, context);
+    queries, queryRows, seqLength, seqEvalue, context);
     var _myPainter = DomainPainter(
           context: context,
           domains: domains,
@@ -170,6 +176,8 @@ List<Widget> CreateButtons(
   final int queryStartRow,
   final List<Domain> queries,
   final List<int> queryRows,
+  final int seqLength,
+  final double seqEvalue,
   final BuildContext context
 ){
   List<Widget> buttons = [];
@@ -185,7 +193,8 @@ List<Widget> CreateButtons(
     oldEnd = end;
     double domainWidth = end - start;
     _addButton(buttons, row*heightPerLine*lineSpace, (row*heightPerLine*lineSpace) + heightPerLine, start, start + domainWidth, 
-    domain.name, context);
+    domain.name, domain.description , domain.clan, seqEvalue, domain.domEvalue, seqLength, domain.hmmLength, domain.seqStart, domain.seqEnd, domain.hmmStart,
+    domain.hmmEnd, context);
   }
   row+=1;
   for (var i = 0; i<queries.length; i++) {
@@ -195,7 +204,8 @@ List<Widget> CreateButtons(
     final double domainWidth = end - start;
     _addButton(buttons, ((row+ queryRows[i])* lineSpace + (lineSpace/2)) * heightPerLine, 
     (((row+ queryRows[i])* lineSpace + (lineSpace/2)) * heightPerLine) + heightPerLine,  
-    start, start + domainWidth, query.name, context);
+    start, start + domainWidth, query.name, query.description, query.clan, seqEvalue, query.domEvalue, seqLength, query.hmmLength, query.seqStart, query.seqEnd, query.hmmStart,
+    query.hmmEnd, context);
 
   }
   return buttons;
@@ -522,6 +532,8 @@ class _DrawHitState extends State<DrawHit> {
       width: width,
       queries: widget.hit.queries,
       overview: widget.overview,
+      seqLength: widget.hit.seqLength,
+      seqEvalue: widget.hit.seqEvalue,
     );
     }
     else{return DrawDomains(
@@ -531,6 +543,8 @@ class _DrawHitState extends State<DrawHit> {
       width: width,
       queries: widget.hit.queries,
       overview: widget.overview,
+      seqLength: widget.hit.seqLength,
+      seqEvalue: widget.hit.seqEvalue,
     );}
   }
 }

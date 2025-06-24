@@ -14,10 +14,11 @@ pub struct Domain{
     pub name: String,
     pub clan: String,
     pub description: String,
-    pub seq_start: i32,
-    pub seq_end: i32,
-    pub hmm_start: i32,
-    pub hmm_end: i32,
+    pub hmm_length: u32,  // Length of the HMM for this domain
+    pub seq_start: u32,
+    pub seq_end: u32,
+    pub hmm_start: u32,
+    pub hmm_end: u32,
     pub dom_evalue: f64,
     pub full_match_start: bool,
     pub full_match_end: bool,
@@ -27,7 +28,7 @@ pub struct Domain{
   pub struct Hit{
     pub name: String,  // Name of the sequence that the hit was to
     pub sequence: String,  // Sequence  that was hit
-    pub seq_length: i32,  // length of sequence. need this to handle hits without annotation dato
+    pub seq_length: u32,  // length of sequence. need this to handle hits without annotation dato
     pub seq_evalue: f64,
     pub structure_domains: Vec<Domain>,  // The (possibly-shortened) domains that make up the 
     // sequence's domain structure
@@ -69,8 +70,10 @@ pub struct SearchResults{
 struct DbDomain{
     domain: u16,  //numeric ID of the domain
     clan: u16, // numeric ID of the clan, FFFF if none 
-    alifrom: u16, // Start of the hit to the domain
-    alito: u16,  // End of the hit to the domain
+    alifrom: u32, // Start of the hit to the domain
+    alito: u32,  // End of the hit to the domain
+    hmmfrom: u32, // Start of the hit to the HMM
+    hmmto: u32, // End of the hit to the HMM
     eval: f32, // evalue of the hit
     full_match_start: bool,  // Was the domain a full match to the start of HMM
     full_match_end: bool,  // and/or th end
@@ -88,11 +91,11 @@ impl From<&UserValue> for DbDomain{
         item
     }
 }
-
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct AnnotatedSequence{
     name: String, 
     sequence: String,
+    length: u32,
     domains: Vec<DbDomain>,
     structure_domains: Vec<DbDomain>,
     real: bool,
@@ -110,11 +113,12 @@ impl From<&UserValue> for AnnotatedSequence{
         item
     }
 }
+/* 
 #[derive(Clone, Serialize, Deserialize)]
-struct DomainInfo{
+pub struct DomainInfo{
     name: String,
     description: String,
-    length: u32, // Length of the domain in amino acids
+    length: u32, // Length of the domain's HMM
 }
 
 impl From<&DomainInfo> for Slice{
@@ -129,13 +133,15 @@ impl From<&UserValue> for DomainInfo{
         item
     }
 }
-
+*/
 #[derive(Clone, Serialize, Deserialize)]
 struct Dmap{
     domain: u16,
     name: String,
+    description: String,
+    clan_name: String,
+    hmm_length: u32,
 }
-
 impl From<&Dmap> for Slice{
     fn from(val: &Dmap) ->Self{
         rmp_serde::to_vec(&val).expect("Serialization error for Dmap").into()
@@ -213,7 +219,7 @@ fn create_hitlists(sequences: HashMap<String, Hit>)->Vec<HitList>{
 
 
 
-fn read_domtblout(mut sequences: HashMap<String, Hit>, clan_map: &HashMap<u16, String>, db: &PartitionHandle, 
+fn read_domtblout(mut sequences: HashMap<String, Hit>, domain_map: &HashMap<u16, Dmap>, domain_info: &HashMap<String, Dmap>, db: &PartitionHandle, 
     domtbloutfile: &String, eval_max: f64, dom_eval_max: f64)->Result<HashMap<String, Hit>, String>{
     let fp = match File::open(&domtbloutfile){
         Err(why) => return Err("Couldn't open ".to_string() + &domtbloutfile.to_string()+ &" for reading.  Reason was : ".to_string() + &why.to_string()),
@@ -244,11 +250,11 @@ fn read_domtblout(mut sequences: HashMap<String, Hit>, clan_map: &HashMap<u16, S
             Err(_) => return Err("Error converting domain e-value field of ".to_string() + fields[12]+ &" to number.".to_string()),
             Ok(v) => v,
         };
-        let alifrom:i32 = match fields[17].parse(){
+        let alifrom:u32 = match fields[17].parse(){
             Err(_) => return Err("Error converting alifrom field of ".to_string() + fields[17]+ &" to number.".to_string()),
             Ok(v) => v,
         };
-        let alito:i32 = match fields[18].parse(){
+        let alito:u32 = match fields[18].parse(){
             Err(_) => return Err("Error converting alito field of ".to_string() + fields[18]+ &" to number.".to_string()),
             Ok(v) => v,
         };
@@ -256,15 +262,15 @@ fn read_domtblout(mut sequences: HashMap<String, Hit>, clan_map: &HashMap<u16, S
             Err(_) => return Err("Error converting sequence e-value field of ".to_string() + fields[6]+ &" to number.".to_string()),
             Ok(v) => v,
         };
-        let hmm_length:i32 = match fields[5].parse(){
+        let hmm_length:u32 = match fields[5].parse(){
             Err(_) => return Err("Error converting hmmlength field of ".to_string() + fields[5]+ &" to number.".to_string()),
             Ok(v) => v,
         };
-        let hmm_from:i32 = match fields[15].parse(){
+        let hmm_from:u32 = match fields[15].parse(){
             Err(_) => return Err("Error converting hmmfrom field of ".to_string() + fields[15]+ &" to number.".to_string()),
             Ok(v) => v,
         };
-        let hmm_to:i32 = match fields[16].parse(){
+        let hmm_to:u32 = match fields[16].parse(){
             Err(_) => return Err("Error converting hmmto field of ".to_string() + fields[16]+ &" to number.".to_string()),
             Ok(v) => v,
         };
@@ -277,8 +283,18 @@ fn read_domtblout(mut sequences: HashMap<String, Hit>, clan_map: &HashMap<u16, S
         // Create a Domain describing this hit
         let hit_domain = Domain{
             name: d_name.to_string(),
-            clan: "fixme".to_string(),
-            description: "fixme".to_string(),
+            clan: match domain_info.get(d_name) {
+                Some(info) => info.clan_name.clone(),
+                None => "unknown".to_string(),
+            },
+            description: match domain_info.get(d_name) {
+                Some(info) => info.description.clone(),
+                None => "unknown".to_string(),
+            },
+            hmm_length: match domain_info.get(d_name) {
+                Some(info) => info.hmm_length,
+                None => 0,
+            },
             seq_start: alifrom,
             seq_end: alito,
             hmm_start: hmm_from,
@@ -294,10 +310,10 @@ fn read_domtblout(mut sequences: HashMap<String, Hit>, clan_map: &HashMap<u16, S
                 // multiple searches
                 existing_hit.seq_evalue = s_eval;
             }
-            if alito > existing_hit.seq_length { // should only happen for a hit with no annotation data
+            if alito > existing_hit.seq_length as u32 { // should only happen for a hit with no annotation data
                 existing_hit.seq_length = alito;
                 existing_hit.domains[0].seq_end = alito;
-                existing_hit.structure_domains[0].seq_end = alito;
+                existing_hit.structure_domains[0].seq_end = alito as u32;
             }
             existing_hit.queries.push(hit_domain);
         }
@@ -315,6 +331,7 @@ fn read_domtblout(mut sequences: HashMap<String, Hit>, clan_map: &HashMap<u16, S
                 None => {let mut fake_sequence = AnnotatedSequence{
                     name: sequence.clone(),
                     sequence: "No annotation data found".to_string(),
+                    length: 0, // This is a fake sequence, not in the database
                     domains: Vec::new(),
                     structure_domains: Vec::new(),
                     real: false, // This is a fake sequence, not in the database
@@ -324,6 +341,8 @@ fn read_domtblout(mut sequences: HashMap<String, Hit>, clan_map: &HashMap<u16, S
                     clan: 0xffff,
                     alifrom: 1,
                     alito: 1,
+                    hmmfrom: 1,
+                    hmmto: 1,
                     eval: 0.0,
                     full_match_start: true,
                     full_match_end: true,
@@ -336,17 +355,25 @@ fn read_domtblout(mut sequences: HashMap<String, Hit>, clan_map: &HashMap<u16, S
 
             let mut our_domains = Vec::new();
             for db_domain in seq_ann.domains{
-                let the_domain = Domain{
-                    name: match clan_map.get(&db_domain.domain) {
-                        None => "No annotation data available".to_string(),
-                        Some(v) => v.clone(),
+                let ddata =match domain_map.get(&db_domain.domain) {
+                    None => Dmap{
+                        domain: 0xffff,
+                        name: "No annotation data available".to_string(),
+                        description: "No annotation data available".to_string(),
+                        clan_name: "No annotation data available".to_string(),
+                        hmm_length: 0,
                     },
-                    seq_start: i32::from(db_domain.alifrom),
-                    seq_end: i32::from(db_domain.alito),
-                    hmm_start: 0,
-                    hmm_end: 0,
-                    clan: "fixme".to_string(),
-                    description: "fixme".to_string(),
+                    Some(v) => v.clone(),
+                };
+                let the_domain = Domain{
+                    name: ddata.name,
+                    hmm_length: ddata.hmm_length,
+                    clan: ddata.clan_name,
+                    description: ddata.description,
+                    seq_start: db_domain.alifrom,
+                    seq_end: db_domain.alito,
+                    hmm_start: db_domain.hmmfrom,
+                    hmm_end: db_domain.hmmto,
                     dom_evalue: f64::from(db_domain.eval),
                     full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
                     full_match_end: db_domain.full_match_end,
@@ -356,17 +383,25 @@ fn read_domtblout(mut sequences: HashMap<String, Hit>, clan_map: &HashMap<u16, S
 
             let mut structure_domains = Vec::new();
             for db_domain in seq_ann.structure_domains{
-                let the_domain = Domain{
-                    name: match clan_map.get(&db_domain.domain) {
-                        None => "No annotation data available".to_string(),
-                        Some(v) => v.clone(),
+                let ddata =match domain_map.get(&db_domain.domain) {
+                    None => Dmap{
+                        domain: 0xffff,
+                        name: "No annotation data available".to_string(),
+                        description: "No annotation data available".to_string(),
+                        clan_name: "No annotation data available".to_string(),
+                        hmm_length: 0,
                     },
-                    seq_start: i32::from(db_domain.alifrom),
-                    seq_end: i32::from(db_domain.alito),
-                    hmm_start:0,
-                    hmm_end:0,
-                    clan: "fixme".to_string(),
-                    description: "fixme".to_string(),
+                    Some(v) => v.clone(),
+                };
+                let the_domain = Domain{
+                    name: ddata.name,
+                    seq_start: db_domain.alifrom,
+                    seq_end: db_domain.alito,
+                    hmm_start: db_domain.hmmfrom,
+                    hmm_end: db_domain.hmmto,
+                    clan: ddata.clan_name,
+                    description: ddata.description,
+                    hmm_length: ddata.hmm_length,
                     dom_evalue: f64::from(db_domain.eval),
                     full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
                     full_match_end: db_domain.full_match_end,
@@ -376,7 +411,7 @@ fn read_domtblout(mut sequences: HashMap<String, Hit>, clan_map: &HashMap<u16, S
             let hit_end = hit_domain.seq_end;  // need this to avoid borrow of moved issues
             let mut this_hit = Hit{
                 name: sequence.clone(),  // Name of the sequence that the hit was to
-                seq_length: seq_ann.sequence.len() as i32,
+                seq_length: seq_ann.sequence.len() as u32,
                 sequence: seq_ann.sequence,  // Sequence  that was hit
                 seq_evalue: s_eval,
                 domains: our_domains,
@@ -463,28 +498,7 @@ pub fn load_data(annfile: String, domtblout_files: Vec<String>, eval_max: f64, d
         results.err_msg = "Couldn't find domain ID to name data in database".to_string() +&annfile;
         return results
     }
-    /* 
-    if !keyspace.partition_exists("domaininfo"){
-        // we're overwriting an existing database, so delete the partition first
-        results.err_msg = "Couldn't find domain information in database".to_string() +&annfile;
-        return results
-    }
-    let domain_info_db = match keyspace.open_partition("domaininfo", PartitionCreateOptions::default()){
-        Ok(v) => v,
-        Err(msg) => {
-            results.err_msg = "Failed to open domaininformation partition, even though it exists.  Error was: ".to_string() + &msg.to_string();
-            return results;
-        },
-    };
 
-    let domain_info: HashMap<String, DomainInfo> = match create_domain_info_map(&domain_info_db){
-        Ok(v) => v,
-        Err(msg) => {
-            results.err_msg = "Couldn't create domain information map from annotations database.  Error was: ".to_string() + &msg.to_string();
-            return results;
-        },
-    };
-*/
     // Retrieve the clan ID->domain name mappings from the annotations DB
     let domain_db = match keyspace.open_partition("domainidtoname", PartitionCreateOptions::default()){
         Ok(v) => v,
@@ -494,10 +508,10 @@ pub fn load_data(annfile: String, domtblout_files: Vec<String>, eval_max: f64, d
         },
     };
 
-    let clan_map:HashMap<u16, String> = match create_domain_id_map(&domain_db){
+    let (domain_map, domain_info): (HashMap<u16, Dmap>, HashMap<String, Dmap>) = match create_domain_id_map(&domain_db){
         Ok(v) => v,
         Err(msg) => {
-            results.err_msg = "Couldn't create domain ID to name map from annotations database.  Error was: ".to_string() + &msg.to_string();
+            results.err_msg = "Couldn't create dmain ID to name map from annotations database.  Error was: ".to_string() + &msg.to_string();
             return results;
         },
     };
@@ -513,7 +527,7 @@ pub fn load_data(annfile: String, domtblout_files: Vec<String>, eval_max: f64, d
     
     let mut hit_sequences= HashMap::new();
     for domtbloutfile in domtblout_files{
-        hit_sequences = match read_domtblout(hit_sequences, &clan_map, &db, &domtbloutfile, eval_max, dom_eval_max){
+        hit_sequences = match read_domtblout(hit_sequences, &domain_map, &domain_info, &db, &domtbloutfile, eval_max, dom_eval_max,){
             Ok(v) => v,
             Err(msg) => {
                 results.err_msg = "Error parsing domtblout file ".to_string() + &domtbloutfile+ "Error was: " + &msg.to_string();
@@ -554,9 +568,9 @@ pub fn load_data(annfile: String, domtblout_files: Vec<String>, eval_max: f64, d
 }
 
 
-fn create_domain_id_map(db: &fjall::PartitionHandle) -> Result<HashMap<u16, String>, String>{
-    let mut map:HashMap<u16, String> = HashMap::new();
-
+fn create_domain_id_map(db: &fjall::PartitionHandle) -> Result<(HashMap<u16, Dmap>, HashMap<String, Dmap>), String>{
+    let mut map:HashMap<u16, Dmap> = HashMap::new();
+    let mut domain_info:HashMap<String, Dmap> = HashMap::new();
     for key in db.keys(){ // This would be dangerous if we didn't know that the domainidtoname partition didn't 
     // have a limited number of entries
         let keybody = match key{
@@ -576,37 +590,12 @@ fn create_domain_id_map(db: &fjall::PartitionHandle) -> Result<HashMap<u16, Stri
             None => {return Err("Couldn't find domain that we know exists in annotations DB".to_string());},
         };
 
-        map.insert(ddata.domain, ddata.name);
+        map.insert(ddata.domain.clone(), ddata.clone());
+        domain_info.insert(ddata.name.clone(), ddata);
     }
-    Ok(map)
+   Ok((map, domain_info))
 }
 
-fn create_domain_info_map(db: &fjall::PartitionHandle) -> Result<HashMap<String, DomainInfo>, String>{
-    let mut map:HashMap<String, DomainInfo> = HashMap::new();
-
-    for key in db.keys(){ // This would be dangerous if we didn't know that the domainidtoname partition didn't 
-    // have a limited number of entries
-        let keybody = match key{
-            Err(why) => return Err("Error reading value from domaininfo data. Reason was: ".to_string() + &why.to_string()),
-            Ok(k) => k,
-        };
-
-        let res1 = match db.get(keybody){
-            Err(why) => return Err("Error reading data from domaininfo data. Reason was: ".to_string() + &why.to_string()),
-            Ok(d) => d,
-        };
-        let ddata:DomainInfo = match res1{
-            Some(d) => match rmp_serde::from_slice(&d){
-                Err(why) => return Err("Deserialization error for DomainInfo: ".to_string() + &why.to_string()),
-                Ok(v) =>v,
-            },
-            None => {return Err("Couldn't find domain info that we know exists in annotations DB".to_string());},
-        };
-
-        map.insert(ddata.name.clone(), ddata);
-    }
-    Ok(map)
-}
 //This was just a test function when developing, is not used in the actual app
 //fn main() {
 //    let mut args = std::env::args().skip(1);

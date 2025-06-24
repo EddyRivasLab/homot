@@ -205,10 +205,11 @@ impl SseDecode for crate::api::gather_hits::Domain {
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_clan = <String>::sse_decode(deserializer);
         let mut var_description = <String>::sse_decode(deserializer);
-        let mut var_seqStart = <i32>::sse_decode(deserializer);
-        let mut var_seqEnd = <i32>::sse_decode(deserializer);
-        let mut var_hmmStart = <i32>::sse_decode(deserializer);
-        let mut var_hmmEnd = <i32>::sse_decode(deserializer);
+        let mut var_hmmLength = <u32>::sse_decode(deserializer);
+        let mut var_seqStart = <u32>::sse_decode(deserializer);
+        let mut var_seqEnd = <u32>::sse_decode(deserializer);
+        let mut var_hmmStart = <u32>::sse_decode(deserializer);
+        let mut var_hmmEnd = <u32>::sse_decode(deserializer);
         let mut var_domEvalue = <f64>::sse_decode(deserializer);
         let mut var_fullMatchStart = <bool>::sse_decode(deserializer);
         let mut var_fullMatchEnd = <bool>::sse_decode(deserializer);
@@ -216,6 +217,7 @@ impl SseDecode for crate::api::gather_hits::Domain {
             name: var_name,
             clan: var_clan,
             description: var_description,
+            hmm_length: var_hmmLength,
             seq_start: var_seqStart,
             seq_end: var_seqEnd,
             hmm_start: var_hmmStart,
@@ -239,7 +241,7 @@ impl SseDecode for crate::api::gather_hits::Hit {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_sequence = <String>::sse_decode(deserializer);
-        let mut var_seqLength = <i32>::sse_decode(deserializer);
+        let mut var_seqLength = <u32>::sse_decode(deserializer);
         let mut var_seqEvalue = <f64>::sse_decode(deserializer);
         let mut var_structureDomains =
             <Vec<crate::api::gather_hits::Domain>>::sse_decode(deserializer);
@@ -399,6 +401,13 @@ impl SseDecode for crate::api::gather_hits::SigCategory {
     }
 }
 
+impl SseDecode for u32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_u32::<NativeEndian>().unwrap()
+    }
+}
+
 impl SseDecode for u8 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -449,6 +458,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::gather_hits::Domain {
             self.name.into_into_dart().into_dart(),
             self.clan.into_into_dart().into_dart(),
             self.description.into_into_dart().into_dart(),
+            self.hmm_length.into_into_dart().into_dart(),
             self.seq_start.into_into_dart().into_dart(),
             self.seq_end.into_into_dart().into_dart(),
             self.hmm_start.into_into_dart().into_dart(),
@@ -605,10 +615,11 @@ impl SseEncode for crate::api::gather_hits::Domain {
         <String>::sse_encode(self.name, serializer);
         <String>::sse_encode(self.clan, serializer);
         <String>::sse_encode(self.description, serializer);
-        <i32>::sse_encode(self.seq_start, serializer);
-        <i32>::sse_encode(self.seq_end, serializer);
-        <i32>::sse_encode(self.hmm_start, serializer);
-        <i32>::sse_encode(self.hmm_end, serializer);
+        <u32>::sse_encode(self.hmm_length, serializer);
+        <u32>::sse_encode(self.seq_start, serializer);
+        <u32>::sse_encode(self.seq_end, serializer);
+        <u32>::sse_encode(self.hmm_start, serializer);
+        <u32>::sse_encode(self.hmm_end, serializer);
         <f64>::sse_encode(self.dom_evalue, serializer);
         <bool>::sse_encode(self.full_match_start, serializer);
         <bool>::sse_encode(self.full_match_end, serializer);
@@ -627,7 +638,7 @@ impl SseEncode for crate::api::gather_hits::Hit {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.name, serializer);
         <String>::sse_encode(self.sequence, serializer);
-        <i32>::sse_encode(self.seq_length, serializer);
+        <u32>::sse_encode(self.seq_length, serializer);
         <f64>::sse_encode(self.seq_evalue, serializer);
         <Vec<crate::api::gather_hits::Domain>>::sse_encode(self.structure_domains, serializer);
         <Vec<crate::api::gather_hits::Domain>>::sse_encode(self.domains, serializer);
@@ -737,6 +748,13 @@ impl SseEncode for crate::api::gather_hits::SigCategory {
         <i32>::sse_encode(self.num_hits, serializer);
         <String>::sse_encode(self.signature, serializer);
         <crate::api::gather_hits::Hit>::sse_encode(self.example, serializer);
+    }
+}
+
+impl SseEncode for u32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_u32::<NativeEndian>(self).unwrap();
     }
 }
 

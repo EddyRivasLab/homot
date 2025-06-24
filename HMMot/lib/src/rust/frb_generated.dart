@@ -226,19 +226,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Domain dco_decode_domain(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 10)
-      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return Domain(
       name: dco_decode_String(arr[0]),
       clan: dco_decode_String(arr[1]),
       description: dco_decode_String(arr[2]),
-      seqStart: dco_decode_i_32(arr[3]),
-      seqEnd: dco_decode_i_32(arr[4]),
-      hmmStart: dco_decode_i_32(arr[5]),
-      hmmEnd: dco_decode_i_32(arr[6]),
-      domEvalue: dco_decode_f_64(arr[7]),
-      fullMatchStart: dco_decode_bool(arr[8]),
-      fullMatchEnd: dco_decode_bool(arr[9]),
+      hmmLength: dco_decode_u_32(arr[3]),
+      seqStart: dco_decode_u_32(arr[4]),
+      seqEnd: dco_decode_u_32(arr[5]),
+      hmmStart: dco_decode_u_32(arr[6]),
+      hmmEnd: dco_decode_u_32(arr[7]),
+      domEvalue: dco_decode_f_64(arr[8]),
+      fullMatchStart: dco_decode_bool(arr[9]),
+      fullMatchEnd: dco_decode_bool(arr[10]),
     );
   }
 
@@ -257,7 +258,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return Hit(
       name: dco_decode_String(arr[0]),
       sequence: dco_decode_String(arr[1]),
-      seqLength: dco_decode_i_32(arr[2]),
+      seqLength: dco_decode_u_32(arr[2]),
       seqEvalue: dco_decode_f_64(arr[3]),
       structureDomains: dco_decode_list_domain(arr[4]),
       domains: dco_decode_list_domain(arr[5]),
@@ -362,6 +363,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int dco_decode_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
   int dco_decode_u_8(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
@@ -392,10 +399,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_name = sse_decode_String(deserializer);
     var var_clan = sse_decode_String(deserializer);
     var var_description = sse_decode_String(deserializer);
-    var var_seqStart = sse_decode_i_32(deserializer);
-    var var_seqEnd = sse_decode_i_32(deserializer);
-    var var_hmmStart = sse_decode_i_32(deserializer);
-    var var_hmmEnd = sse_decode_i_32(deserializer);
+    var var_hmmLength = sse_decode_u_32(deserializer);
+    var var_seqStart = sse_decode_u_32(deserializer);
+    var var_seqEnd = sse_decode_u_32(deserializer);
+    var var_hmmStart = sse_decode_u_32(deserializer);
+    var var_hmmEnd = sse_decode_u_32(deserializer);
     var var_domEvalue = sse_decode_f_64(deserializer);
     var var_fullMatchStart = sse_decode_bool(deserializer);
     var var_fullMatchEnd = sse_decode_bool(deserializer);
@@ -403,6 +411,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       name: var_name,
       clan: var_clan,
       description: var_description,
+      hmmLength: var_hmmLength,
       seqStart: var_seqStart,
       seqEnd: var_seqEnd,
       hmmStart: var_hmmStart,
@@ -424,7 +433,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_name = sse_decode_String(deserializer);
     var var_sequence = sse_decode_String(deserializer);
-    var var_seqLength = sse_decode_i_32(deserializer);
+    var var_seqLength = sse_decode_u_32(deserializer);
     var var_seqEvalue = sse_decode_f_64(deserializer);
     var var_structureDomains = sse_decode_list_domain(deserializer);
     var var_domains = sse_decode_list_domain(deserializer);
@@ -570,6 +579,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int sse_decode_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint32();
+  }
+
+  @protected
   int sse_decode_u_8(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8();
@@ -598,10 +613,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.name, serializer);
     sse_encode_String(self.clan, serializer);
     sse_encode_String(self.description, serializer);
-    sse_encode_i_32(self.seqStart, serializer);
-    sse_encode_i_32(self.seqEnd, serializer);
-    sse_encode_i_32(self.hmmStart, serializer);
-    sse_encode_i_32(self.hmmEnd, serializer);
+    sse_encode_u_32(self.hmmLength, serializer);
+    sse_encode_u_32(self.seqStart, serializer);
+    sse_encode_u_32(self.seqEnd, serializer);
+    sse_encode_u_32(self.hmmStart, serializer);
+    sse_encode_u_32(self.hmmEnd, serializer);
     sse_encode_f_64(self.domEvalue, serializer);
     sse_encode_bool(self.fullMatchStart, serializer);
     sse_encode_bool(self.fullMatchEnd, serializer);
@@ -618,7 +634,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.name, serializer);
     sse_encode_String(self.sequence, serializer);
-    sse_encode_i_32(self.seqLength, serializer);
+    sse_encode_u_32(self.seqLength, serializer);
     sse_encode_f_64(self.seqEvalue, serializer);
     sse_encode_list_domain(self.structureDomains, serializer);
     sse_encode_list_domain(self.domains, serializer);
@@ -724,6 +740,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.numHits, serializer);
     sse_encode_String(self.signature, serializer);
     sse_encode_hit(self.example, serializer);
+  }
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putUint32(self);
   }
 
   @protected

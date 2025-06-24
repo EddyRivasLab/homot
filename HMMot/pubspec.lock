@@ -495,6 +495,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.2"
+  osler_icons:
+    dependency: "direct main"
+    description:
+      name: osler_icons
+      sha256: "39a734ba7aa00d06838e4a7286fa571c5d3437099bc527a0a7ed15c76b06d8b1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.2"
   package_config:
     dependency: transitive
     description:
