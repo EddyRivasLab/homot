@@ -820,7 +820,6 @@ dependencies = [
 name = "rust_lib_hviewer"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "fjall",
  "flutter_rust_bridge",
  "glob",

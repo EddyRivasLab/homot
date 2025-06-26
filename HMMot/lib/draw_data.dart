@@ -21,8 +21,9 @@ import 'package:touchable/touchable.dart';
 
 
 void _addButton(List<Widget> buttons, double top, double bottom, double left, double right, String dName, String dDesc, String cName,
-double sEval, double dEval, int sLen, int hLen, int sStart, int sEnd, int hStart, int hEnd, BuildContext context) {
-  String tooltipText = "Domain: ${dName}\nDescription: ${dDesc} \nClan: C${cName}\nDomain e-value:${dEval.toStringAsExponential(2)} Sequence e-value: ${sEval.toStringAsExponential(2)}\nSequence length: ${sLen} HMMlength: ${hLen}\nDomain matched sequence positions ${sStart}-${sEnd}\nDomain matched HMM positions: ${hStart}-${hEnd}";
+double sEval, double dEval, int sLen, int hLen, int sStart, int sEnd, int hStart, int hEnd, bool query, BuildContext context) {
+  String tooltipText = query ? "Query: ${dName}\nDomain e-value:${dEval.toStringAsExponential(2)} Sequence e-value: ${sEval.toStringAsExponential(2)}\nSequence length: ${sLen} HMM length: ${hLen}\nDomain matched sequence positions ${sStart}-${sEnd}\nDomain matched HMM positions: ${hStart}-${hEnd}":
+  "Domain: ${dName}\nDescription: ${dDesc} \nClan: C${cName}\nDomain e-value:${dEval.toStringAsExponential(2)} Sequence e-value: ${sEval.toStringAsExponential(2)}\nSequence length: ${sLen} HMM length: ${hLen}\nDomain matched sequence positions ${sStart}-${sEnd}\nDomain matched HMM positions: ${hStart}-${hEnd}";
   buttons.add(Positioned(
     top: top,
     //bottom: bottom,
@@ -48,6 +49,7 @@ class DrawDomains extends StatelessWidget {
     required this.overview,
     required this.seqLength,
     required this.seqEvalue,
+    required this.allDomains,
   });
 
   //final List<Domain> domains;
@@ -59,6 +61,7 @@ class DrawDomains extends StatelessWidget {
   final OverviewData overview;
   final int seqLength;
   final double seqEvalue;
+  final bool allDomains;
 
   (double, double) _calc_text_dimensions(TextTheme textTheme) {
     // The easiest way to get the dimensions of some
@@ -67,10 +70,18 @@ class DrawDomains extends StatelessWidget {
       textAlign: TextAlign.start,
       textDirection: TextDirection.ltr,
     );
-    testPainter.text = TextSpan(
+    if (allDomains){
+      testPainter.text = TextSpan(
+      text: "Annotated Domains:",
+      style: textTheme.bodyMedium,
+    );
+    }
+    else{
+      testPainter.text = TextSpan(
       text: "Domain Structure:",
       style: textTheme.bodyMedium,
     );
+    }
     testPainter.layout();
     return (testPainter.width, testPainter.preferredLineHeight);
   }
@@ -148,6 +159,7 @@ class DrawDomains extends StatelessWidget {
           textTheme: Theme.of(context).textTheme,
           colorScheme: Theme.of(context).colorScheme,
           buttons: buttons,
+          allDomains: allDomains,
         );
     return Stack(
       children:<Widget>[CanvasTouchDetector(
@@ -194,7 +206,7 @@ List<Widget> CreateButtons(
     double domainWidth = end - start;
     _addButton(buttons, row*heightPerLine*lineSpace, (row*heightPerLine*lineSpace) + heightPerLine, start, start + domainWidth, 
     domain.name, domain.description , domain.clan, seqEvalue, domain.domEvalue, seqLength, domain.hmmLength, domain.seqStart, domain.seqEnd, domain.hmmStart,
-    domain.hmmEnd, context);
+    domain.hmmEnd, false, context);
   }
   row+=1;
   for (var i = 0; i<queries.length; i++) {
@@ -205,7 +217,7 @@ List<Widget> CreateButtons(
     _addButton(buttons, ((row+ queryRows[i])* lineSpace + (lineSpace/2)) * heightPerLine, 
     (((row+ queryRows[i])* lineSpace + (lineSpace/2)) * heightPerLine) + heightPerLine,  
     start, start + domainWidth, query.name, query.description, query.clan, seqEvalue, query.domEvalue, seqLength, query.hmmLength, query.seqStart, query.seqEnd, query.hmmStart,
-    query.hmmEnd, context);
+    query.hmmEnd, true, context);
 
   }
   return buttons;
@@ -224,6 +236,7 @@ class DomainPainter extends CustomPainter {
   final TextTheme textTheme;
   final ColorScheme colorScheme;
   List<Widget> buttons;
+  final bool allDomains;
 
   DomainPainter({
     required this.context,
@@ -239,6 +252,7 @@ class DomainPainter extends CustomPainter {
     required this.textTheme,
     required this.colorScheme,
     required this.buttons,
+    required this.allDomains,
   });
 
    _draw_domain(
@@ -396,10 +410,18 @@ class DomainPainter extends CustomPainter {
       textAlign: TextAlign.start,
       textDirection: TextDirection.ltr,
     );
-    legendPainter.text = TextSpan(
-      text: "Domain Structure:",
-      style: textTheme.bodyMedium!.copyWith(color: colorScheme.onSurface),
-    );
+    if(allDomains){
+      legendPainter.text = TextSpan(
+        text: "Annotated Domains:",
+        style: textTheme.bodyMedium!.copyWith(color: colorScheme.onSurface),
+      );
+    }
+    else{
+      legendPainter.text = TextSpan(
+        text: "Domain Structure:",
+        style: textTheme.bodyMedium!.copyWith(color: colorScheme.onSurface),
+      );
+    }
 
     legendPainter.layout();
     legendPainter.paint(canvas, Offset(0, 0));
@@ -534,6 +556,7 @@ class _DrawHitState extends State<DrawHit> {
       overview: widget.overview,
       seqLength: widget.hit.seqLength,
       seqEvalue: widget.hit.seqEvalue,
+      allDomains: widget.allDomains,
     );
     }
     else{return DrawDomains(
@@ -545,6 +568,7 @@ class _DrawHitState extends State<DrawHit> {
       overview: widget.overview,
       seqLength: widget.hit.seqLength,
       seqEvalue: widget.hit.seqEvalue,
+      allDomains: widget.allDomains,
     );}
   }
 }
@@ -574,7 +598,7 @@ class DrawCategory extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
-                    "${category.numHits} sequences with domain signature ${category.signature}",
+                    "${category.numHits} sequences with domain structure ${category.signature}",
                   ),
                   Text("Example: " + category.example.name),
                   DrawHit(hit: category.example, overview: overview),

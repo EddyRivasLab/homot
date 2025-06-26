@@ -1,0 +1,198 @@
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex)
+ restricted \write18 enabled.
+entering extended mode
+(./HMMot_userguide.tex
+LaTeX2e <2022-11-01> patch level 1
+L3 programming layer <2023-02-22> (./tufte-book.cls
+Document Class: tufte-book 2015/06/30 v3.5.3 Tufte-book class
+(./tufte-common.def
+(/usr/local/texlive/2023/texmf-dist/tex/latex/xkeyval/xkeyval.sty
+(/usr/local/texlive/2023/texmf-dist/tex/generic/xkeyval/xkeyval.tex
+(/usr/local/texlive/2023/texmf-dist/tex/generic/xkeyval/xkvutils.tex
+(/usr/local/texlive/2023/texmf-dist/tex/generic/xkeyval/keyval.tex))))
+(/usr/local/texlive/2023/texmf-dist/tex/latex/xifthen/xifthen.sty
+(/usr/local/texlive/2023/texmf-dist/tex/latex/tools/calc.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/base/ifthen.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/ifmtarg/ifmtarg.sty))
+(/usr/local/texlive/2023/texmf-dist/tex/latex/hardwrap/hardwrap.sty
+(/usr/local/texlive/2023/texmf-dist/tex/latex/ifplatform/ifplatform.sty
+(/usr/local/texlive/2023/texmf-dist/tex/latex/tools/shellesc.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/generic/pdftexcmds/pdftexcmds.sty
+(/usr/local/texlive/2023/texmf-dist/tex/generic/infwarerr/infwarerr.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/generic/iftex/iftex.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/generic/ltxcmds/ltxcmds.sty))
+(/usr/local/texlive/2023/texmf-dist/tex/generic/catchfile/catchfile.sty
+(/usr/local/texlive/2023/texmf-dist/tex/generic/etexcmds/etexcmds.sty))
+(/usr/local/texlive/2023/texmf-dist/tex/generic/iftex/ifluatex.sty)
+
+Package ifplatform Warning: 
+    shell escape is disabled, so I can only detect \ifwindows.
+
+) (/usr/local/texlive/2023/texmf-dist/tex/generic/iftex/ifxetex.sty)
+(|kpsewhich -var-value=max_print_line))
+(/usr/local/texlive/2023/texmf-dist/tex/latex/base/book.cls
+Document Class: book 2022/07/02 v1.4n Standard LaTeX document class
+(/usr/local/texlive/2023/texmf-dist/tex/latex/base/bk10.clo))
+(/usr/local/texlive/2023/texmf-dist/tex/generic/iftex/ifpdf.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/titlesec/titlesec.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/titlesec/titletoc.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/hyperref/hyperref.sty
+(/usr/local/texlive/2023/texmf-dist/tex/latex/kvsetkeys/kvsetkeys.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/generic/kvdefinekeys/kvdefinekeys.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/generic/pdfescape/pdfescape.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/hycolor/hycolor.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/letltxmacro/letltxmacro.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/auxhook/auxhook.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/hyperref/nameref.sty
+(/usr/local/texlive/2023/texmf-dist/tex/latex/refcount/refcount.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/generic/gettitlestring/gettitlestring.s
+ty (/usr/local/texlive/2023/texmf-dist/tex/latex/kvoptions/kvoptions.sty)))
+(/usr/local/texlive/2023/texmf-dist/tex/latex/hyperref/pd1enc.def)
+(/usr/local/texlive/2023/texmf-dist/tex/generic/intcalc/intcalc.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/hyperref/puenc.def)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/url/url.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/generic/bitset/bitset.sty
+(/usr/local/texlive/2023/texmf-dist/tex/generic/bigintcalc/bigintcalc.sty))
+(/usr/local/texlive/2023/texmf-dist/tex/latex/base/atbegshi-ltx.sty))
+(/usr/local/texlive/2023/texmf-dist/tex/latex/hyperref/hpdftex.def
+(/usr/local/texlive/2023/texmf-dist/tex/latex/base/atveryend-ltx.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/rerunfilecheck/rerunfilecheck.sty
+
+(/usr/local/texlive/2023/texmf-dist/tex/generic/uniquecounter/uniquecounter.sty
+))) (/usr/local/texlive/2023/texmf-dist/tex/latex/ragged2e/ragged2e.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/geometry/geometry.sty
+(/usr/local/texlive/2023/texmf-dist/tex/generic/iftex/ifvtex.sty))
+(/usr/local/texlive/2023/texmf-dist/tex/latex/changepage/changepage.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/paralist/paralist.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/textcase/textcase.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/microtype/letterspace.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/setspace/setspace.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/xcolor/xcolor.sty
+(/usr/local/texlive/2023/texmf-dist/tex/latex/graphics-cfg/color.cfg)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/graphics-def/pdftex.def)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/graphics/mathcolor.ltx)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/graphics/dvipsnam.def)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/xcolor/svgnam.def))
+(/usr/local/texlive/2023/texmf-dist/tex/latex/natbib/natbib.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/natbib/bibentry.sty)
+No file HMMot_userguide.bbl.
+(/usr/local/texlive/2023/texmf-dist/tex/latex/sauerj/optparams.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/placeins/placeins.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/psnfss/mathpazo.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/psnfss/helvet.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/bera/beramono.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/base/fontenc.sty
+(/usr/local/texlive/2023/texmf-dist/tex/latex/psnfss/t1pplj.fd))
+(/usr/local/texlive/2023/texmf-dist/tex/latex/base/textcomp.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/fancyhdr/fancyhdr.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/tools/multicol.sty)
+(./tufte-common-local.tex
+(/usr/local/texlive/2023/texmf-dist/tex/latex/fancybox/fancybox.sty
+Style option: `fancybox' v1.4 <2010/05/15> (tvz)
+) (/usr/local/texlive/2023/texmf-dist/tex/latex/relsize/relsize.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/fancyvrb/fancyvrb.sty))))
+(/usr/local/texlive/2023/texmf-dist/tex/latex/graphics/graphicx.sty
+(/usr/local/texlive/2023/texmf-dist/tex/latex/graphics/graphics.sty
+(/usr/local/texlive/2023/texmf-dist/tex/latex/graphics/trig.sty)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/graphics-cfg/graphics.cfg)))
+(/usr/local/texlive/2023/texmf-dist/tex/latex/tools/xspace.sty)
+(./titlepage_HMMot.tex)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def)
+(./HMMot_userguide.aux) (./HMMot_userguide.out) (./HMMot_userguide.out)
+*geometry* driver: auto-detecting
+*geometry* detected driver: pdftex
+(/usr/local/texlive/2023/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+) (/usr/local/texlive/2023/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
+(/usr/local/texlive/2023/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg))
+(/usr/local/texlive/2023/texmf-dist/tex/latex/psnfss/ot1pplx.fd)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/psnfss/omlzplm.fd)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/psnfss/omszplm.fd)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/psnfss/omxzplm.fd)
+(/usr/local/texlive/2023/texmf-dist/tex/latex/psnfss/ot1zplm.fd) [1{/usr/local/
+texlive/2023/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/usr/local/texlive/2
+023/texmf-dist/fonts/enc/dvips/base/8r.enc}] (./copyright.tex) [2] [3]
+Underfull \hbox (badness 3536) in paragraph at lines 27--27
+$[]$\T1/pplj/m/n/8 HMMER Ob-ser-va-tion Tool, also a
+
+LaTeX Warning: Marginpar on page 4 moved.
+
+[4] [5]
+
+LaTeX Warning: Marginpar on page 6 moved.
+
+[6] (/usr/local/texlive/2023/texmf-dist/tex/latex/bera/t1fvm.fd)
+
+LaTeX Warning: Marginpar on page 7 moved.
+
+
+
+pdfTeX warning: pdflatex (file ./inclusions/load_data.pdf): PDF inclusion: foun
+d PDF version <1.6>, but at most version <1.5> allowed
+[7] [8 <./inclusions/load_data.pdf>]
+
+pdfTeX warning: pdflatex (file ./inclusions/overview.pdf): PDF inclusion: found
+ PDF version <1.6>, but at most version <1.5> allowed
+[9] [10 <./inclusions/overview.pdf>]
+Overfull \hbox (25.33195pt too wide) in paragraph at lines 88--89
+\T1/pplj/m/it/10 we pro-vide to cre-ate an an-no-tated ver-sion of the database
+. Be-cause \T1/fvm/m/sl/8 create-annotations
+
+Overfull \hbox (3.33pt too wide) in paragraph at lines 88--89
+\T1/pplj/m/it/10 keeps its in-ter-me-di-ate state in mem-ory un-til it has full
+y-annotated the database,
+[11]
+Overfull \hbox (4.38663pt too wide) in paragraph at lines 96--97
+\T1/pplj/m/it/10 ware pack-ages. Chief among these are Flut-ter [][]$https : / 
+/ ^^]utter . dev$[][] and Dart [][]$https :
+
+Overfull \hbox (1.77786pt too wide) in paragraph at lines 98--99
+\T1/pplj/m/it/10 dev / packages / osler _ icons$[][], Provider [][]$https : / /
+ pub . dev / packages / provider$[][], Shared
+
+Overfull \hbox (5.96382pt too wide) in paragraph at lines 98--99
+\T1/pplj/m/it/10 / / pub . dev / documentation / system _ fonts / latest/$[][],
+ and Touch-able [][]$https : / / pub . dev /
+
+Overfull \hbox (23.51389pt too wide) in paragraph at lines 100--101
+[]\T1/pplj/m/it/10 Our Rust code de-pends on the Bio [][]$https : / / docs . rs
+ / bio / latest / bio/$[][], Dashmap [][]$https :
+
+Overfull \hbox (31.23781pt too wide) in paragraph at lines 100--101
+\T1/pplj/m/it/10 / / docs . rs / dashmap / latest / dashmap/$[][], Fjall [][]$h
+ttps : / / docs . rs / fjall / latest / fjall/$[][], Glob [][]$https :
+
+Package bibentry Warning: You have used \nobibliography* 
+(bibentry)                without a following \bibliography.
+(bibentry)                You may not be able to run BibTeX.
+
+[12] (./HMMot_userguide.aux)
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+
+Package rerunfilecheck Warning: File `HMMot_userguide.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+ )
+(see the transcript file for additional information)
+pdfTeX warning (dest): name{chapter*.5} has been referenced but does not exist,
+ replaced by a fixed one
+
+
+pdfTeX warning (dest): name{section*.4} has been referenced but does not exist,
+ replaced by a fixed one
+
+
+pdfTeX warning (dest): name{chapter*.2} has been referenced but does not exist,
+ replaced by a fixed one
+
+</usr/local/texlive/2023/texmf-dist/fonts/type1/public/fpl/fplrc8a.pfb></usr/lo
+cal/texlive/2023/texmf-dist/fonts/type1/public/fpl/fplrij8a.pfb></usr/local/tex
+live/2023/texmf-dist/fonts/type1/public/bera/fvmro8a.pfb></usr/local/texlive/20
+23/texmf-dist/fonts/type1/urw/palatino/uplr8a.pfb></usr/local/texlive/2023/texm
+f-dist/fonts/type1/urw/palatino/uplri8a.pfb>
+Output written on HMMot_userguide.pdf (12 pages, 1632973 bytes).
+Transcript written on HMMot_userguide.log.
+I couldn't open file name `HMot_userguide.aux'

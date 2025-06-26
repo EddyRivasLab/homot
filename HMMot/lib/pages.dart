@@ -330,7 +330,7 @@ class _OverviewPageState extends State<OverviewPage> {
         builder: (context, overview, child) {
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
-            appBar:  HmmotAppBar(text:"${overview.numHits} hits found, with ${overview.numCategories} different domain signatures."),
+            appBar:  HmmotAppBar(text:"${overview.numHits} hits found, with ${overview.numCategories} different domain structures"),
             body: Scrollbar(
               controller: _scrollController2,
               child: ListView.builder(
@@ -384,7 +384,7 @@ class _CategoryPageState extends State<CategoryPage> {
                   return Card(
                     color: Theme.of(context).colorScheme.surface,
                     child: Column(
-                      //crossAxisAlignment: CrossAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
