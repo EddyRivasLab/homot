@@ -1,14 +1,15 @@
-use std::io::BufReader;
-use std::fs::File;
+use std::fs;
 //use std::thread::sleep;
 //use std::time;
-use std::io::prelude::*;
+//use std::io::prelude::*;
 use std::collections::HashMap;
 use std::cmp::Reverse;
 use serde::{Serialize, Deserialize};
 use fjall::{Config, PartitionCreateOptions,UserValue, Slice, PartitionHandle};
 use flutter_rust_bridge::frb;
-
+use rayon::prelude::*;
+use std::sync::{Arc, Mutex};
+use dashmap::DashMap;
 #[derive(Clone)]
 pub struct Domain{
     pub name: String,
@@ -177,7 +178,7 @@ fn domains_to_structure(domains: &Vec<Domain>)->String{
 
 }
 
-fn create_hitlists(sequences: HashMap<String, Hit>)->Vec<HitList>{
+fn create_hitlists(sequences: DashMap<String, Hit>)->Vec<HitList>{
     //The input hashMap contains the set of hits found in the input domtblout files, indexed 
     // by the name of the sequence that the query hit.  
     // Transform that into a vector of HitLists, where the hits in each HitList have the same 
@@ -217,216 +218,281 @@ fn create_hitlists(sequences: HashMap<String, Hit>)->Vec<HitList>{
     hit_lists
 }
 
+struct MyError{
+    foundError: bool,
+    errorMessage: String,
+}
 
+fn read_domtblout(sequences: &DashMap<String, Hit>, domain_map: &HashMap<u16, Dmap>, domain_info: &HashMap<String, Dmap>, db: &PartitionHandle, 
+    domtbloutfile: &String, eval_max: f64, dom_eval_max: f64)->Result<i32, String>{
 
-fn read_domtblout(mut sequences: HashMap<String, Hit>, domain_map: &HashMap<u16, Dmap>, domain_info: &HashMap<String, Dmap>, db: &PartitionHandle, 
-    domtbloutfile: &String, eval_max: f64, dom_eval_max: f64)->Result<HashMap<String, Hit>, String>{
-    let fp = match File::open(&domtbloutfile){
-        Err(why) => return Err("Couldn't open ".to_string() + &domtbloutfile.to_string()+ &" for reading.  Reason was : ".to_string() + &why.to_string()),
+    let fileData = match fs::read_to_string(&domtbloutfile){
+        Err(why) => return Err("Couldn't read data from ".to_string() + &domtbloutfile.to_string()+ &".  Reason was : ".to_string() + &why.to_string()),
         Ok(file) => file,
     };
-
-    let freader = BufReader::new(fp);
-    for hit_result in freader.lines(){
-        let hit = match hit_result{
-            Err(why) => return Err("Error reading line from ".to_string() +&domtbloutfile.to_string() + &". Reason was " + &why.to_string()),
-            Ok(h) => h,
-        };
-        match hit.chars().next(){
-            None => continue, // empty line, skip
-            Some(c) => if c == '#'{
-                // comment line, skip
-                continue;
-            },
-        }
-
-        let fields: Vec<&str> = hit.split_whitespace().collect();
-        if fields.len() < 19{
-            return Err("Error parsing domtblout file ".to_string() + &domtbloutfile.to_string() + &".  Not enough fields in line.  Line was: ".to_string() + &hit);
-        }
-        let sequence = fields[0].to_string();
-        let d_name = fields[3];
-        let d_eval:f64 = match fields[12].parse(){
-            Err(_) => return Err("Error converting domain e-value field of ".to_string() + fields[12]+ &" to number.".to_string()),
-            Ok(v) => v,
-        };
-        let alifrom:u32 = match fields[17].parse(){
-            Err(_) => return Err("Error converting alifrom field of ".to_string() + fields[17]+ &" to number.".to_string()),
-            Ok(v) => v,
-        };
-        let alito:u32 = match fields[18].parse(){
-            Err(_) => return Err("Error converting alito field of ".to_string() + fields[18]+ &" to number.".to_string()),
-            Ok(v) => v,
-        };
-        let s_eval:f64 = match fields[6].parse(){
-            Err(_) => return Err("Error converting sequence e-value field of ".to_string() + fields[6]+ &" to number.".to_string()),
-            Ok(v) => v,
-        };
-        let hmm_length:u32 = match fields[5].parse(){
-            Err(_) => return Err("Error converting hmmlength field of ".to_string() + fields[5]+ &" to number.".to_string()),
-            Ok(v) => v,
-        };
-        let hmm_from:u32 = match fields[15].parse(){
-            Err(_) => return Err("Error converting hmmfrom field of ".to_string() + fields[15]+ &" to number.".to_string()),
-            Ok(v) => v,
-        };
-        let hmm_to:u32 = match fields[16].parse(){
-            Err(_) => return Err("Error converting hmmto field of ".to_string() + fields[16]+ &" to number.".to_string()),
-            Ok(v) => v,
-        };
+    let lock = Arc::new(Mutex::new(MyError{foundError: false, errorMessage: "".to_string()}));
+    let arcSequences = Arc::new(sequences);
+    fileData.lines().par_bridge().for_each(|hit| {
+        let mySequences = Arc::clone(&arcSequences);
+        if !hit.starts_with('#'){ // non-comment line
+            let fields: Vec<&str> = hit.split_whitespace().collect();
+            if fields.len() < 19{
+                let mut lockRes = lock.lock().unwrap();
+                lockRes.foundError = true;
+                lockRes.errorMessage ="Error parsing domtblout file ".to_string() + &domtbloutfile.to_string() + &".  Not enough fields in line.  Line was: ".to_string() + &hit;
+                drop(lockRes);
+            }
+            else{
+            let sequence = fields[0].to_string();
+            let d_name = fields[3];
+            let d_eval:f64 = match fields[12].parse(){
+                Err(_) => {
+                    let mut lockRes = lock.lock().unwrap();
+                    lockRes.foundError = true;
+                    lockRes.errorMessage = "Error converting domain e-value field of ".to_string() + fields[12]+ &" to number.".to_string();
+                    drop(lockRes);
+                    0.0
+                }
+                Ok(v) => v,
+            };
+            let alifrom:u32 = match fields[17].parse(){
+                Err(_) => {
+                    let mut lockRes = lock.lock().unwrap();
+                    lockRes.foundError = true;
+                    lockRes.errorMessage = "Error converting alifrom field of ".to_string() + fields[17]+ &" to number.".to_string();
+                    drop(lockRes);
+                    0
+                }
+                Ok(v) => v,
+            };
+            let alito:u32 = match fields[18].parse(){
+                Err(_) => {
+                    let mut lockRes = lock.lock().unwrap();
+                    lockRes.foundError = true;
+                    lockRes.errorMessage = "Error converting alito field of ".to_string() + fields[18]+ &" to number.".to_string();
+                    drop(lockRes);
+                    0
+                }                   
+                Ok(v) => v,
+            };
+            let s_eval:f64 = match fields[6].parse(){
+                Err(_) => {
+                    let mut lockRes = lock.lock().unwrap();
+                    lockRes.foundError = true;
+                    lockRes.errorMessage = "Error converting sequence e-value field of ".to_string() + fields[6]+ &" to number.".to_string();
+                    drop(lockRes);
+                    0.0
+                }
+                Ok(v) => v,
+            };
+            let hmm_length:u32 = match fields[5].parse(){
+                Err(_) => {
+                    let mut lockRes = lock.lock().unwrap();
+                    lockRes.foundError = true;
+                    lockRes.errorMessage = "Error converting hmmlength field of ".to_string() + fields[5]+ &" to number.".to_string();
+                    drop(lockRes);
+                    0
+                }
+                Ok(v) => v,
+            };
+            let hmm_from:u32 = match fields[15].parse(){
+                Err(_) => {
+                    let mut lockRes = lock.lock().unwrap();
+                    lockRes.foundError = true;
+                    lockRes.errorMessage = "Error converting hmmfrom field of ".to_string() + fields[15]+ &" to number.".to_string();
+                    drop(lockRes);
+                    0
+                }
+                Ok(v) => v,
+            };
+            let hmm_to:u32 = match fields[16].parse(){
+                Err(_) => {
+                    let mut lockRes = lock.lock().unwrap();
+                    lockRes.foundError = true   ;
+                    lockRes.errorMessage = "Error converting hmmto field of ".to_string() + fields[16]+ &" to number.".to_string();
+                    drop(lockRes);
+                    0
+                } 
+                Ok(v) => v,
+            };
         
-        if  s_eval > eval_max || d_eval > dom_eval_max{
-            // This hit doesn't meet our eval standards, ignore
-            continue;
-        } 
+            if  s_eval <= eval_max && d_eval <= dom_eval_max{
+            // hit is good enough to keep
 
-        // Create a Domain describing this hit
-        let hit_domain = Domain{
-            name: d_name.to_string(),
-            clan: match domain_info.get(d_name) {
-                Some(info) => info.clan_name.clone(),
-                None => "unknown".to_string(),
-            },
-            description: match domain_info.get(d_name) {
-                Some(info) => info.description.clone(),
-                None => "unknown".to_string(),
-            },
-            hmm_length: match domain_info.get(d_name) {
-                Some(info) => info.hmm_length,
-                None => 0,
-            },
-            seq_start: alifrom,
-            seq_end: alito,
-            hmm_start: hmm_from,
-            hmm_end: hmm_to,
-            dom_evalue: d_eval,
-            full_match_start: (hmm_from == 1),
-            full_match_end: (hmm_to == hmm_length),
-        };
-        if sequences.contains_key(&sequence){ // already have at least one hit to this sequence
-            // so just add the new domain
-            let existing_hit = sequences.get_mut(&sequence).unwrap();
-            if s_eval < existing_hit.seq_evalue{ //This should only matter when we are merging results from
-                // multiple searches
-                existing_hit.seq_evalue = s_eval;
-            }
-            if alito > existing_hit.seq_length as u32 { // should only happen for a hit with no annotation data
-                existing_hit.seq_length = alito;
-                existing_hit.domains[0].seq_end = alito;
-                existing_hit.structure_domains[0].seq_end = alito as u32;
-            }
-            existing_hit.queries.push(hit_domain);
-        }
-        else{
-            // Get the data for this sequence from the annotated db and build a new sequence
-            let res1 = match db.get(&sequence){
-                Err(why) => return Err("Error looking up sequence ".to_string() + &sequence + &" in annotations DB, reason was: ".to_string() + &why.to_string()),
-                Ok(d) => d,
-            };
-            let seq_ann: AnnotatedSequence = match res1{
-                Some(d) => match rmp_serde::from_slice(&d){
-                    Ok(d) => d,
-                    Err(msg) => return Err("Deserialization error for Annotated Sequence, reason was: ".to_string() + &msg.to_string()),
+                // Create a Domain describing this hit
+                let hit_domain = Domain{
+                name: d_name.to_string(),
+                clan: match domain_info.get(d_name) {
+                    Some(info) => info.clan_name.clone(),
+                    None => "unknown".to_string(),
                 },
-                None => {let mut fake_sequence = AnnotatedSequence{
-                    name: sequence.clone(),
-                    sequence: "No annotation data found".to_string(),
-                    length: 0, // This is a fake sequence, not in the database
-                    domains: Vec::new(),
-                    structure_domains: Vec::new(),
-                    real: false, // This is a fake sequence, not in the database
+                description: match domain_info.get(d_name) {
+                    Some(info) => info.description.clone(),
+                    None => "unknown".to_string(),
+                },
+                hmm_length: match domain_info.get(d_name) {
+                    Some(info) => info.hmm_length,
+                    None => 0,
+                },
+                seq_start: alifrom,
+                seq_end: alito,
+                hmm_start: hmm_from,
+                hmm_end: hmm_to,
+                dom_evalue: d_eval,
+                full_match_start: (hmm_from == 1),
+                full_match_end: (hmm_to == hmm_length),
                 };
-                let struct_domain = DbDomain{
-                    domain: 0xffff,
-                    clan: 0xffff,
-                    alifrom: 1,
-                    alito: 1,
-                    hmmfrom: 1,
-                    hmmto: 1,
-                    eval: 0.0,
-                    full_match_start: true,
-                    full_match_end: true,
-                };
-                let all_domain = struct_domain.clone();
-                fake_sequence.domains.push(all_domain);
-                fake_sequence.structure_domains.push(struct_domain);
-                fake_sequence},
-            };
-
-            let mut our_domains = Vec::new();
-            for db_domain in seq_ann.domains{
-                let ddata =match domain_map.get(&db_domain.domain) {
-                    None => Dmap{
-                        domain: 0xffff,
-                        name: "No annotation data available".to_string(),
-                        description: "No annotation data available".to_string(),
-                        clan_name: "No annotation data available".to_string(),
-                        hmm_length: 0,
+                if mySequences.contains_key(&sequence){ // already have at least one hit to this sequence
+                // so just add the new domain
+                    let mut existing_hit = mySequences.get_mut(&sequence).unwrap();
+                    if s_eval < existing_hit.seq_evalue{ //This should only matter when we are merging results from
+                    // multiple searches
+                        existing_hit.seq_evalue = s_eval;
+                    }
+                    if alito > existing_hit.seq_length as u32 { // should only happen for a hit with no annotation data
+                        existing_hit.seq_length = alito;
+                        existing_hit.domains[0].seq_end = alito;
+                        existing_hit.structure_domains[0].seq_end = alito as u32;
+                    }
+                    existing_hit.queries.push(hit_domain);
+                }
+                else{
+                    // Get the data for this sequence from the annotated db and build a new sequence
+                    let res1 = match db.get(&sequence){
+                        Err(why) => {
+                            let mut lockRes = lock.lock().unwrap();
+                            lockRes.foundError = true;
+                            lockRes.errorMessage = "Error looking up sequence ".to_string() + &sequence + &" in annotations DB, reason was: ".to_string() + &why.to_string();
+                            drop(lockRes);
+                            None
+                        }
+                        Ok(d) => d,
+                    };
+                    let seq_ann: AnnotatedSequence = match res1{
+                    Some(d) => match rmp_serde::from_slice(&d){
+                        Ok(d) => d,
+                        Err(msg) => {
+                            let mut lockRes = lock.lock().unwrap();
+                            lockRes.foundError = true;
+                            lockRes.errorMessage = "Deserialization error for Annotated Sequence, reason was: ".to_string() + &msg.to_string();
+                            drop(lockRes);
+                            AnnotatedSequence{
+                                name: "".to_string(),
+                                sequence: "".to_string(),
+                                length: 0, // This is a fake sequence, not in the database
+                                domains: Vec::new(),
+                                structure_domains: Vec::new(),
+                                real: false, // This is a fake sequence, not in the database
+                            }
+                        },
                     },
-                    Some(v) => v.clone(),
-                };
-                let the_domain = Domain{
-                    name: ddata.name,
-                    hmm_length: ddata.hmm_length,
-                    clan: ddata.clan_name,
-                    description: ddata.description,
-                    seq_start: db_domain.alifrom,
-                    seq_end: db_domain.alito,
-                    hmm_start: db_domain.hmmfrom,
-                    hmm_end: db_domain.hmmto,
-                    dom_evalue: f64::from(db_domain.eval),
-                    full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
-                    full_match_end: db_domain.full_match_end,
-                };
-                our_domains.push(the_domain);
-            }
-
-            let mut structure_domains = Vec::new();
-            for db_domain in seq_ann.structure_domains{
-                let ddata =match domain_map.get(&db_domain.domain) {
-                    None => Dmap{
+                    None => {let mut fake_sequence = AnnotatedSequence{
+                        name: sequence.clone(),
+                        sequence: "No annotation data found".to_string(),
+                        length: 0, // This is a fake sequence, not in the database
+                        domains: Vec::new(),
+                        structure_domains: Vec::new(),
+                        real: false, // This is a fake sequence, not in the database
+                        };
+                    
+                    let struct_domain = DbDomain{
                         domain: 0xffff,
-                        name: "No annotation data available".to_string(),
-                        description: "No annotation data available".to_string(),
-                        clan_name: "No annotation data available".to_string(),
-                        hmm_length: 0,
+                        clan: 0xffff,
+                        alifrom: 1,
+                        alito: 1,
+                        hmmfrom: 1,
+                        hmmto: 1,
+                        eval: 0.0,
+                        full_match_start: true,
+                        full_match_end: true,
+                    };
+                    let all_domain = struct_domain.clone();
+                    fake_sequence.domains.push(all_domain);
+                    fake_sequence.structure_domains.push(struct_domain);
+                    fake_sequence
+                
                     },
-                    Some(v) => v.clone(),
                 };
-                let the_domain = Domain{
-                    name: ddata.name,
-                    seq_start: db_domain.alifrom,
-                    seq_end: db_domain.alito,
-                    hmm_start: db_domain.hmmfrom,
-                    hmm_end: db_domain.hmmto,
-                    clan: ddata.clan_name,
-                    description: ddata.description,
-                    hmm_length: ddata.hmm_length,
-                    dom_evalue: f64::from(db_domain.eval),
-                    full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
-                    full_match_end: db_domain.full_match_end,
+
+                let mut our_domains = Vec::new();
+                for db_domain in seq_ann.domains{
+                    let ddata =match domain_map.get(&db_domain.domain) {
+                        None => Dmap{
+                            domain: 0xffff,
+                            name: "No annotation data available".to_string(),
+                            description: "No annotation data available".to_string(),
+                            clan_name: "No annotation data available".to_string(),
+                            hmm_length: 0,
+                        },
+                        Some(v) => v.clone(),
+                    };
+                    let the_domain = Domain{
+                        name: ddata.name,
+                        hmm_length: ddata.hmm_length,
+                        clan: ddata.clan_name,
+                        description: ddata.description,
+                        seq_start: db_domain.alifrom,
+                        seq_end: db_domain.alito,
+                        hmm_start: db_domain.hmmfrom,
+                        hmm_end: db_domain.hmmto,
+                        dom_evalue: f64::from(db_domain.eval),
+                        full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
+                        full_match_end: db_domain.full_match_end,
+                    };
+                    our_domains.push(the_domain);
+                }
+
+                let mut structure_domains = Vec::new();
+                for db_domain in seq_ann.structure_domains{
+                    let ddata =match domain_map.get(&db_domain.domain) {
+                        None => Dmap{
+                            domain: 0xffff,
+                            name: "No annotation data available".to_string(),
+                            description: "No annotation data available".to_string(),
+                            clan_name: "No annotation data available".to_string(),
+                            hmm_length: 0,
+                        },
+                        Some(v) => v.clone(),
+                    };
+                    let the_domain = Domain{
+                        name: ddata.name,
+                        seq_start: db_domain.alifrom,
+                        seq_end: db_domain.alito,
+                        hmm_start: db_domain.hmmfrom,
+                        hmm_end: db_domain.hmmto,
+                        clan: ddata.clan_name,
+                        description: ddata.description,
+                        hmm_length: ddata.hmm_length,
+                        dom_evalue: f64::from(db_domain.eval),
+                        full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
+                        full_match_end: db_domain.full_match_end,
+                    };
+                    structure_domains.push(the_domain);
+                }
+                let hit_end = hit_domain.seq_end;  // need this to avoid borrow of moved issues
+                let mut this_hit = Hit{
+                    name: sequence.clone(),  // Name of the sequence that the hit was to
+                    seq_length: seq_ann.sequence.len() as u32,
+                    sequence: seq_ann.sequence,  // Sequence  that was hit
+                    seq_evalue: s_eval,
+                    domains: our_domains,
+                    structure_domains: structure_domains,
+                    queries: vec!(hit_domain),  // Queries that were hit
                 };
-                structure_domains.push(the_domain);
+                if !seq_ann.real{ // need to fake up a sequence length
+                    this_hit.seq_length = hit_end;
+                    this_hit.domains[0].seq_end = hit_end;
+                    this_hit.structure_domains[0].seq_end = hit_end;
+                }
+                mySequences.insert(sequence, this_hit);
             }
-            let hit_end = hit_domain.seq_end;  // need this to avoid borrow of moved issues
-            let mut this_hit = Hit{
-                name: sequence.clone(),  // Name of the sequence that the hit was to
-                seq_length: seq_ann.sequence.len() as u32,
-                sequence: seq_ann.sequence,  // Sequence  that was hit
-                seq_evalue: s_eval,
-                domains: our_domains,
-                structure_domains: structure_domains,
-                queries: vec!(hit_domain),  // Queries that were hit
-            };
-            if !seq_ann.real{ // need to fake up a sequence length
-                this_hit.seq_length = hit_end;
-                this_hit.domains[0].seq_end = hit_end;
-                this_hit.structure_domains[0].seq_end = hit_end;
-            }
-            sequences.insert(sequence, this_hit);
-        }
+        }}
+    }});
+    let lockRes = lock.lock().unwrap();
+    if lockRes.foundError{
+        return Err(lockRes.errorMessage.clone());
     }
-    Ok(sequences)
+    Ok(0)
 }
 
 // Creates a list, sorted in descending order by number of hits, of the domains that were found in the input
@@ -525,15 +591,15 @@ pub fn load_data(annfile: String, domtblout_files: Vec<String>, eval_max: f64, d
         },
     };
     
-    let mut hit_sequences= HashMap::new();
+    let hit_sequences= DashMap::new();
     for domtbloutfile in domtblout_files{
-        hit_sequences = match read_domtblout(hit_sequences, &domain_map, &domain_info, &db, &domtbloutfile, eval_max, dom_eval_max,){
+        let _code = match read_domtblout(&hit_sequences, &domain_map, &domain_info, &db, &domtbloutfile, eval_max, dom_eval_max,){
             Ok(v) => v,
             Err(msg) => {
                 results.err_msg = "Error parsing domtblout file ".to_string() + &domtbloutfile+ "Error was: " + &msg.to_string();
                 return results;
             },
-        }
+        };
     }
 
     // Turn th ehashmap of hits into hitlists.  Has no failure cases
