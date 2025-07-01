@@ -1,6 +1,5 @@
 use std::fs;
 //use std::thread::sleep;
-//use std::time;
 //use std::io::prelude::*;
 use std::collections::HashMap;
 use std::cmp::Reverse;
@@ -532,6 +531,7 @@ fn count_domains(hit_lists: &Vec<HitList>) -> Vec<String>{
 pub fn load_data(annfile: String, domtblout_files: Vec<String>, eval_max: f64, dom_eval_max: f64) -> SearchResults{
     // First, open the annotated sequence database and make sure it has the right stuff in it
     //sleep(time::Duration::from_secs(10));
+
     let overview = ResultsOverview{
         num_hits: 0,
         num_categories: 0,
@@ -545,15 +545,17 @@ pub fn load_data(annfile: String, domtblout_files: Vec<String>, eval_max: f64, d
         hit_lists: Vec::new(),
     };
     // open the annotations DB and make sure it has the partitions we expect
-    let keyspace = match Config::new(&annfile).open(){
+    let mut db_config = Config::new(&annfile);
+    db_config = db_config.cache_size(1024 * 1024 * 1024); // 1GB cache
+    let keyspace =  match db_config.open(){
         Ok(v) => v,
         Err(msg) => {
-            println!("Failed to open annotations database {}.  Error was {} ",annfile, &msg.to_string());
-            results.err_msg = "Failed to open annotations database ".to_string() +&annfile +  &"Error was: ".to_string() + &msg.to_string();
+            results.err_msg = "Failed to open annotations database ".to_string() + &annfile + &".  Error was: ".to_string() + &msg.to_string();
             return results;
         },
     };
 
+    // Make sure the partitions we need are there
     if !keyspace.partition_exists("annotations"){
         results.err_msg = "Couldn't find annotations data in database ".to_string() +&annfile;
         return results
@@ -574,14 +576,6 @@ pub fn load_data(annfile: String, domtblout_files: Vec<String>, eval_max: f64, d
         },
     };
 
-    let (domain_map, domain_info): (HashMap<u16, Dmap>, HashMap<String, Dmap>) = match create_domain_id_map(&domain_db){
-        Ok(v) => v,
-        Err(msg) => {
-            results.err_msg = "Couldn't create dmain ID to name map from annotations database.  Error was: ".to_string() + &msg.to_string();
-            return results;
-        },
-    };
-
     // open the annotated sequence database
     let db = match keyspace.open_partition("annotations", PartitionCreateOptions::default()){
         Ok(v) =>v,
@@ -590,7 +584,15 @@ pub fn load_data(annfile: String, domtblout_files: Vec<String>, eval_max: f64, d
             return results;
         },
     };
-    
+
+        let (domain_map, domain_info): (HashMap<u16, Dmap>, HashMap<String, Dmap>) = match create_domain_id_map(&domain_db){
+        Ok(v) => v,
+        Err(msg) => {
+            results.err_msg = "Couldn't create dmain ID to name map from annotations database.  Error was: ".to_string() + &msg.to_string();
+            return results;
+        },
+    };
+
     let hit_sequences= DashMap::new();
     for domtbloutfile in domtblout_files{
         let _code = match read_domtblout(&hit_sequences, &domain_map, &domain_info, &db, &domtbloutfile, eval_max, dom_eval_max,){
