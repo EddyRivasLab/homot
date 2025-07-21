@@ -231,7 +231,7 @@ fn read_domtblout(sequences: &DashMap<String, Hit>, domain_map: &HashMap<u16, Dm
     };
     let lock = Arc::new(Mutex::new(MyError{foundError: false, errorMessage: "".to_string()}));
     let arcSequences = Arc::new(sequences);
-    fileData.lines().par_bridge().for_each(|hit| {
+    fileData.lines().for_each(|hit| {
         let mySequences = Arc::clone(&arcSequences);
         if !hit.starts_with('#'){ // non-comment line
             let fields: Vec<&str> = hit.split_whitespace().collect();
@@ -354,6 +354,8 @@ fn read_domtblout(sequences: &DashMap<String, Hit>, domain_map: &HashMap<u16, Dm
                         existing_hit.structure_domains[0].seq_end = alito as u32;
                     }
                     existing_hit.queries.push(hit_domain);
+                  
+                    
                 }
                 else{
                     // Get the data for this sequence from the annotated db and build a new sequence
@@ -484,6 +486,7 @@ fn read_domtblout(sequences: &DashMap<String, Hit>, domain_map: &HashMap<u16, Dm
                     this_hit.structure_domains[0].seq_end = hit_end;
                 }
                 mySequences.insert(sequence, this_hit);
+
             }
         }}
     }});

@@ -327,6 +327,7 @@ class _DomtblSelectState extends State<DomtblSelect> {
                 for (String? path in dTemp.paths) {
                   if (path != null && File(path).existsSync()) {
                     filedata.addDomtbloutFile(path);
+                    print(filedata.domtbloutFiles);
                   }
                 }
               };
@@ -366,8 +367,8 @@ class DomtblEdit extends StatelessWidget{
         color: Theme.of(context).colorScheme.onSurface,
           onPressed: () { if(which >=0 && which < filedata.domtbloutFiles.length){
             filedata.deleteDomtbloutFile(filedata.domtbloutFiles[which]);
-              };
-          },),
+            filedata.notifyListeners;
+      }},),
         ],),);
       });
   }

@@ -63,7 +63,7 @@ class _MainPageState extends State<MainPage> {
                               Flexible(
                                 child: Scrollbar(
                               controller: _mainScrollController,
-                              child: ListView.builder(
+                              child:  ListView.builder(
                               shrinkWrap: true, 
                               controller: _mainScrollController,
                               itemCount: filedata.domtbloutFiles.length,

@@ -85,50 +85,33 @@ class DrawDomains extends StatelessWidget {
     testPainter.layout();
     return (testPainter.width, testPainter.preferredLineHeight);
   }
-
-  @override
-  Widget build(BuildContext context) {
-    double textHeight, textWidth;
-    (textWidth, textHeight) =_calc_text_dimensions(Theme.of(context).textTheme);
-    var numLines = 1;
-    int lastEnd = -1;
-    // count the number of lines needed for the domain signature
+  List<int> _map_domains_to_rows(List<Domain> domains){
+    List<int> rows = [];
+    List<List<Pair<int,int>>> Lines = [[]];
     for (var domain in domains){
-      if (domain.seqStart < lastEnd){
-        // move on to the next line because domains are sorted that way
-        numLines+=1;
-      }
-      lastEnd = domain.seqEnd;
-    }
-    // now, figure out how many lines are needed for the queries.  This is harder,
-    // because they aren't pre-sorted
-    var queryStartRow = numLines;
-    List<List<Pair<int,int>>> queryLines = [[]];
-    List<int> queryRows = [];
-    for (var query in queries){
       bool foundSpot = false;
-      for (var i=0; i < queryLines.length; i++){
-        // first, see if the query fits at the beginning of the row
-        if(queryLines[i].length ==0 || query.seqEnd < queryLines[i][0].a){
-          queryLines[i].insert(0, Pair(query.seqStart, query.seqEnd));
-          queryRows.add(i);  // this query fits in row i
+      for (var i=0; i < Lines.length; i++){
+        // first, see if the domain fits at the beginning of the row
+        if(Lines[i].length ==0 || domain.seqEnd < Lines[i][0].a){
+          Lines[i].insert(0, Pair(domain.seqStart, domain.seqEnd));
+          rows.add(i);  // this domain fits in row i
           foundSpot = true;
           break;
         }
         // then, see if it fits at the end 
-        if(query.seqStart > queryLines[i][queryLines[i].length-1].b){
+        if(domain.seqStart > Lines[i][Lines[i].length-1].b){
           // fits at the end of the row
-          queryLines[i].add(Pair(query.seqStart, query.seqEnd));
-          queryRows.add(i);
+          Lines[i].add(Pair(domain.seqStart, domain.seqEnd));
+          rows.add(i);
           foundSpot = true;
           break;
         }
         // If it doesn't fit at the start or the end, see if it fits between existing ones
-        for(var j = 0; j< queryLines[i].length -1; j++){
-          if(query.seqStart > queryLines[i][j].b && query.seqEnd < queryLines[i][j+1].a){
+        for(var j = 0; j< Lines[i].length -1; j++){
+          if(domain.seqStart > Lines[i][j].b && domain.seqEnd < Lines[i][j+1].a){
             // fits between items j and J+1
-            queryLines[i].insert(j+1, Pair(query.seqStart, query.seqEnd));
-            queryRows.add(i);
+            Lines[i].insert(j+1, Pair(domain.seqStart, domain.seqEnd));
+            rows.add(i);
             foundSpot = true;
             break;
           }
@@ -136,16 +119,30 @@ class DrawDomains extends StatelessWidget {
       }
       // if we get here without finding a spot, we need to start a new row
       if(!foundSpot){
-        queryRows.add(queryLines.length);
-        queryLines.add([Pair(query.seqStart, query.seqEnd)]);
+        rows.add(Lines.length);
+        Lines.add([Pair(domain.seqStart, domain.seqEnd)]);
       }
     }
-    numLines+= queryLines.length;
-    List<Widget> buttons = CreateButtons(domains, width, (width - textWidth) /length, textWidth, textHeight, queryStartRow, 
+    return rows;
+  }
+  @override
+  Widget build(BuildContext context) {
+    double textHeight, textWidth;
+    (textWidth, textHeight) =_calc_text_dimensions(Theme.of(context).textTheme);
+
+    var domainRows = _map_domains_to_rows(domains);
+    var queryRows = _map_domains_to_rows(queries);
+    // now, figure out how many lines are needed for the queries.  This is harder,
+    // because they aren't pre-sorted
+    var queryStartRow = domainRows.reduce(max) + 1;
+    var numLines = queryStartRow + queryRows.reduce(max) + 1;
+
+    List<Widget> buttons = CreateButtons(domains, domainRows, width, (width - textWidth) /length, textWidth, textHeight, queryStartRow, 
     queries, queryRows, seqLength, seqEvalue, context);
     var _myPainter = DomainPainter(
           context: context,
           domains: domains,
+          domainRows: domainRows,
           totalWidth: width,
           widthPerChar:
               (width - textWidth) /
@@ -177,10 +174,11 @@ class DrawDomains extends StatelessWidget {
   }
 }
 
-const double lineSpace = 1.2;
+const double lineSpace = 1.4;
 
 List<Widget> CreateButtons(
   final List<Domain> domains,
+  final List<int> domainRows,
   final double totalWidth,
   final double widthPerChar,
   final double widthOffset,
@@ -195,36 +193,32 @@ List<Widget> CreateButtons(
   List<Widget> buttons = [];
   var row = 0;
   double oldEnd = widthOffset;
-  for (var domain in domains){
+  for (var i = 0; i<domains.length; i++) {
+    final domain = domains[i];
     final double start = domain.seqStart * widthPerChar + widthOffset;
-    if(start < oldEnd){
-      row +=1;
-      oldEnd = widthOffset;
-    }
-    double end = domain.seqEnd * widthPerChar + widthOffset;
-    oldEnd = end;
-    double domainWidth = end - start;
-    _addButton(buttons, row*heightPerLine*lineSpace, (row*heightPerLine*lineSpace) + heightPerLine, start, start + domainWidth, 
-    domain.name, domain.description , domain.clan, seqEvalue, domain.domEvalue, seqLength, domain.hmmLength, domain.seqStart, domain.seqEnd, domain.hmmStart,
+    final double end = domain.seqEnd * widthPerChar + widthOffset;
+    final double domainWidth = end - start;
+    _addButton(buttons, ((domainRows[i])* lineSpace + (lineSpace/2)) * heightPerLine, 
+    (((queryStartRow+ domainRows[i])* lineSpace + (lineSpace/2)) * heightPerLine) + heightPerLine,  
+    start, start + domainWidth, domain.name, domain.description, domain.clan, seqEvalue, domain.domEvalue, seqLength, domain.hmmLength, domain.seqStart, domain.seqEnd, domain.hmmStart,
     domain.hmmEnd, false, context);
   }
-  row+=1;
   for (var i = 0; i<queries.length; i++) {
     final query = queries[i];
     final double start = query.seqStart * widthPerChar + widthOffset;
     final double end = query.seqEnd * widthPerChar + widthOffset;
     final double domainWidth = end - start;
-    _addButton(buttons, ((row+ queryRows[i])* lineSpace + (lineSpace/2)) * heightPerLine, 
-    (((row+ queryRows[i])* lineSpace + (lineSpace/2)) * heightPerLine) + heightPerLine,  
+    _addButton(buttons, ((queryStartRow+ queryRows[i])* lineSpace + (lineSpace/2)) * heightPerLine, 
+    (((queryStartRow+ queryRows[i])* lineSpace + (lineSpace/2)) * heightPerLine) + heightPerLine,  
     start, start + domainWidth, query.name, query.description, query.clan, seqEvalue, query.domEvalue, seqLength, query.hmmLength, query.seqStart, query.seqEnd, query.hmmStart,
     query.hmmEnd, true, context);
-
   }
   return buttons;
 }
 class DomainPainter extends CustomPainter {
   final BuildContext context;
   final List<Domain> domains;
+  final List<int> domainRows;
   final double totalWidth;
   final double widthPerChar;
   final double widthOffset;
@@ -241,6 +235,7 @@ class DomainPainter extends CustomPainter {
   DomainPainter({
     required this.context,
     required this.domains,
+    required this.domainRows,
     required this.totalWidth,
     required this.widthPerChar,
     required this.widthOffset,
@@ -255,6 +250,48 @@ class DomainPainter extends CustomPainter {
     required this.allDomains,
   });
 
+  _drawDomains(
+    Canvas canvas,
+    TouchyCanvas myCanvas,
+    Paint paint,
+    int startRow,
+    List<Domain> domains,
+    List<int> domainRows,
+    TextTheme textTheme,
+    List<Widget> buttons,
+  ){
+    List<double> lastEnds = List<double>.filled(domainRows.reduce(max)+1, widthOffset);
+
+    for (var i = 0; i<domains.length; i++) {
+      final domain = domains[i];
+      final double start = domain.seqStart * widthPerChar + widthOffset;
+      final double end = domain.seqEnd * widthPerChar + widthOffset;
+      final double domainWidth = end - start;
+  //    print(domain.name + " " + (startRow+domainRows[i]).toString());
+      _draw_domain(
+        canvas,
+        myCanvas,
+        paint,
+        Offset(start, ((startRow+ domainRows[i])* lineSpace + (lineSpace/2)) * heightPerLine),
+        domainWidth,
+        heightPerLine,
+        lastEnds[domainRows[i]],
+        domain,
+        textTheme,
+        buttons,
+      );
+      lastEnds[domainRows[i]] = end;
+    }
+    for (int j = 0; j < lastEnds.length; j++){
+      if (lastEnds[j] < totalWidth) {
+        final p1 = Offset(lastEnds[j], ((startRow+j)*lineSpace +(lineSpace/2)) *heightPerLine +(heightPerLine * (lineSpace/2)));
+        final p2 = Offset(totalWidth, ((startRow+j)* lineSpace + (lineSpace/2)) * heightPerLine + (heightPerLine * (lineSpace/2)));
+        canvas.drawLine(p1, p2, paint..color=Theme.of(context).colorScheme.onSurface..strokeWidth= 2.0);
+    }
+    }
+  }
+  
+  
    _draw_domain(
     Canvas canvas,
     TouchyCanvas myCanvas,
@@ -432,79 +469,12 @@ class DomainPainter extends CustomPainter {
 
     legendPainter.layout();
     legendPainter.paint(canvas, Offset(0, (queryStartRow*lineSpace+(lineSpace/2)) *heightPerLine));
+    // draw the structure/annotated domains
+    _drawDomains(canvas, myCanvas, paint, 0, domains, domainRows, textTheme, buttons);
+    // draw the queries
 
-    var lastEnd = widthOffset;
-    var row = 0;
-    for (final domain in domains) {
-      final double start = domain.seqStart * widthPerChar + widthOffset;
-      if(start < lastEnd){
-        //we've wrapped around to a new row, need to handle
-        //draw the line to the end of the row
-        if(lastEnd < totalWidth){
-          final p1 = Offset(lastEnd, (row * heightPerLine*lineSpace)+(heightPerLine*(lineSpace/2)));
-          final p2 = Offset(totalWidth, (row * heightPerLine*lineSpace)+(heightPerLine*(lineSpace/2)));
-          canvas.drawLine(p1, p2, paint..color =Theme.of(context).colorScheme.onSurface..strokeWidth= 2.0);
-        }
-        row +=1;
-        lastEnd = widthOffset;
-      }
-      if (start != lastEnd) {
-        final p1 = Offset(lastEnd, (row*heightPerLine*lineSpace) +(heightPerLine *(lineSpace/2)));
-        final p2 = Offset(start, (row * heightPerLine * lineSpace) + (heightPerLine* (lineSpace/2)));
-        canvas.drawLine(p1, p2, paint..color = Theme.of(context).colorScheme.onSurface..strokeWidth= 2.0);
-      }
-      final double end = domain.seqEnd * widthPerChar + widthOffset;
-      lastEnd = end;
-      final double domainWidth = end - start;
-      _draw_domain(
-        canvas,
-        myCanvas,
-        paint,
-        Offset(start, row*heightPerLine*lineSpace),
-        domainWidth,
-        heightPerLine,
-        lastEnd,
-        domain,
-        textTheme,
-        buttons,
-      );
-    }
-    if (lastEnd < totalWidth) {
-      final p1 = Offset(lastEnd, (row *heightPerLine*lineSpace) +(heightPerLine * (lineSpace/2)));
-      final p2 = Offset(totalWidth, (row * heightPerLine*lineSpace) +(heightPerLine* (lineSpace/2)));
-      canvas.drawLine(p1, p2, paint..color = Theme.of(context).colorScheme.onSurface..strokeWidth= 2.0);
-    }
     // add the representation of the hit(s) to the sequence
-    row+=1;
-
-    List<double> lastEnds = List<double>.filled(queryRows.reduce(max)+1, widthOffset);
-
-    for (var i = 0; i<queries.length; i++) {
-      final query = queries[i];
-      final double start = query.seqStart * widthPerChar + widthOffset;
-      final double end = query.seqEnd * widthPerChar + widthOffset;
-      final double domainWidth = end - start;
-      _draw_domain(
-        canvas,
-        myCanvas,
-        paint,
-        Offset(start, ((row+ queryRows[i])* lineSpace + (lineSpace/2)) * heightPerLine),
-        domainWidth,
-        heightPerLine,
-        lastEnds[queryRows[i]],
-        query,
-        textTheme,
-        buttons,
-      );
-      lastEnds[queryRows[i]] = end;
-    }
-    for (int j = 0; j < lastEnds.length; j++){
-      if (lastEnds[j] < totalWidth) {
-        final p1 = Offset(lastEnds[j], ((queryStartRow+j)*lineSpace +(lineSpace/2)) *heightPerLine +(heightPerLine * (lineSpace/2)));
-        final p2 = Offset(totalWidth, ((queryStartRow+j)* lineSpace + (lineSpace/2)) * heightPerLine + (heightPerLine * (lineSpace/2)));
-        canvas.drawLine(p1, p2, paint..color=Theme.of(context).colorScheme.onSurface..strokeWidth= 2.0);
-    }
-    }
+    _drawDomains(canvas, myCanvas, paint, queryStartRow, queries, queryRows, textTheme, buttons);
   }
 
   @override
@@ -545,6 +515,7 @@ class _DrawHitState extends State<DrawHit> {
 
   @override
   Widget build(BuildContext context) {
+ //   print("Drawing hit: " + widget.hit.name+ "With  "+ widget.hit.queries.length.toString() + " queriy hits");
     final width = MediaQuery.sizeOf(context).width;
     if (widget.allDomains){
       return DrawDomains(
