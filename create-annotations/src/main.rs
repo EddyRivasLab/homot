@@ -11,6 +11,7 @@ use rayon::prelude::*;
 use dashmap::DashMap;
 use std::time::{Instant};
 
+
 #[derive(Clone, Serialize, Deserialize)]
 struct DomainInfo{
     name: String,
@@ -140,7 +141,8 @@ fn parse_domtblout(domtblout: PathBuf, clan_map:&HashMap<String, (u16, u16, Stri
             let hmmto:u32 = fields[16].parse().expect("Error converting hmmto to number");
             let alifrom:u32 = fields[17].parse().expect("Error converting alifrom to number");
             let alito:u32 = fields[18].parse().expect("Error converting alito to number");
-            let dentry = Domain{
+	    
+	    let dentry = Domain{
                 domain: *did,
                 clan: *cid,
                 alifrom: alifrom,
@@ -158,146 +160,110 @@ fn parse_domtblout(domtblout: PathBuf, clan_map:&HashMap<String, (u16, u16, Stri
             else{
                 domains.insert(sequence, vec!(dentry));
             }
+	    
         }
 
     }
 }
 
+fn saturating_add(a: u32, b: u32) -> u32 {
+    a.checked_add(b).unwrap_or(u32::MAX)
+}
+fn saturating_sub(a: u32, b: u32) -> u32 {
+    a.checked_sub(b).unwrap_or(0)
+}
 // comment this out to defang the dead code warning
 /*fn print_domainlist(the_list: &Vec<Domain>){
     for domain in the_list{
         print!("{}, {}, {}, {}, {}: ", domain.domain, domain.clan, domain.alifrom, domain.alito, domain.eval);
     }
     println!("");
-}*/  
+} */ 
 
-fn handle_overlaps(mut sequence: AnnotatedSequence)->AnnotatedSequence{
-    // First, sort the list of domains by start position
-    sequence.domains.sort_by_key(|x| (x.alifrom));  // First, sort by start position
-    sequence.structure_domains = sequence.domains.clone(); // make copy into  structure domains
+fn handle_overlaps(mut sequence:AnnotatedSequence)->AnnotatedSequence{
+   if sequence.domains.len() == 0{ // no domains found, so structure_domains is empty list
+      sequence.structure_domains = Vec::new();
+      return sequence;
+   }
+   let overlap_width = 5;  // make this easy to tune
+   
+   // Sort the full list of domains by evalue
+   sequence.domains.sort_by(|a, b| a.eval.partial_cmp(&b.eval).unwrap_or(std::cmp::Ordering::Equal));
+   sequence.structure_domains = Vec::new(); // make sure this is empty
 
-    // Organize the full domain list for easy display.  Goal is to have the domains with the best 
-    // evalues display in the top rows of the detail list.
-    // Do this by sorting the domains by evalue, then placing them in the top row where they fit
-    // in ascending order by evalue
+   //let mut found_overlap = false;
+   for domain in &sequence.domains{
 
-    // Sort domains in the full list of domains by evalue
-    sequence.domains.sort_by(|a, b| a.eval.partial_cmp(&b.eval).unwrap_or(std::cmp::Ordering::Equal));
+        //println!("Considering candidate domain {} {}-{} evalue {}", candidate.domain, candidate.alifrom, candidate.alito, candidate.eval);
+        let mut overlaps = false;
+        let mut found_non_clan_overlap = false;
+        let mut candidate = domain.clone(); // make a copy so we can modify/add to list
+        for existing in &sequence.structure_domains{
+            let mut small_overlap = false; // reset this for every domain so we catch cases of small overlap with one 
+            // and big with others.
+            if (domain.alifrom <= existing.alito) && (domain.alito >= existing.alifrom){
+                // fdomain overlaps an existing domain
+                if domain.clan != 0xffff && domain.clan != existing.clan{
+                    found_non_clan_overlap = true; // domain must go in structure because it has a non-clan overlap
+                   // println!("Found non-clan overlap between {} {} {}-{} and {} {} {}-{}", domain.domain, domain.clan, domain.alifrom, domain.alito, 
+                   // existing.domain, existing.clan, existing.alifrom, existing.alito);
+                   // found_overlap = true;
+                        break; // stop looking, we know we need this domain
+                }
 
-    let mut domain_rows = Vec::new(); // Will generate a list of rows, each row containing a list of domains
-    let new_row: Vec<Domain> = Vec::new();
-    domain_rows.push(new_row);
-    for domain in &sequence.domains {
-        let mut found_position = false;
-        for row in domain_rows.iter_mut(){
-            if row.is_empty() || row.last().unwrap().alito < domain.alifrom{
-                // If the row is empty or the last domain in the row doesn't overlap with this one,
-                // add it to the row
-                row.push(domain.clone());
-                found_position = true;
-                break; // move on to the next domain
-            }
-            if row.first().unwrap().alifrom > domain.alito{
-                // The new domain can go at the beginning of the row
-                row.insert(0, domain.clone());
-                found_position = true;
-                break;  // move on to the next domain
-            }
-
-            // Otherwise, we need to search and see if there's space between
-            if row.len()>2 { 
-                for x in 0..row.len()-2{
-                    if row[x].alito < domain.alifrom && row[x+1].alifrom > domain.alito{
-                        // Found a gap, so insert the new domain here
-                        row.insert(x+1, domain.clone());
-                        found_position = true;
-                        break; // stop looking in this row, since we've found a place for the domain
+                if domain.alito >= existing.alifrom && domain.alito <= saturating_add(existing.alifrom, overlap_width){
+                    // small overlap with start of existing domain
+                   /* println!("Shrinking domain {} {} from {}-{} to {}-{} due to small overlap with {} {} {}-{}", 
+                    domain.domain, domain.clan, domain.alifrom, domain.alito, domain.alifrom, saturating_sub(existing.alifrom, 1), 
+                    existing.domain, existing.clan, existing.alifrom, existing.alito); */
+                    if candidate.alito > saturating_sub(existing.alifrom, 1){
+                        candidate.alito = saturating_sub(existing.alifrom, 1);
                     }
+                    small_overlap = true;
+                }
+                if candidate.alifrom <= existing.alito && candidate.alifrom >= saturating_sub(existing.alito, overlap_width){
+                    /*println!("Shrinking domain {} {} from {}-{} to {}-{} due to small overlap with {} {} {}-{}", 
+                    domain.domain, domain.clan, domain.alifrom, domain.alito, saturating_add(existing.alito, 1), domain.alito, 
+                    existing.domain, existing.clan, existing.alifrom, existing.alito);*/
+                    if candidate.alifrom < saturating_add(existing.alito, 1){
+                        candidate.alifrom = saturating_add(existing.alito, 1);
+                    }
+                    small_overlap = true;
+                }
+                if !small_overlap{
+                    // large overlap, so reject the domain
+                   /* println!("Rejecting domain {} {} {}-{} due to large overlap with {} {} {}-{}", 
+                    domain.domain, domain.clan, domain.alifrom, domain.alito, 
+                    existing.domain, existing.clan, existing.alifrom, existing.alito);*/
+                    overlaps = true;
+                    break; // stop looking, we know we can't add this domain
                 }
             }
         }
-        if found_position{
-            continue; // move on to the next domain
+        if found_non_clan_overlap{
+              sequence.structure_domains.push(domain.clone()); // push the full domain because non-clan overlap
         }
-        // if we get here without finding a place for the domain, add a row
-        let mut added_row: Vec<Domain> = Vec::new();
-        added_row.push(domain.clone()); // there must be room, since the row is empty
-        domain_rows.push(added_row);
-    }
-
-    let mut new_domains: Vec<Domain> = Vec::new();
-    for mut row in domain_rows{
-        new_domains.append(&mut row);
-    }
-    sequence.domains = new_domains; // Replace the old domain list with the new ordered one
-    //print!("{} ", sequence.name);
-    
-
-    // And then, eliminate overlaps in the structure domains
-    let mut current = 0;
-    let mut next = 1;
-    while current < sequence.structure_domains.len(){
-        while next < sequence.structure_domains.len(){
-            if sequence.structure_domains[next].alifrom > sequence.structure_domains[current].alito{
-                // No overlap, stop checking this current and move on
-                next = sequence.structure_domains.len();
-            }
-            else{
-                // overlap
-                if (sequence.structure_domains[current].alito - sequence.structure_domains[next].alifrom < 5) ||
-                    (sequence.structure_domains[current].clan != 0xffff && (sequence.structure_domains[current].clan != sequence.structure_domains[next].clan)){
-                    // either small overlap or domains not in same clan, so shrink the one with the
-                    // worse evalue
-                    if sequence.structure_domains[current].eval < sequence.structure_domains[next].eval{
-                        // Current has better eval, so shrink next
-                        sequence.structure_domains[next].alifrom = sequence.structure_domains[current].alito +1;
-                        if sequence.structure_domains[next].alito <= sequence.structure_domains[next].alifrom || 
-                            sequence.structure_domains[next].alito - sequence.structure_domains[next].alifrom <= 5{
-                            // next domain was shrunk out of existence or to a tiny set, so remove it
-                            sequence.structure_domains.remove(next);
-                            // don't increment next, because everything slides down
-                        }
-                        else{
-                            // next domain still exists, move on to the one after it
-                            next +=1;
-                        }
-                    }
-                    else{
-                        // shrink current
-                        sequence.structure_domains[current].alito = sequence.structure_domains[next].alifrom -1;
-                        if sequence.structure_domains[current].alito <= sequence.structure_domains[current].alifrom ||
-                            sequence.structure_domains[current].alito - sequence.structure_domains[current].alifrom <= 5{
-                            // current domain was shrunk out of existence or to a tiny set, remove it
-                            sequence.structure_domains.remove(current);
-                            next = current +1; 
-                            // because we've removed current, start checking at the domain after it
-                        }
-                        else{
-                            // current still exists, check against the following domain
-                            next+=1;
-                        }
-                    }
-                }
-                else{ // large overlap in same clan, delete the domain with the worse evalue
-                    if sequence.structure_domains[current].eval < sequence.structure_domains[next].eval{
-                        // keep current
-                        sequence.structure_domains.remove(next);
-                        // don't change either current or next as next will have slid down
-                    }
-                    else{
-                        sequence.structure_domains.remove(current);
-                        next = current +1; 
-                        // Because we've removed the current domain, re-start
-                        // checking at the domain that follows i
-                    }
+        else{
+            if !overlaps{ // no overlaps, so add the domain
+                if candidate.alito > candidate.alifrom{ // domain still exists after any shrinking
+                    sequence.structure_domains.push(candidate);
                 }
             }
         }
-        // Have determined that current doesn't overlap with any other domain, advance current 
-        current = current+1;
-        next = current +1;
     }
-    sequence
+ 
+ 
+  /*if found_overlap{
+      print!("Found overlaps in sequence {}:\n", sequence.name);
+      print!("full domains: ");
+      print_domainlist(&sequence.domains);
+      print!("structure domains: ");
+      print_domainlist(&sequence.structure_domains);
+      print!("\n");
+   } */
+
+  
+   sequence
 }
 
 fn parse_clanfile(clanfile: PathBuf) -> HashMap<String, (u16, u16, String)>{
@@ -504,9 +470,9 @@ fn main() {
     now = Instant::now();
     dfiles.into_par_iter().for_each(|dfile| {
     //for dfile in dfiles{
-        parse_domtblout(dfile, &clan_map, &domains);
-    }
-    );
+       parse_domtblout(dfile, &clan_map, &domains);
+    });
+    
     println!("{}ms to parse domtblouts", now.elapsed().as_millis());
     now = Instant::now();
 
