@@ -103,7 +103,6 @@ class _MainPageState extends State<MainPage> {
                             ),
                           ); 
                           //Gather hits from the domtblout files
-                          var start = DateTime.now();
                           results =await loadData(annfile: filedata.annotationsFile,
                                             domtbloutFiles: filedata.domtbloutFiles, evalMax: hsettings.evalMax, domEvalMax: hsettings.domEvalMax
                            );
@@ -130,9 +129,6 @@ class _MainPageState extends State<MainPage> {
                               ),
                             );
                           } else {
-                            var end = DateTime.now();
-                            var elapsed = end.difference(start);
-                            print("load took ${elapsed.inSeconds} seconds");
                             overview.set(results!.overview);
                             hitLists.init(results!.overview.numCategories);
                             for (
