@@ -285,7 +285,8 @@ class _AnnDbSelectState extends State<AnnDbSelect> {
   }
 }
 class DomtblSelect extends StatefulWidget{
-  const DomtblSelect({super.key});
+  const DomtblSelect(
+    {super.key});
   @override
   State<DomtblSelect> createState() => _DomtblSelectState();
 }
@@ -337,37 +338,34 @@ class _DomtblSelectState extends State<DomtblSelect> {
   }
 }
 
-class DomtblEdit extends StatelessWidget{  
-  const DomtblEdit({
-    super.key,
-    required this.which,
-  });
-
-  final int which;
+class DomtblEdit extends StatefulWidget{
+  const DomtblEdit(
+    {required this.which, super.key});
+    final int which;
+  @override
+  State<DomtblEdit> createState() => _DomtblEditState();
+}
+class _DomtblEditState extends State<DomtblEdit> {  
 
   Widget build(BuildContext context) {
+       
     return Consumer<FileData>(
       builder: (context, filedata, child) {
         return Card(
           color: Theme.of(context).colorScheme.surface,
           child: Row(children: [
           Expanded(child: TextFormField(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
-            initialValue: (which >=0 && which < filedata.domtbloutFiles.length)? filedata.domtbloutFiles[which]: "Illegal index passed to DomTblEdit",
+            initialValue: (widget.which >=0 && widget.which < filedata.domtbloutFiles.length)? filedata.domtbloutFiles[widget.which]: "Illegal index passed to DomTblEdit",
             autovalidateMode: AutovalidateMode.onUserInteraction,
             onFieldSubmitted: (String? value) async{
-              if(value != null&& File(value).existsSync()&& which >=0 && which < filedata.domtbloutFiles.length)
-              {filedata.setDomtbloutFile(which, value);
+              if(value != null&& File(value).existsSync()&& widget.which >=0 && widget.which < filedata.domtbloutFiles.length)
+              {filedata.setDomtbloutFile(widget.which, value);
                   }},
             validator: (String? value){
               return(value == null || !File(value).existsSync()) ? "Must be valid filename":null;
             },
         ),),
-        IconButton(icon: Icon(Icons.delete),
-        color: Theme.of(context).colorScheme.onSurface,
-          onPressed: () { if(which >=0 && which < filedata.domtbloutFiles.length){
-            filedata.deleteDomtbloutFile(filedata.domtbloutFiles[which]);
-              };
-          },),
+       
         ],),);
       });
   }
