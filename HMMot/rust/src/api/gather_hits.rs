@@ -96,6 +96,7 @@ struct AnnotatedSequence{
     name: String, 
     sequence: String,
     length: u32,
+    taxid: i64,
     domains: Vec<DbDomain>,
     structure_domains: Vec<DbDomain>,
     real: bool,
@@ -163,6 +164,7 @@ fn domains_to_structure(domains: &Vec<Domain>)->String{
     if domains.len() == 0{
         // sequence contained no standard domains
         return "None".to_string();
+       //println!("Warning: sequence contained no standard domains, returning 'None' as structure");
     }
 
     let mut structure = "".to_string();
@@ -369,52 +371,54 @@ fn read_domtblout(sequences: &DashMap<String, Hit>, domain_map: &HashMap<u16, Dm
                         }
                         Ok(d) => d,
                     };
-                    let seq_ann: AnnotatedSequence = match res1{
-                    Some(d) => match rmp_serde::from_slice(&d){
-                        Ok(d) => d,
-                        Err(msg) => {
-                            let mut lockRes = lock.lock().unwrap();
-                            lockRes.foundError = true;
-                            lockRes.errorMessage = "Deserialization error for Annotated Sequence, reason was: ".to_string() + &msg.to_string();
-                            drop(lockRes);
-                            AnnotatedSequence{
-                                name: "".to_string(),
-                                sequence: "".to_string(),
-                                length: 0, // This is a fake sequence, not in the database
-                                domains: Vec::new(),
-                                structure_domains: Vec::new(),
-                                real: false, // This is a fake sequence, not in the database
-                            }
+                    let mut seq_ann: AnnotatedSequence = match res1{
+                        Some(d) => match rmp_serde::from_slice(&d){
+                            Ok(d) => d,
+                            Err(msg) => {
+                                let mut lockRes = lock.lock().unwrap();
+                                lockRes.foundError = true;
+                                lockRes.errorMessage = "Deserialization error for Annotated Sequence, reason was: ".to_string() + &msg.to_string();
+                                drop(lockRes);
+                                AnnotatedSequence{
+                                    name: "".to_string(),
+                                    sequence: "".to_string(),
+                                    length: 0, // This is a fake sequence, not in the database
+                                    taxid: -1,
+                                    domains: Vec::new(),
+                                    structure_domains: Vec::new(),
+                                    real: false, // This is a fake sequence, not in the database
+                                }
+                            },
                         },
-                    },
-                    None => {let mut fake_sequence = AnnotatedSequence{
-                        name: sequence.clone(),
-                        sequence: "No annotation data found".to_string(),
-                        length: 0, // This is a fake sequence, not in the database
-                        domains: Vec::new(),
-                        structure_domains: Vec::new(),
-                        real: false, // This is a fake sequence, not in the database
-                        };
+                        None => {let mut fake_sequence = AnnotatedSequence{
+                            name: sequence.clone(),
+                            sequence: "No annotation data found".to_string(),
+                            length: 0, // This is a fake sequence, not in the database
+                            taxid: -1,
+                            domains: Vec::new(),
+                            structure_domains: Vec::new(),
+                            real: false, // This is a fake sequence, not in the database
+                            };
                     
-                    let struct_domain = DbDomain{
-                        domain: 0xffff,
-                        clan: 0xffff,
-                        alifrom: 1,
-                        alito: 1,
-                        hmmfrom: 1,
-                        hmmto: 1,
-                        eval: 0.0,
-                        full_match_start: true,
-                        full_match_end: true,
-                    };
-                    let all_domain = struct_domain.clone();
-                    fake_sequence.domains.push(all_domain);
-                    fake_sequence.structure_domains.push(struct_domain);
-                    fake_sequence
+                            let struct_domain = DbDomain{
+                            domain: 0xffff,
+                            clan: 0xffff,
+                            alifrom: 1,
+                            alito: 1,
+                            hmmfrom: 1,
+                            hmmto: 1,
+                            eval: 0.0,
+                            full_match_start: true,
+                            full_match_end: true,
+                        };
+                        let all_domain = struct_domain.clone();
+                        fake_sequence.domains.push(all_domain);
+                        fake_sequence.structure_domains.push(struct_domain);
+                        fake_sequence
                 
-                    },
-                };
-
+                        },
+                    };
+                    //seq_ann.structure_domains = Vec::new(); //hack to test empty domains 
                 let mut our_domains = Vec::new();
                 for db_domain in seq_ann.domains{
                     let ddata =match domain_map.get(&db_domain.domain) {

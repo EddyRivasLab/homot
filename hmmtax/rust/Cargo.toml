@@ -7,8 +7,12 @@ edition = "2021"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-flutter_rust_bridge = "=2.8.0"
+fjall = "2.11.2"
+flutter_rust_bridge = "=2.11.1"
 rand = "=0.9.1"
+rmp-serde = "1.3.0"
+serde = { version = "1.0.219", features = ["derive"] }
+
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
