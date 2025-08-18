@@ -418,7 +418,7 @@ fn read_domtblout(sequences: &DashMap<String, Hit>, domain_map: &HashMap<u16, Dm
                 
                         },
                     };
-                    //seq_ann.structure_domains = Vec::new(); //hack to test empty domains 
+
                 let mut our_domains = Vec::new();
                 for db_domain in seq_ann.domains{
                     let ddata =match domain_map.get(&db_domain.domain) {

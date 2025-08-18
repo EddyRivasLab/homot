@@ -382,6 +382,7 @@ class _CategoryPageState extends State<CategoryPage> {
                 itemCount: hitLists.hitLists[hitLists.selected].numHits,
                 itemBuilder: (BuildContext context, int index) {
                   return Card(
+                    margin: EdgeInsets.only(bottom: 8),
                     color: Theme.of(context).colorScheme.surface,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -439,6 +440,7 @@ class _SequencePageState extends State<SequencePage> {
               controller: _scrollController2,
               child: 
                 Card(
+                  margin: EdgeInsets.only(bottom: 8),
                   color: Theme.of(context).colorScheme.surface,
                   child: 
                     Column(
