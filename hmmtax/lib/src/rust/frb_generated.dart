@@ -67,7 +67,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 508090272;
+  int get rustContentHash => -1547407279;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -78,6 +78,16 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
+  Future<PlatformInt64> crateApiGraphCountDescendants({
+    required HashMapI64Node graph,
+    required PlatformInt64 id,
+  });
+
+  SearchResults crateApiGraphCreateGraph({
+    required int numLevels,
+    required int maxChildren,
+  });
+
   Map<PlatformInt64, Node> crateApiGraphFetchGraph({
     required String databasePath,
   });
@@ -85,6 +95,15 @@ abstract class RustLibApi extends BaseApi {
   String crateApiSimpleGreet({required String name});
 
   Future<void> crateApiSimpleInitApp();
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_HashMapI64Node;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_HashMapI64Node;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_HashMapI64NodePtr;
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -96,6 +115,73 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
+  Future<PlatformInt64> crateApiGraphCountDescendants({
+    required HashMapI64Node graph,
+    required PlatformInt64 id,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHashMapi64Node(
+            graph,
+            serializer,
+          );
+          sse_encode_i_64(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 1,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_i_64,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiGraphCountDescendantsConstMeta,
+        argValues: [graph, id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiGraphCountDescendantsConstMeta =>
+      const TaskConstMeta(
+        debugName: "count_descendants",
+        argNames: ["graph", "id"],
+      );
+
+  @override
+  SearchResults crateApiGraphCreateGraph({
+    required int numLevels,
+    required int maxChildren,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_32(numLevels, serializer);
+          sse_encode_u_32(maxChildren, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_search_results,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiGraphCreateGraphConstMeta,
+        argValues: [numLevels, maxChildren],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiGraphCreateGraphConstMeta => const TaskConstMeta(
+    debugName: "create_graph",
+    argNames: ["numLevels", "maxChildren"],
+  );
+
+  @override
   Map<PlatformInt64, Node> crateApiGraphFetchGraph({
     required String databasePath,
   }) {
@@ -104,7 +190,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(databasePath, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_Map_i_64_node_None,
@@ -127,7 +213,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -152,7 +238,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 5,
             port: port_,
           );
         },
@@ -170,6 +256,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiSimpleInitAppConstMeta =>
       const TaskConstMeta(debugName: "init_app", argNames: []);
 
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_HashMapI64Node =>
+      wire.rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHashMapi64Node;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_HashMapI64Node =>
+      wire.rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHashMapi64Node;
+
+  @protected
+  HashMapI64Node
+  dco_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHashMapi64Node(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return HashMapI64NodeImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
   @protected
   Map<PlatformInt64, Node> dco_decode_Map_i_64_node_None(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
@@ -179,9 +282,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  HashMapI64Node
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHashMapi64Node(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return HashMapI64NodeImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
   String dco_decode_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as String;
+  }
+
+  @protected
+  bool dco_decode_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as bool;
+  }
+
+  @protected
+  double dco_decode_f_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as double;
   }
 
   @protected
@@ -212,8 +336,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Node dco_decode_node(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 6)
-      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
     return Node(
       taxid: dco_decode_i_64(arr[0]),
       parent: dco_decode_i_64(arr[1]),
@@ -221,6 +345,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       rank: dco_decode_String(arr[3]),
       ranknum: dco_decode_u_32(arr[4]),
       name: dco_decode_String(arr[5]),
+      totalDescendants: dco_decode_i_64(arr[6]),
+      myArcStart: dco_decode_f_64(arr[7]),
+      myArcEnd: dco_decode_f_64(arr[8]),
     );
   }
 
@@ -232,6 +359,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       throw Exception('Expected 2 elements, got ${arr.length}');
     }
     return (dco_decode_i_64(arr[0]), dco_decode_node(arr[1]));
+  }
+
+  @protected
+  SearchResults dco_decode_search_results(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return SearchResults(
+      succeeded: dco_decode_bool(arr[0]),
+      message: dco_decode_String(arr[1]),
+      depth: dco_decode_u_32(arr[2]),
+      root: dco_decode_i_64(arr[3]),
+      graph: dco_decode_Map_i_64_node_None(arr[4]),
+    );
   }
 
   @protected
@@ -253,6 +395,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt dco_decode_usize(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeU64(raw);
+  }
+
+  @protected
+  HashMapI64Node
+  sse_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHashMapi64Node(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return HashMapI64NodeImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
   Map<PlatformInt64, Node> sse_decode_Map_i_64_node_None(
     SseDeserializer deserializer,
   ) {
@@ -262,10 +422,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  HashMapI64Node
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHashMapi64Node(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return HashMapI64NodeImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
   String sse_decode_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_list_prim_u_8_strict(deserializer);
     return utf8.decoder.convert(inner);
+  }
+
+  @protected
+  bool sse_decode_bool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint8() != 0;
+  }
+
+  @protected
+  double sse_decode_f_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getFloat64();
   }
 
   @protected
@@ -311,6 +495,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_rank = sse_decode_String(deserializer);
     var var_ranknum = sse_decode_u_32(deserializer);
     var var_name = sse_decode_String(deserializer);
+    var var_totalDescendants = sse_decode_i_64(deserializer);
+    var var_myArcStart = sse_decode_f_64(deserializer);
+    var var_myArcEnd = sse_decode_f_64(deserializer);
     return Node(
       taxid: var_taxid,
       parent: var_parent,
@@ -318,6 +505,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       rank: var_rank,
       ranknum: var_ranknum,
       name: var_name,
+      totalDescendants: var_totalDescendants,
+      myArcStart: var_myArcStart,
+      myArcEnd: var_myArcEnd,
     );
   }
 
@@ -329,6 +519,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_field0 = sse_decode_i_64(deserializer);
     var var_field1 = sse_decode_node(deserializer);
     return (var_field0, var_field1);
+  }
+
+  @protected
+  SearchResults sse_decode_search_results(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_succeeded = sse_decode_bool(deserializer);
+    var var_message = sse_decode_String(deserializer);
+    var var_depth = sse_decode_u_32(deserializer);
+    var var_root = sse_decode_i_64(deserializer);
+    var var_graph = sse_decode_Map_i_64_node_None(deserializer);
+    return SearchResults(
+      succeeded: var_succeeded,
+      message: var_message,
+      depth: var_depth,
+      root: var_root,
+      graph: var_graph,
+    );
   }
 
   @protected
@@ -349,15 +556,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt sse_decode_usize(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getBigUint64();
+  }
+
+  @protected
   int sse_decode_i_32(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getInt32();
   }
 
   @protected
-  bool sse_decode_bool(SseDeserializer deserializer) {
+  void
+  sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHashMapi64Node(
+    HashMapI64Node self,
+    SseSerializer serializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getUint8() != 0;
+    sse_encode_usize(
+      (self as HashMapI64NodeImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
   }
 
   @protected
@@ -373,9 +593,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHashMapi64Node(
+    HashMapI64Node self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as HashMapI64NodeImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
   void sse_encode_String(String self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_prim_u_8_strict(utf8.encoder.convert(self), serializer);
+  }
+
+  @protected
+  void sse_encode_bool(bool self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putUint8(self ? 1 : 0);
+  }
+
+  @protected
+  void sse_encode_f_64(double self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putFloat64(self);
   }
 
   @protected
@@ -425,6 +670,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.rank, serializer);
     sse_encode_u_32(self.ranknum, serializer);
     sse_encode_String(self.name, serializer);
+    sse_encode_i_64(self.totalDescendants, serializer);
+    sse_encode_f_64(self.myArcStart, serializer);
+    sse_encode_f_64(self.myArcEnd, serializer);
   }
 
   @protected
@@ -435,6 +683,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_64(self.$1, serializer);
     sse_encode_node(self.$2, serializer);
+  }
+
+  @protected
+  void sse_encode_search_results(SearchResults self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.succeeded, serializer);
+    sse_encode_String(self.message, serializer);
+    sse_encode_u_32(self.depth, serializer);
+    sse_encode_i_64(self.root, serializer);
+    sse_encode_Map_i_64_node_None(self.graph, serializer);
   }
 
   @protected
@@ -455,14 +713,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_usize(BigInt self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putBigUint64(self);
+  }
+
+  @protected
   void sse_encode_i_32(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putInt32(self);
   }
+}
 
-  @protected
-  void sse_encode_bool(bool self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putUint8(self ? 1 : 0);
-  }
+@sealed
+class HashMapI64NodeImpl extends RustOpaque implements HashMapI64Node {
+  // Not to be used by end users
+  HashMapI64NodeImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  HashMapI64NodeImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
+    : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount:
+        RustLib.instance.api.rust_arc_increment_strong_count_HashMapI64Node,
+    rustArcDecrementStrongCount:
+        RustLib.instance.api.rust_arc_decrement_strong_count_HashMapI64Node,
+    rustArcDecrementStrongCountPtr:
+        RustLib.instance.api.rust_arc_decrement_strong_count_HashMapI64NodePtr,
+  );
 }

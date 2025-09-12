@@ -6,10 +6,25 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `from`, `from`
+// These functions are ignored because they are not marked as `pub`: `add_children`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `from`, `from`, `from`, `from`
+
+Future<PlatformInt64> countDescendants({
+  required HashMapI64Node graph,
+  required PlatformInt64 id,
+}) => RustLib.instance.api.crateApiGraphCountDescendants(graph: graph, id: id);
+
+SearchResults createGraph({required int numLevels, required int maxChildren}) =>
+    RustLib.instance.api.crateApiGraphCreateGraph(
+      numLevels: numLevels,
+      maxChildren: maxChildren,
+    );
 
 Map<PlatformInt64, Node> fetchGraph({required String databasePath}) =>
     RustLib.instance.api.crateApiGraphFetchGraph(databasePath: databasePath);
+
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<HashMap < i64 , Node >>>
+abstract class HashMapI64Node implements RustOpaqueInterface {}
 
 class Node {
   final PlatformInt64 taxid;
@@ -18,14 +33,20 @@ class Node {
   final String rank;
   final int ranknum;
   final String name;
+  final PlatformInt64 totalDescendants;
+  double myArcStart;
+  double myArcEnd;
 
-  const Node({
+  Node({
     required this.taxid,
     required this.parent,
     required this.children,
     required this.rank,
     required this.ranknum,
     required this.name,
+    required this.totalDescendants,
+    required this.myArcStart,
+    required this.myArcEnd,
   });
 
   @override
@@ -35,7 +56,10 @@ class Node {
       children.hashCode ^
       rank.hashCode ^
       ranknum.hashCode ^
-      name.hashCode;
+      name.hashCode ^
+      totalDescendants.hashCode ^
+      myArcStart.hashCode ^
+      myArcEnd.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -47,5 +71,43 @@ class Node {
           children == other.children &&
           rank == other.rank &&
           ranknum == other.ranknum &&
-          name == other.name;
+          name == other.name &&
+          totalDescendants == other.totalDescendants &&
+          myArcStart == other.myArcStart &&
+          myArcEnd == other.myArcEnd;
+}
+
+class SearchResults {
+  final bool succeeded;
+  final String message;
+  final int depth;
+  final PlatformInt64 root;
+  final Map<PlatformInt64, Node> graph;
+
+  const SearchResults({
+    required this.succeeded,
+    required this.message,
+    required this.depth,
+    required this.root,
+    required this.graph,
+  });
+
+  @override
+  int get hashCode =>
+      succeeded.hashCode ^
+      message.hashCode ^
+      depth.hashCode ^
+      root.hashCode ^
+      graph.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SearchResults &&
+          runtimeType == other.runtimeType &&
+          succeeded == other.succeeded &&
+          message == other.message &&
+          depth == other.depth &&
+          root == other.root &&
+          graph == other.graph;
 }
