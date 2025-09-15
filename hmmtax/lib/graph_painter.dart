@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -13,7 +14,6 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 // Folmat is (BGcolor, FG color)
 const domainColors = [
   (Color(0xff9e0142), Color(0xffffffff)),
-  (Color(0xff5475b4), Color(0xffffffff)),
   (Color(0xff40004b), Color(0xffffffff)),
   (Color(0xff006837), Color(0xffffffff)),
   (Color(0xffd53e4f), Color(0xffffffff)),
@@ -36,21 +36,43 @@ const domainColors = [
 class GraphPainter extends CustomPainter {
   final BuildContext context;
   final GraphData graphData;
+  final double devicePixelRatio;
+  final TransformationController tController;
   final double graphRadius;
+  List<Widget> buttons; 
+  GraphPainter(this.context, this.graphData, this.devicePixelRatio, this.tController, this.graphRadius, this.buttons);
 
-  GraphPainter(this.context, this.graphData, this.graphRadius);
+
+
+  void _addButton(List<Widget> buttons, String label, double x, double y, double width, double height, VoidCallback onPressed) {
+    buttons.add(
+      Positioned(
+        left: x,
+        top: y,
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: ElevatedButton(
+            onPressed: onPressed,
+            child: Text(label),
+          ),
+        ),
+      ),
+    );
+  }
 
   void drawNode(Map<PlatformInt64, Node> graph, PlatformInt64 nodeId, PlatformInt64 parentId, Offset center, double startRadius, double radPerLevel, 
-    int startLevel, int maxLevel, TouchyCanvas myCanvas, Color myColor, Paint paint) {
+    int startLevel, int maxLevel, Canvas myCanvas, Color myColor, Paint paint) {
     var node = graph[nodeId]!;
     var parent = graph[parentId]!;
     bool drawChildren = node.ranknum < maxLevel;
-
+    double scaleFactor = tController.value.getMaxScaleOnAxis();
     var myRadius = startRadius + ((node.ranknum - startLevel) * radPerLevel);
     if (!drawChildren){ // Handle the case where this node would be off the edge
       myRadius = maxLevel * radPerLevel;
     }
     
+
     var myAngle = (node.myArcStart + node.myArcEnd) / 2;
     var myOffset = Offset(center.dx + (myRadius * cos(myAngle)), center.dy + (myRadius * sin(myAngle)));
     // Note: In Flutter, the y-axis increases downward, and angles increase clockwise, not counter-clockwise so we add sin(myAngle) to the y-coordinate.
@@ -58,7 +80,8 @@ class GraphPainter extends CustomPainter {
     var parentRadius = startRadius + ((parent.ranknum - startLevel) * radPerLevel);
    
     var parentOffset = Offset(center.dx + (parentRadius * cos(myAngle)), center.dy + (parentRadius * sin(myAngle)));
-    myCanvas.drawLine(parentOffset, myOffset, paint);
+    myCanvas.drawLine(parentOffset, myOffset, paint..strokeWidth=2.0/scaleFactor);
+   // _addButton(buttons, node.name,  myOffset.dx/devicePixelRatio-20, myOffset.dy/devicePixelRatio-10, 40, 20, (){print("Node ${node.name} clicked");});
 
     if (drawChildren){
       double arcPerChild  = (node.myArcEnd - node.myArcStart) / max(node.totalDescendants, 1);
@@ -69,11 +92,11 @@ class GraphPainter extends CustomPainter {
         double arcStart = node.myArcStart + (graph[node.children[0].toInt()]!.totalDescendants+1) * arcPerChild / 2;
         double arcEnd = node.myArcEnd - (graph[node.children[node.children.length -1].toInt()]!.totalDescendants+1) * arcPerChild / 2;
         double sweep = arcEnd - arcStart;
-        myCanvas.drawArc(rect, arcStart, sweep, false, paint);
+        myCanvas.drawArc(rect, arcStart, sweep, false, paint..style = PaintingStyle.stroke..color = myColor..strokeWidth=2.0/scaleFactor);
 
       }
 
-      double lastEnd = node.myArcStart; // Leave a little space before the first child;
+      double lastEnd = node.myArcStart;
       var i =0;
       for (var childId in node.children) {
         if (node.ranknum == startLevel){
@@ -94,25 +117,40 @@ class GraphPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    var myCanvas = TouchyCanvas(context, canvas);
+
     var paint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 
+    final recorder = ui.PictureRecorder();
+    final double logicalWidth = size.width * devicePixelRatio;
+    final double logicalHeight = size.height * devicePixelRatio;
+    final logicalSize = Size(logicalWidth, logicalHeight);
+    final double logicalRadius = graphRadius * devicePixelRatio;
+
+    final Canvas logicalCanvas = Canvas(recorder);
+    //logicalCanvas.scale(devicePixelRatio);
+
+   // var myCanvas = TouchyCanvas(context, logicalCanvas);
+
     var drawnLevels = min((graphData.depth - graphData.graph[graphData.root]!.ranknum), graphData.maxLevels);
-    var radPerLevel = graphRadius / drawnLevels; // How much radius to add per level of the graph
-    var center = Offset(size.width / 2, size.height / 2);
+    var radPerLevel = logicalRadius / drawnLevels; // How much radius to add per level of the graph
+
+    var center = Offset(logicalSize.width / 2, logicalSize.height / 2);
     var maxLevel = graphData.graph[graphData.root]!.ranknum + drawnLevels;
 
     var root = graphData.graph[graphData.root]!;
 
     root.myArcStart = 0.0;
     root.myArcEnd = 2 * pi;
-    myCanvas.drawCircle(center, graphRadius, paint..style = PaintingStyle.fill);
+    logicalCanvas.drawCircle(center, logicalRadius, paint..style = PaintingStyle.fill..color = Theme.of(context).colorScheme.surface);
     paint.style = PaintingStyle.stroke;
-    drawNode(graphData.graph, graphData.root, graphData.root, center, 0, radPerLevel, root.ranknum, maxLevel, myCanvas, Colors.black, paint);
-
+    drawNode(graphData.graph, graphData.root, graphData.root, center, 0, radPerLevel, root.ranknum, maxLevel, logicalCanvas,  Theme.of(context).colorScheme.onSurface, 
+    paint);
+    final ui.Picture picture = recorder.endRecording();
+    canvas.scale(1 / devicePixelRatio);
+    canvas.drawPicture(picture);
   }
 
   @override

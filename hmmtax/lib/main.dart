@@ -251,11 +251,13 @@ class GraphData with ChangeNotifier {
   int _maxLevels = 0; // how many levels of the graph to show
   int _depth = 0; // depth of graph, extract from data eventually
   bool _graphSet = false; 
+  double _scaleFactor = 1.0;
   Map<PlatformInt64, Node> get graph => _graph;
   bool get graphSet => _graphSet; 
   PlatformInt64 get root => _root;
   int get maxLevels => _maxLevels;
   int get depth => _depth;
+  double get scaleFactor => _scaleFactor;
   void setGraph(Map<PlatformInt64, Node> newGraph) {
     _graph = newGraph;
     _graphSet = true;
@@ -287,6 +289,12 @@ class GraphData with ChangeNotifier {
   void pushHistory(PlatformInt64 node) {
     _history.add(node);
     notifyListeners();
+  }
+  void setScaleFactor(double newScale){
+    if (newScale > 0){
+      _scaleFactor = newScale;
+      notifyListeners();
+    }
   }
   PlatformInt64 popHistory() { 
     if (_history.isNotEmpty) {
