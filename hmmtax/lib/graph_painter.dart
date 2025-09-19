@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -39,28 +40,10 @@ class GraphPainter extends CustomPainter {
   final double devicePixelRatio;
   final TransformationController tController;
   final double graphRadius;
-  List<Widget> buttons; 
-  GraphPainter(this.context, this.graphData, this.devicePixelRatio, this.tController, this.graphRadius, this.buttons);
+  GraphPainter(this.context, this.graphData, this.devicePixelRatio, this.tController, this.graphRadius);
 
 
-
-  void _addButton(List<Widget> buttons, String label, double x, double y, double width, double height, VoidCallback onPressed) {
-    buttons.add(
-      Positioned(
-        left: x,
-        top: y,
-        child: SizedBox(
-          width: width,
-          height: height,
-          child: ElevatedButton(
-            onPressed: onPressed,
-            child: Text(label),
-          ),
-        ),
-      ),
-    );
-  }
-
+  // Recursive function to draw a node and its children
   void drawNode(Map<PlatformInt64, Node> graph, PlatformInt64 nodeId, PlatformInt64 parentId, Offset center, double startRadius, double radPerLevel, 
     int startLevel, int maxLevel, Canvas myCanvas, Color myColor, Paint paint) {
     var node = graph[nodeId]!;
@@ -150,11 +133,91 @@ class GraphPainter extends CustomPainter {
     paint);
     final ui.Picture picture = recorder.endRecording();
     canvas.scale(1 / devicePixelRatio);
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    //canvas.rotate(graphData.rotation);
+    canvas.translate(-1 *center.dx, -1* center.dy);
     canvas.drawPicture(picture);
+    canvas.restore();
   }
 
   @override
   bool shouldRepaint(covariant GraphPainter oldDelegate) {
     return oldDelegate.graphData != graphData || oldDelegate.graphRadius != graphRadius;
   }
+}
+
+// Class that describes a pie-shaped region of the graph on screen
+class Region {
+  double _startAngle;
+  double _endAngle;
+  PlatformInt64 _nodeId; // The node that this region represents
+  Region(this._startAngle, this._endAngle, this._nodeId);
+
+  double get startAngle => _startAngle;
+  double get endAngle => _endAngle;
+  PlatformInt64 get nodeId => _nodeId;
+  void set startAngle(double val) => _startAngle = val;
+  void set endAngle(double val) => _endAngle = val;
+  void set nodeId(PlatformInt64 val) => _nodeId = val;  
+
+}
+
+
+// Class to track regions of the graph at different radius levels
+// code assumes that each radius level is completely occupied by regions once
+// the data structure is fully populated
+class TrackRegions {
+    int _numLevels; // Number of radius levels being tracked
+    List<List<Region>> _radii; // List of lists of regions, one list per radius level
+    
+    TrackRegions(this._numLevels) : _radii = List.generate(_numLevels, (index) => <Region>[]);
+    addRegion(int level, Region region) {
+      if (level < 0 || level >= _numLevels) {
+        throw RangeError('Level $level is out of bounds for TrackRegions with $_numLevels levels.');
+      }
+      // expect that the common case will be adding regions in order, so check the end first  
+      if (_radii[level].isEmpty || _radii[level].last.startAngle <= region.startAngle) {
+        _radii[level].add(region);
+        return;
+      }
+
+      // If not inserting at the end, find the right place for the new region
+      int insertIndex = _radii[level].indexWhere((r) => r.startAngle > region.startAngle);
+      if (insertIndex == -1) {
+        _radii[level].add(region);
+      } else {
+        _radii[level].insert(insertIndex, region); 
+      }
+    }
+
+    // wrapper around binary search to find the region at a given level and angle
+    // and return its nodeId
+    PlatformInt64 findNode(int level, double angle) {
+      if (level < 0 || level >= _numLevels) {
+        throw RangeError('Level $level is out of bounds for TrackRegions with $_numLevels levels.');
+      }
+      int max = _radii[level].length - 1;
+      List<Region> theLevel = _radii[level];
+      if (theLevel[0].startAngle > angle || theLevel[max].startAngle <= angle) {
+        return theLevel[max].nodeId; // angle lies in the wrap-around region
+      }
+      return _binarySearch(theLevel, angle, 0, max);
+    }
+
+    // Standard binary search algorithm adapted for our needs
+    PlatformInt64
+    _binarySearch(List<Region> regions, double angle, int min, int max) {
+      if (min >= max) {
+        throw RangeError("Binary search failed to find angle $angle");
+      }
+      int mid = (min + max) >> 1; // Divide by 2
+      if (regions[mid].startAngle <= angle && regions[mid + 1].startAngle > angle) {
+        return regions[mid].nodeId;
+      } else if (regions[mid].startAngle > angle) {
+        return _binarySearch(regions, angle, min, mid - 1);
+      } else {
+        return _binarySearch(regions, angle, mid + 1, max);
+      }
+    }
 }

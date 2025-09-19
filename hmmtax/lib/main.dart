@@ -9,10 +9,12 @@ import 'package:touchable/touchable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:hmmtax/pages.dart';
+import 'package:hmmtax/graph_painter.dart';
 import 'package:hmmtax/utility.dart';
 import "package:go_router/go_router.dart";
 import 'dart:io';
 import 'dart:collection';
+import 'package:matrix4_transform/matrix4_transform.dart';
 
 ColorScheme lightScheme = ColorScheme.fromSeed(
     seedColor: const Color(0xff5475b4),
@@ -251,13 +253,75 @@ class GraphData with ChangeNotifier {
   int _maxLevels = 0; // how many levels of the graph to show
   int _depth = 0; // depth of graph, extract from data eventually
   bool _graphSet = false; 
-  double _scaleFactor = 1.0;
+  double _rotation = 0.0;
+  double _translateX = 0.0;
+  double _translateY = 0.0;
+  double _scale = 1.0;
+  Size _size = Size.zero;
+  Matrix4 _transform = Matrix4.identity();
+  TrackRegions _trackRegions= TrackRegions(0); // Data structure to track regions of the graph on screen
+  TrackRegions get trackRegions => _trackRegions;
+  final TransformationController _tController = TransformationController();
+  TransformationController get tController => _tController;
+
+  void updateTransform(){
+    Matrix4Transform m4t = Matrix4Transform();
+    m4t = m4t.scale(_scale, origin: Offset(_size.width/2, _size.height/2));
+    m4t = m4t.rotateByCenter(_rotation, _size);
+    m4t = m4t.translate(x: _translateX, y: _translateY);
+    _transform = m4t.matrix4;
+    notifyListeners();
+  }
+  set transform(Matrix4 newTransform){
+    _transform = newTransform;
+    notifyListeners();
+  }
+  set size(Size newSize){
+    _size = newSize;
+  }
+  Size get size => _size;
+
+  Matrix4 get transform => _transform;
+  double get translateX => _translateX;
+  double get translateY => _translateY;
+  double get scale => _scale;
+  void set translateX(double x) {
+    _translateX = x;
+    updateTransform();
+  }
+  void set translateY(double y) {
+    _translateY = y;
+    updateTransform();
+  }
+  void set scale(double s) {
+    _scale = s;
+    updateTransform();
+  }
+
+  void set trackRegions(TrackRegions tr) {
+    _trackRegions = tr;
+    notifyListeners();
+  }
+  void clearRegions() {
+    _trackRegions = TrackRegions(0);
+    notifyListeners();
+  }
+  void addRegion(int level, Region region) {
+    _trackRegions.addRegion(level, region);
+    notifyListeners();
+  }
+
+  PlatformInt64 findNode(int level, double angle) {
+    return _trackRegions.findNode(level, angle);
+  }
+
   Map<PlatformInt64, Node> get graph => _graph;
+  
   bool get graphSet => _graphSet; 
   PlatformInt64 get root => _root;
   int get maxLevels => _maxLevels;
   int get depth => _depth;
-  double get scaleFactor => _scaleFactor;
+  double get rotation => _rotation;
   void setGraph(Map<PlatformInt64, Node> newGraph) {
     _graph = newGraph;
     _graphSet = true;
@@ -290,10 +354,10 @@ class GraphData with ChangeNotifier {
     _history.add(node);
     notifyListeners();
   }
-  void setScaleFactor(double newScale){
-    if (newScale > 0){
-      _scaleFactor = newScale;
-      notifyListeners();
+  void setRotation(double newRotation) {
+    if (newRotation> 0 && newRotation <= 2*pi) {
+      _rotation = newRotation;
+      updateTransform();
     }
   }
   PlatformInt64 popHistory() { 
