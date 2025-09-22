@@ -46,7 +46,14 @@ class GraphPainter extends CustomPainter {
   // Recursive function to draw a node and its children
   void drawNode(Map<PlatformInt64, Node> graph, PlatformInt64 nodeId, PlatformInt64 parentId, Offset center, double startRadius, double radPerLevel, 
     int startLevel, int maxLevel, Canvas myCanvas, Color myColor, Paint paint) {
+
+    if (nodeId == parentId){ // This is the root node of the current graph, so reset the trackRegions structure
+      graphData.trackRegions = TrackRegions(1+maxLevel-startLevel);
+    }
+
     var node = graph[nodeId]!;
+    // Add the node's region to the trackRegion structure
+    graphData.trackRegions.addRegion(node.ranknum - startLevel, Region(node.myArcStart, node.myArcEnd, nodeId));
     var parent = graph[parentId]!;
     bool drawChildren = node.ranknum < maxLevel;
     double scaleFactor = tController.value.getMaxScaleOnAxis();
@@ -55,7 +62,6 @@ class GraphPainter extends CustomPainter {
       myRadius = maxLevel * radPerLevel;
     }
     
-
     var myAngle = (node.myArcStart + node.myArcEnd) / 2;
     var myOffset = Offset(center.dx + (myRadius * cos(myAngle)), center.dy + (myRadius * sin(myAngle)));
     // Note: In Flutter, the y-axis increases downward, and angles increase clockwise, not counter-clockwise so we add sin(myAngle) to the y-coordinate.
@@ -119,7 +125,7 @@ class GraphPainter extends CustomPainter {
 
     var drawnLevels = min((graphData.depth - graphData.graph[graphData.root]!.ranknum), graphData.maxLevels);
     var radPerLevel = logicalRadius / drawnLevels; // How much radius to add per level of the graph
-
+    graphData.radPerLevel = graphRadius/drawnLevels; // graphdata's radPerLevel should be in graph units, not screen
     var center = Offset(logicalSize.width / 2, logicalSize.height / 2);
     var maxLevel = graphData.graph[graphData.root]!.ranknum + drawnLevels;
 
@@ -193,12 +199,55 @@ class TrackRegions {
 
     // wrapper around binary search to find the region at a given level and angle
     // and return its nodeId
-    PlatformInt64 findNode(int level, double angle) {
+    PlatformInt64 findNode(double xPos, double yPos, double centerX, double centerY, double radPerLevel) {
+      // Convert the cartesian coords to an angle.  Both flutter Y-coordinates and angles are flipped
+      // around the X-axis, which cancels as far as atan is concerned
+      double angle = 0.0;
+      double dx = xPos -centerX;
+      double dy = yPos -centerY;
+
+      double radius = sqrt((dx * dx) + (dy * dy));
+      int level = (radius/radPerLevel).ceil();
+      print("radius = $radius, radPerLevel=$radPerLevel");
+      if (xPos != centerX){ // avoid divide-by-zero
+
+        double baseAngle = atan(dy/dx);
+        
+        // now, account for the fact that atan has limited range
+        if (dx > 0 && dy >=0){ // quadrant 1
+          angle = baseAngle;
+        }
+        if (dx > 0 && dy <0){
+          // Quadrant 4 because of flipped axis
+          angle = baseAngle + 2*pi;
+        }
+        if(dx <0){
+          // quadrant 2 or 3
+          angle = baseAngle +pi;
+        }
+        if(angle <0 || angle > 2*pi){
+          print("illegal angle of ${angle} generated");
+        }
+      }
+      else{ // define the angle of the origin point as 0. Won't matter, because the center node
+      // has radius = 0 angle from 0 to 2pi
+        if(yPos > centerY) {
+          angle = pi/2;
+        }
+        else if(yPos < centerY){
+          angle = 3*pi/2;
+        }
+      }
+
       if (level < 0 || level >= _numLevels) {
         throw RangeError('Level $level is out of bounds for TrackRegions with $_numLevels levels.');
       }
       int max = _radii[level].length - 1;
       List<Region> theLevel = _radii[level];
+      print("Searching Level $level, which contains nodes");
+      for (int i = 0; i < theLevel.length; i++){
+        print("${theLevel[i].startAngle}, ${theLevel[i].endAngle}, ${theLevel[i].nodeId}");
+      }
       if (theLevel[0].startAngle > angle || theLevel[max].startAngle <= angle) {
         return theLevel[max].nodeId; // angle lies in the wrap-around region
       }
@@ -208,8 +257,9 @@ class TrackRegions {
     // Standard binary search algorithm adapted for our needs
     PlatformInt64
     _binarySearch(List<Region> regions, double angle, int min, int max) {
-      if (min >= max) {
-        throw RangeError("Binary search failed to find angle $angle");
+      print("Binary searching $min $max");
+      if (min > max) {
+        throw RangeError("Binary search failed to find angle $angle ");
       }
       int mid = (min + max) >> 1; // Divide by 2
       if (regions[mid].startAngle <= angle && regions[mid + 1].startAngle > angle) {

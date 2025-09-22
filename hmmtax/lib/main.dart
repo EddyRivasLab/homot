@@ -257,6 +257,7 @@ class GraphData with ChangeNotifier {
   double _translateX = 0.0;
   double _translateY = 0.0;
   double _scale = 1.0;
+  double _radPerLevel = 1.0;
   Size _size = Size.zero;
   Matrix4 _transform = Matrix4.identity();
   TrackRegions _trackRegions= TrackRegions(0); // Data structure to track regions of the graph on screen
@@ -280,7 +281,10 @@ class GraphData with ChangeNotifier {
     _size = newSize;
   }
   Size get size => _size;
-
+  void set radPerLevel(double newRad){
+    _radPerLevel = newRad;
+  }
+  double get radPerLevel => _radPerLevel;
   Matrix4 get transform => _transform;
   double get translateX => _translateX;
   double get translateY => _translateY;
@@ -300,19 +304,16 @@ class GraphData with ChangeNotifier {
 
   void set trackRegions(TrackRegions tr) {
     _trackRegions = tr;
-    notifyListeners();
   }
   void clearRegions() {
     _trackRegions = TrackRegions(0);
-    notifyListeners();
   }
   void addRegion(int level, Region region) {
     _trackRegions.addRegion(level, region);
-    notifyListeners();
   }
 
-  PlatformInt64 findNode(int level, double angle) {
-    return _trackRegions.findNode(level, angle);
+  PlatformInt64 findNode(double xPos, double yPos, double centerX, double centerY) {
+    return _trackRegions.findNode(xPos, yPos, centerX, centerY, _radPerLevel);
   }
 
   Map<PlatformInt64, Node> get graph => _graph;
