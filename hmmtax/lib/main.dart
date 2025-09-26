@@ -51,12 +51,13 @@ Future<void> main() async {
   double evalMax = await prefs.getDouble("Hmmtax_evalMax") ?? 10.0;
   double domEvalMax = await prefs.getDouble("Hmmtax_domEvalMAx") ?? 10.0;
   double scale = await prefs.getDouble("Hmmtax_scale")?? 1.0;
+  double lineWidth= await prefs.getDouble("Hmmtax_lineWidth")?? 2.0;
   int mode = await prefs.getInt("Hmmtax_mode") ?? 3;
   runApp(  MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => FileData()),
         ChangeNotifierProvider(create: (_) => GraphData()),
-        ChangeNotifierProvider(create: (_) => HSettings(prefs, mode, font, scale, evalMax, domEvalMax)),
+        ChangeNotifierProvider(create: (_) => HSettings(prefs, mode, font, scale, evalMax, domEvalMax, lineWidth)),
       ],
       child: TopLevel(),
     ),
@@ -117,14 +118,16 @@ class HSettings with ChangeNotifier {
   double _scale = 1.0;
   double _evalMax = 10.0;
   double _domEvalMax = 10.0;
+  double _lineWidth = 2.0;
   late SharedPreferencesAsync _prefs; 
 
-  HSettings(SharedPreferencesAsync prefs, int mode, String font, double scale, double evalMax, double domEvalMax){
+  HSettings(SharedPreferencesAsync prefs, int mode, String font, double scale, double evalMax, double domEvalMax, double lineWidth){
     _prefs = prefs;
     _font = font;
     _scale = scale;
     _evalMax = evalMax;
     _domEvalMax = domEvalMax;
+    _lineWidth = lineWidth;
     switch (mode){
       case 1:
         _mode = brightModes.light;
@@ -238,13 +241,18 @@ class HSettings with ChangeNotifier {
     _prefs.setDouble("Hmmtax_domEvalMax", newMax);
     notifyListeners();
   }
-  
+  void set lineWidth(double newWidth){
+    if (newWidth > 0){
+      _lineWidth = newWidth;
+    }
+  }
   ThemeData get themeData => _updateTheme();
   double get scale => _scale;
   String get font => _font;
   brightModes get mode => _mode;
   double get evalMax => _evalMax;
-  double get domEvalMax => _domEvalMax; 
+  double get domEvalMax => _domEvalMax;
+  double get lineWidth => _lineWidth; 
 }
 
 // ChangeNotifier for graph data

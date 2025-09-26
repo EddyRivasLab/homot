@@ -130,14 +130,18 @@ class HmmotAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         leading: NonMacMenuBar(),
         actions: [
-          IconButton(
+          TooltipTheme(
+            data: TooltipThemeData(
+              decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
+              textStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+            child:IconButton(
             icon: const Icon(Icons.settings),
             color: Theme.of(context).colorScheme.onPrimary,
             tooltip: "Settings",
             onPressed: () {
                 context.go("/settings");
             },
-          ),
+          ),),
           
         ]
       );

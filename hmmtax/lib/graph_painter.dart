@@ -34,13 +34,40 @@ const domainColors = [
   (Color(0xfffdaaac), Color(0xff000000)),
   (Color(0xff00ff00), Color(0xff000000)),
 ];
+
+// Draws a horizontal line as an example for the settings page
+class LinePainter extends CustomPainter{
+  final BuildContext context;
+  final HSettings hSettings;
+  final double devicePixelRatio;
+  LinePainter(this.context, this.hSettings, this.devicePixelRatio);
+  @override
+  void paint(Canvas canvas, Size size) {
+      var paint = Paint()
+      ..color = Theme.of(context).colorScheme.onSurface
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = hSettings.lineWidth/devicePixelRatio;
+
+      Offset start = Offset(0.0, size.height/2);
+      Offset end = Offset(size.width, size.height/2);
+      canvas.drawLine(start, end, paint);
+  }
+
+    @override
+  bool shouldRepaint(covariant LinePainter oldDelegate) {
+    return oldDelegate.hSettings != hSettings;
+  }
+}
+
+// The main drawer for the taxonomy graph
 class GraphPainter extends CustomPainter {
   final BuildContext context;
   final GraphData graphData;
+  final HSettings hSettings;
   final double devicePixelRatio;
   final TransformationController tController;
   final double graphRadius;
-  GraphPainter(this.context, this.graphData, this.devicePixelRatio, this.tController, this.graphRadius);
+  GraphPainter(this.context, this.graphData, this.devicePixelRatio, this.tController, this.graphRadius, this.hSettings);
 
 
   // Recursive function to draw a node and its children
@@ -69,7 +96,7 @@ class GraphPainter extends CustomPainter {
     var parentRadius = startRadius + ((parent.ranknum - startLevel) * radPerLevel);
    
     var parentOffset = Offset(center.dx + (parentRadius * cos(myAngle)), center.dy + (parentRadius * sin(myAngle)));
-    myCanvas.drawLine(parentOffset, myOffset, paint..strokeWidth=2.0/scaleFactor);
+    myCanvas.drawLine(parentOffset, myOffset, paint..strokeWidth=hSettings.lineWidth/scaleFactor);
 
     if (drawChildren){
       double arcPerChild  = (node.myArcEnd - node.myArcStart) / max(node.totalDescendants, 1);
@@ -80,7 +107,7 @@ class GraphPainter extends CustomPainter {
         double arcStart = node.myArcStart + (graph[node.children[0].toInt()]!.totalDescendants+1) * arcPerChild / 2;
         double arcEnd = node.myArcEnd - (graph[node.children[node.children.length -1].toInt()]!.totalDescendants+1) * arcPerChild / 2;
         double sweep = arcEnd - arcStart;
-        myCanvas.drawArc(rect, arcStart, sweep, false, paint..style = PaintingStyle.stroke..color = myColor..strokeWidth=2.0/scaleFactor);
+        myCanvas.drawArc(rect, arcStart, sweep, false, paint..style = PaintingStyle.stroke..color = myColor..strokeWidth=hSettings.lineWidth/scaleFactor);
 
       }
 
