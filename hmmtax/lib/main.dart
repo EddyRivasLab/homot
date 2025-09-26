@@ -4,6 +4,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:hmmtax/src/rust/api/simple.dart';
 import 'package:hmmtax/src/rust/frb_generated.dart';
 import 'package:hmmtax/src/rust/api/graph.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import"dart:math";
 import 'package:touchable/touchable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,6 +16,7 @@ import "package:go_router/go_router.dart";
 import 'dart:io';
 import 'dart:collection';
 import 'package:matrix4_transform/matrix4_transform.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 ColorScheme lightScheme = ColorScheme.fromSeed(
     seedColor: const Color(0xff5475b4),
@@ -250,6 +252,8 @@ class GraphData with ChangeNotifier {
   Map<PlatformInt64, Node> _graph = {};
   PlatformInt64 _root = 0; // root of the subgraph we're showing
   List<PlatformInt64> _history = [];
+  List<String> _historyNames = [];
+  int _historyIndex = 0;
   int _maxLevels = 0; // how many levels of the graph to show
   int _depth = 0; // depth of graph, extract from data eventually
   bool _graphSet = false; 
@@ -263,6 +267,9 @@ class GraphData with ChangeNotifier {
   TrackRegions _trackRegions= TrackRegions(0); // Data structure to track regions of the graph on screen
   TrackRegions get trackRegions => _trackRegions;
   final TransformationController _tController = TransformationController();
+  final ItemScrollController _sController = ItemScrollController();
+
+  ItemScrollController get itemScrollController=> _sController;
   TransformationController get tController => _tController;
 
   void updateTransform(){
@@ -280,6 +287,31 @@ class GraphData with ChangeNotifier {
   set size(Size newSize){
     _size = newSize;
   }
+  String historyNames(int index){
+    if (index >=0 && index < _historyNames.length){
+      return _historyNames[index];
+    }
+    else{
+      return "None";
+    }
+  }
+
+  int history(int index){
+    if (index >=0 && index < _history.length){
+      return _history[index];
+    }
+    else{
+      return -1;
+    }
+  }
+  void setHistoryIndex(int newIndex){
+    if (newIndex >=0 && newIndex < _history.length){
+      _historyIndex = newIndex;
+      if(_sController.isAttached){_sController.jumpTo(index: _historyIndex, alignment: 0.5);}
+    }
+  }
+  int get historyLength => _history.length;
+  int get historyIndex => _historyIndex;
   Size get size => _size;
   void set radPerLevel(double newRad){
     _radPerLevel = newRad;
@@ -330,14 +362,62 @@ class GraphData with ChangeNotifier {
   }
   void clearGraph() {
     _graph = {};
+    _history = [];
+    _historyNames = [];
+    _historyIndex = -1;
     _graphSet = false;
     notifyListeners();
+  }
+  Node getNode(PlatformInt64 nodeId){
+    return _graph[nodeId]!;
+  }
+  void addRoot(PlatformInt64 newRoot) {
+    if (_graph.containsKey(newRoot)) {
+      _root = newRoot;
+      _history.add(newRoot);
+      _historyNames.add(_graph[newRoot]!.name);
+      _historyIndex +=1; 
+      if(_sController.isAttached){_sController.jumpTo(index: _historyIndex, alignment: 0.5);}
+      notifyListeners();
+    }
   }
   void setRoot(PlatformInt64 newRoot) {
     if (_graph.containsKey(newRoot)) {
       _root = newRoot;
       notifyListeners();
     }
+  }
+
+  void incrementIndex(){
+    if (_historyIndex < _history.length -1){
+      // There's history to go forward through
+      _historyIndex +=1;
+      setRoot(_history[_historyIndex]);
+     if(_sController.isAttached){_sController.jumpTo(index: _historyIndex, alignment: 0.5);}
+    }
+  }
+
+  void decrementIndex(){
+    if (_historyIndex > 0){
+      // There's history to go back through
+      _historyIndex -= 1;
+      setRoot(_history[_historyIndex]);
+    if(_sController.isAttached){_sController.jumpTo(index: _historyIndex, alignment: 0.5);}
+    }
+  }
+  // removes elements of the history that are past the current pointer so that we 
+  // can go deeper
+  void popPastIndex(){
+    if (_history.length ==0 || _historyIndex <0){ // nothing to pop
+      return;
+    }
+    var numPops = (_history.length - _historyIndex)-1; // need the -1 because of zero-index arrays
+    while (numPops > 0){
+      _history.removeLast();
+      _historyNames.removeLast();
+      numPops -= 1;
+    }
+    notifyListeners();
   }
   void setDepth(int newDepth) {
     if (newDepth > 0) {

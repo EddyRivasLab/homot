@@ -59,7 +59,7 @@ class GraphPainter extends CustomPainter {
     double scaleFactor = tController.value.getMaxScaleOnAxis();
     var myRadius = startRadius + ((node.ranknum - startLevel) * radPerLevel);
     if (!drawChildren){ // Handle the case where this node would be off the edge
-      myRadius = maxLevel * radPerLevel;
+      myRadius = (maxLevel-startLevel) * radPerLevel;
     }
     
     var myAngle = (node.myArcStart + node.myArcEnd) / 2;
@@ -70,7 +70,6 @@ class GraphPainter extends CustomPainter {
    
     var parentOffset = Offset(center.dx + (parentRadius * cos(myAngle)), center.dy + (parentRadius * sin(myAngle)));
     myCanvas.drawLine(parentOffset, myOffset, paint..strokeWidth=2.0/scaleFactor);
-   // _addButton(buttons, node.name,  myOffset.dx/devicePixelRatio-20, myOffset.dy/devicePixelRatio-10, 40, 20, (){print("Node ${node.name} clicked");});
 
     if (drawChildren){
       double arcPerChild  = (node.myArcEnd - node.myArcStart) / max(node.totalDescendants, 1);
@@ -124,8 +123,15 @@ class GraphPainter extends CustomPainter {
    // var myCanvas = TouchyCanvas(context, logicalCanvas);
 
     var drawnLevels = min((graphData.depth - graphData.graph[graphData.root]!.ranknum), graphData.maxLevels);
-    var radPerLevel = logicalRadius / drawnLevels; // How much radius to add per level of the graph
-    graphData.radPerLevel = graphRadius/drawnLevels; // graphdata's radPerLevel should be in graph units, not screen
+    double radPerLevel;
+    if(drawnLevels != 0) {
+      radPerLevel = logicalRadius / drawnLevels; // How much radius to add per level of the graph
+      graphData.radPerLevel = graphRadius/drawnLevels; // graphdata's radPerLevel should be in graph units, not screen
+    }
+    else{ // avoid divide-by-zero
+      radPerLevel = 0.0;
+      graphData.radPerLevel = 0.0;
+    }
     var center = Offset(logicalSize.width / 2, logicalSize.height / 2);
     var maxLevel = graphData.graph[graphData.root]!.ranknum + drawnLevels;
 
@@ -208,7 +214,11 @@ class TrackRegions {
 
       double radius = sqrt((dx * dx) + (dy * dy));
       int level = (radius/radPerLevel).ceil();
-      print("radius = $radius, radPerLevel=$radPerLevel");
+      if (level >= _radii.length){
+        // click outside graph region
+        return -1;
+      }
+      //print("radius = $radius, radPerLevel=$radPerLevel");
       if (xPos != centerX){ // avoid divide-by-zero
 
         double baseAngle = atan(dy/dx);
@@ -244,10 +254,10 @@ class TrackRegions {
       }
       int max = _radii[level].length - 1;
       List<Region> theLevel = _radii[level];
-      print("Searching Level $level, which contains nodes");
+      /*print("Searching Level $level, which contains nodes");
       for (int i = 0; i < theLevel.length; i++){
         print("${theLevel[i].startAngle}, ${theLevel[i].endAngle}, ${theLevel[i].nodeId}");
-      }
+      }*/
       if (theLevel[0].startAngle > angle || theLevel[max].startAngle <= angle) {
         return theLevel[max].nodeId; // angle lies in the wrap-around region
       }
@@ -257,7 +267,7 @@ class TrackRegions {
     // Standard binary search algorithm adapted for our needs
     PlatformInt64
     _binarySearch(List<Region> regions, double angle, int min, int max) {
-      print("Binary searching $min $max");
+      //print("Binary searching $min $max");
       if (min > max) {
         throw RangeError("Binary search failed to find angle $angle ");
       }
