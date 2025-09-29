@@ -68,7 +68,69 @@ class GraphPainter extends CustomPainter {
   final TransformationController tController;
   final double graphRadius;
   GraphPainter(this.context, this.graphData, this.devicePixelRatio, this.tController, this.graphRadius, this.hSettings);
+ 
+  bool _write_if_fits(Canvas canvas, TextTheme textTheme, String text, double angle, double startRadius, double endRadius,
+  double regionAngle, Offset center, double scaleFactor) {
+    // The easiest way to get the dimensions of some
+    // text seems to be to try rendering them and then measure the result.
+    TextPainter testPainter = TextPainter(
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+    );
+    testPainter.text = TextSpan(
+      text: text,
+      style: textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onPrimary),
+    );
+    testPainter.layout(); // laying out the text computes how much space it will take if drawn
 
+    // Figure out how much space is available for the text.  Need to take into account
+    // that text may not start at the startRadius in order to make things work right near graph origin
+
+    final double availLength = endRadius-startRadius;
+    final double availHeight = 2 * (startRadius+availLength-testPainter.width)* sin(regionAngle/2); 
+    // available height for text is the chord of the arc at the small end of the wedge for the node
+    // if availLength < testPainter.width, this will give weird answers, but we won't draw any text
+    // in that case, so it doesn't matter
+
+    if ((testPainter.height <= availHeight) && ((testPainter.width + 2*hSettings.lineWidth/scaleFactor)<= availLength)){
+      double rotAngle = angle;
+      double startX;
+      double startY;
+      double rotateX;
+      double rotateY;
+
+      if (angle >= pi/2 && angle < 3*pi/2){ // get text right-side-up, remembering that flutter angles are
+      //clockwise
+        rotAngle = angle + pi;
+      // Offsets from the center of rotation (middle of the text) to upper left corner to get start position
+      // for drawing.  These offsets will be applied in the _rotated_ frame, so an X offset translates 
+      // to motion along the radius.
+
+      startX = - ((testPainter.width /2) - 2* hSettings.lineWidth/scaleFactor); 
+      startY = -testPainter.height/2;
+      }
+      else{
+      // Offsets from the center of rotation (middle of the text) to upper left corner to get start position
+      // for drawing.  These offsets will be applied in the _rotated_ frame, so an X offset translates 
+      // to motion along the radius.
+
+        startX = - ((testPainter.width /2) + 2* hSettings.lineWidth/scaleFactor); 
+        startY = -testPainter.height/2;
+      }
+      rotateX = center.dx + (endRadius - testPainter.width/2) *cos(angle); // offsets to translate the canvas
+      rotateY = center.dy + (endRadius - testPainter.width/2)* sin(angle); // so that rotation works
+      canvas.save();
+      canvas.translate(rotateX, rotateY);
+      canvas.rotate(rotAngle);
+      //canvas.translate(-rotateX, -rotateY);
+      testPainter.paint(canvas, Offset(startX, startY));
+      canvas.restore();
+      return true;
+    }
+    else{
+      return false;
+    }
+  }
 
   // Recursive function to draw a node and its children
   void drawNode(Map<PlatformInt64, Node> graph, PlatformInt64 nodeId, PlatformInt64 parentId, Offset center, double startRadius, double radPerLevel, 
@@ -98,6 +160,9 @@ class GraphPainter extends CustomPainter {
     var parentOffset = Offset(center.dx + (parentRadius * cos(myAngle)), center.dy + (parentRadius * sin(myAngle)));
     myCanvas.drawLine(parentOffset, myOffset, paint..strokeWidth=hSettings.lineWidth/scaleFactor);
 
+    final String nodeText = node.name + "\n"+ node.totalDescendants.toString();
+    _write_if_fits(myCanvas, Theme.of(context).textTheme, nodeText, myAngle, parentRadius, myRadius, (node.myArcEnd -
+    node.myArcStart), center, scaleFactor);
     if (drawChildren){
       double arcPerChild  = (node.myArcEnd - node.myArcStart) / max(node.totalDescendants, 1);
       if (node.children.length >1){ // Need to draw the arc for this node  
@@ -172,12 +237,7 @@ class GraphPainter extends CustomPainter {
     paint);
     final ui.Picture picture = recorder.endRecording();
     canvas.scale(1 / devicePixelRatio);
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    //canvas.rotate(graphData.rotation);
-    canvas.translate(-1 *center.dx, -1* center.dy);
     canvas.drawPicture(picture);
-    canvas.restore();
   }
 
   @override
