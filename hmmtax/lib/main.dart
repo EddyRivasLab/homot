@@ -75,9 +75,10 @@ class TopLevel extends StatelessWidget {
       builder: (context, hsettings, child) {
         return MaterialApp(
               theme: hsettings.themeData,
+
               debugShowCheckedModeBanner: false,
               title: 'Hmmtax',
-              home: MacMenu(),
+              home: MediaQuery.withNoTextScaling(child: MacMenu()),
               initialRoute: '/',
               routes: {
                 '/main': (context) => const MainPage(),
@@ -284,7 +285,7 @@ class GraphData with ChangeNotifier {
     Matrix4Transform m4t = Matrix4Transform();
     m4t = m4t.scale(_scale, origin: Offset(_size.width/2, _size.height/2));
     m4t = m4t.rotateByCenter(_rotation, _size);
-    m4t = m4t.translate(x: _translateX, y: _translateY);
+    m4t = m4t.translate(x: _translateX*_scale, y: _translateY*_scale);
     _transform = m4t.matrix4;
     notifyListeners();
   }
@@ -374,6 +375,16 @@ class GraphData with ChangeNotifier {
     _historyNames = [];
     _historyIndex = -1;
     _graphSet = false;
+    _rotation = 0.0;
+    _translateX = 0.0;
+    _translateY = 0.0;
+    _scale = 1.0;
+    _transform = Matrix4.identity();
+    _tController.value = Matrix4.identity();
+    _trackRegions = TrackRegions(0);
+    _root = 0;
+    _depth = 0;
+    _maxLevels = 0;
     notifyListeners();
   }
   Node getNode(PlatformInt64 nodeId){

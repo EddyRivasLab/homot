@@ -70,13 +70,15 @@ class GraphPainter extends CustomPainter {
   GraphPainter(this.context, this.graphData, this.devicePixelRatio, this.tController, this.graphRadius, this.hSettings);
  
   bool _write_if_fits(Canvas canvas, TextTheme textTheme, String text, double angle, double startRadius, double endRadius,
-  double regionAngle, Offset center, double scaleFactor) {
+  double regionAngle, Offset center) {
     // The easiest way to get the dimensions of some
     // text seems to be to try rendering them and then measure the result.
     TextPainter testPainter = TextPainter(
       textAlign: TextAlign.center,
       textDirection: TextDirection.ltr,
     );
+    testPainter.textScaler = TextScaler.linear(1/graphData.scale);
+    print("16 point text will be scaled by ${1/graphData.scale} to ${testPainter.textScaler.scale(16.0)}");
     testPainter.text = TextSpan(
       text: text,
       style: textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onPrimary),
@@ -85,67 +87,74 @@ class GraphPainter extends CustomPainter {
 
     // Figure out how much space is available for the text.  Need to take into account
     // that text may not start at the startRadius in order to make things work right near graph origin
-
+    if (regionAngle > pi){
+      regionAngle = pi; // assume that text height isn't an issue if angle wider than 180 degrees
+    }
     final double availLength = endRadius-startRadius;
     final double availHeight = 2 * (startRadius+availLength-testPainter.width)* sin(regionAngle/2); 
     // available height for text is the chord of the arc at the small end of the wedge for the node
     // if availLength < testPainter.width, this will give weird answers, but we won't draw any text
     // in that case, so it doesn't matter
 
-    if ((testPainter.height <= availHeight) && ((testPainter.width + 2*hSettings.lineWidth/scaleFactor)<= availLength)){
-      double rotAngle = angle;
-      double startX;
-      double startY;
-      double rotateX;
-      double rotateY;
 
-      if (angle >= pi/2 && angle < 3*pi/2){ // get text right-side-up, remembering that flutter angles are
-      //clockwise
-        rotAngle = angle + pi;
-      // Offsets from the center of rotation (middle of the text) to upper left corner to get start position
-      // for drawing.  These offsets will be applied in the _rotated_ frame, so an X offset translates 
-      // to motion along the radius.
-
-      startX = - ((testPainter.width /2) - 2* hSettings.lineWidth/scaleFactor); 
-      startY = -testPainter.height/2;
-      }
-      else{
-      // Offsets from the center of rotation (middle of the text) to upper left corner to get start position
-      // for drawing.  These offsets will be applied in the _rotated_ frame, so an X offset translates 
-      // to motion along the radius.
-
-        startX = - ((testPainter.width /2) + 2* hSettings.lineWidth/scaleFactor); 
-        startY = -testPainter.height/2;
-      }
-      rotateX = center.dx + (endRadius - testPainter.width/2) *cos(angle); // offsets to translate the canvas
-      rotateY = center.dy + (endRadius - testPainter.width/2)* sin(angle); // so that rotation works
-      canvas.save();
-      canvas.translate(rotateX, rotateY);
-      canvas.rotate(rotAngle);
-      //canvas.translate(-rotateX, -rotateY);
-      testPainter.paint(canvas, Offset(startX, startY));
-      canvas.restore();
-      return true;
-    }
-    else{
+    if (availLength < testPainter.width || availHeight < testPainter.height){ 
+      // can't fit the text, so don't draw it
+      //print("availLength = $availLength, availHeight = $availHeight, text width = ${testPainter.width}, text height = ${testPainter.height}");
+      //print("startRadius = $startRadius, endRadius = $endRadius, regionAngle = $regionAngle");
       return false;
     }
+
+    // if we get here, then we can print the text.
+    double rotAngle = angle;
+    double startX;
+    double startY;
+    double rotateX;
+    double rotateY;
+
+    if ((angle+graphData.rotation)% (2*pi) >= pi/2 && (angle+graphData.rotation) %(2*pi) < 3*pi/2){ // get text right-side-up, remembering that flutter angles are
+      //clockwise
+      rotAngle = angle + pi;
+      // Offsets from the center of rotation (middle of the text) to upper left corner to get start position
+      // for drawing.  These offsets will be applied in the _rotated_ frame, so an X offset translates 
+      // to motion along the radius.
+
+      startX = - ((testPainter.width /2) - 2* hSettings.lineWidth/graphData.scale); 
+      startY = -testPainter.height/2;
+    }
+    else{
+      // Offsets from the center of rotation (middle of the text) to upper left corner to get start position
+      // for drawing.  These offsets will be applied in the _rotated_ frame, so an X offset translates 
+      // to motion along the radius.
+
+      startX = - ((testPainter.width /2) + 2* hSettings.lineWidth/graphData.scale); 
+      startY = -testPainter.height/2;
+    }
+    rotateX = center.dx + (endRadius - testPainter.width/2) *cos(angle); // offsets to translate the canvas
+    rotateY = center.dy + (endRadius - testPainter.width/2)* sin(angle); // so that rotation works
+    canvas.save();
+    canvas.translate(rotateX, rotateY);
+    canvas.rotate(rotAngle);
+      //canvas.translate(-rotateX, -rotateY);
+    testPainter.paint(canvas, Offset(startX, startY));
+    canvas.restore();
+    return true;
   }
 
   // Recursive function to draw a node and its children
   void drawNode(Map<PlatformInt64, Node> graph, PlatformInt64 nodeId, PlatformInt64 parentId, Offset center, double startRadius, double radPerLevel, 
     int startLevel, int maxLevel, Canvas myCanvas, Color myColor, Paint paint) {
-
+    var node = graph[nodeId]!;
     if (nodeId == parentId){ // This is the root node of the current graph, so reset the trackRegions structure
       graphData.trackRegions = TrackRegions(1+maxLevel-startLevel);
+      print("radPerLevel = $radPerLevel");
     }
 
-    var node = graph[nodeId]!;
+
     // Add the node's region to the trackRegion structure
     graphData.trackRegions.addRegion(node.ranknum - startLevel, Region(node.myArcStart, node.myArcEnd, nodeId));
     var parent = graph[parentId]!;
     bool drawChildren = node.ranknum < maxLevel;
-    double scaleFactor = tController.value.getMaxScaleOnAxis();
+
     var myRadius = startRadius + ((node.ranknum - startLevel) * radPerLevel);
     if (!drawChildren){ // Handle the case where this node would be off the edge
       myRadius = (maxLevel-startLevel) * radPerLevel;
@@ -158,11 +167,42 @@ class GraphPainter extends CustomPainter {
     var parentRadius = startRadius + ((parent.ranknum - startLevel) * radPerLevel);
    
     var parentOffset = Offset(center.dx + (parentRadius * cos(myAngle)), center.dy + (parentRadius * sin(myAngle)));
-    myCanvas.drawLine(parentOffset, myOffset, paint..strokeWidth=hSettings.lineWidth/scaleFactor);
+    myCanvas.drawLine(parentOffset, myOffset, paint..strokeWidth=hSettings.lineWidth/graphData.scale..color = myColor);
 
     final String nodeText = node.name + "\n"+ node.totalDescendants.toString();
-    _write_if_fits(myCanvas, Theme.of(context).textTheme, nodeText, myAngle, parentRadius, myRadius, (node.myArcEnd -
-    node.myArcStart), center, scaleFactor);
+    final bool textFit = _write_if_fits(myCanvas, Theme.of(context).textTheme, nodeText, myAngle, parentRadius, myRadius, (node.myArcEnd -
+    node.myArcStart), center);
+
+    if (!textFit && node.ranknum != startLevel){
+      // There isn't enough space to fit the data for the node, so turn it into a pie wedge out to the edge of 
+      // graph
+      // There's never enough space to do this for the root node, so don't try
+
+      drawChildren = false; // don't bother with children, since there won't be space
+      var piePath = Path();
+      // define the rectangles we'll use to draw the inner and outer arcs of the pie wedge
+      var innerRect = Rect.fromCircle(center: center, radius: parentRadius);
+      var outerRect = Rect.fromCircle(center: center, radius: (maxLevel-startLevel)*radPerLevel);
+      // and draw the wedge
+      piePath.addArc(innerRect, node.myArcStart, node.myArcEnd - node.myArcStart);
+      piePath.lineTo(center.dx + ((maxLevel-startLevel)*radPerLevel * cos(node.myArcEnd)), center.dy +
+       ((maxLevel-startLevel)*radPerLevel * sin(node.myArcEnd)));
+      piePath.addArc(outerRect, node.myArcEnd, -(node.myArcEnd - node.myArcStart));
+      piePath.lineTo(center.dx + (parentRadius * cos(node.myArcStart)), center.dy +
+       (parentRadius * sin(node.myArcStart)));  
+      piePath.close();
+      myCanvas.drawPath(piePath, paint..style = PaintingStyle.fill..color = myColor);
+
+      // now, add the region for the node to each level in the wedge
+      for (int level = node.ranknum; level <= maxLevel; level++){
+        graphData.trackRegions.addRegion(level - startLevel, Region(node.myArcStart, node.myArcEnd, nodeId));
+      }
+
+      // and see if we can fit the text in the outer edge of the wedge
+      _write_if_fits(myCanvas, Theme.of(context).textTheme, nodeText, myAngle, parentRadius, (maxLevel-startLevel)*
+      radPerLevel, (node.myArcEnd - node.myArcStart), center);
+    }
+
     if (drawChildren){
       double arcPerChild  = (node.myArcEnd - node.myArcStart) / max(node.totalDescendants, 1);
       if (node.children.length >1){ // Need to draw the arc for this node  
@@ -172,7 +212,7 @@ class GraphPainter extends CustomPainter {
         double arcStart = node.myArcStart + (graph[node.children[0].toInt()]!.totalDescendants+1) * arcPerChild / 2;
         double arcEnd = node.myArcEnd - (graph[node.children[node.children.length -1].toInt()]!.totalDescendants+1) * arcPerChild / 2;
         double sweep = arcEnd - arcStart;
-        myCanvas.drawArc(rect, arcStart, sweep, false, paint..style = PaintingStyle.stroke..color = myColor..strokeWidth=hSettings.lineWidth/scaleFactor);
+        myCanvas.drawArc(rect, arcStart, sweep, false, paint..style = PaintingStyle.stroke..color = myColor..strokeWidth=hSettings.lineWidth/graphData.scale);
 
       }
 
@@ -203,19 +243,16 @@ class GraphPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 
-    final recorder = ui.PictureRecorder();
-    final double logicalWidth = size.width * devicePixelRatio;
-    final double logicalHeight = size.height * devicePixelRatio;
+    final double logicalWidth = size.width;// * devicePixelRatio;
+    final double logicalHeight = size.height;// * devicePixelRatio;
     final logicalSize = Size(logicalWidth, logicalHeight);
-    final double logicalRadius = graphRadius * devicePixelRatio;
+    final double logicalRadius = graphRadius;// * devicePixelRatio;
 
-    final Canvas logicalCanvas = Canvas(recorder);
-    //logicalCanvas.scale(devicePixelRatio);
-
-   // var myCanvas = TouchyCanvas(context, logicalCanvas);
+    final Canvas logicalCanvas = canvas;
 
     var drawnLevels = min((graphData.depth - graphData.graph[graphData.root]!.ranknum), graphData.maxLevels);
     double radPerLevel;
+    print("drawnlevels = $drawnLevels");
     if(drawnLevels != 0) {
       radPerLevel = logicalRadius / drawnLevels; // How much radius to add per level of the graph
       graphData.radPerLevel = graphRadius/drawnLevels; // graphdata's radPerLevel should be in graph units, not screen
@@ -235,9 +272,6 @@ class GraphPainter extends CustomPainter {
     paint.style = PaintingStyle.stroke;
     drawNode(graphData.graph, graphData.root, graphData.root, center, 0, radPerLevel, root.ranknum, maxLevel, logicalCanvas,  Theme.of(context).colorScheme.onSurface, 
     paint);
-    final ui.Picture picture = recorder.endRecording();
-    canvas.scale(1 / devicePixelRatio);
-    canvas.drawPicture(picture);
   }
 
   @override
