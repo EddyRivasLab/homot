@@ -42,7 +42,104 @@ ColorScheme darkScheme = ColorScheme.fromSeed(
     onError: const Color(0xff000000),
   );
 
+const numColors = 9;
+const shadesPerColor = 5;
 
+var lightGraphColors =[
+  (Colors.amber[500], Colors.black),
+  (Colors.amber[700], Colors.black),
+  (Colors.amber[900], Colors.black),
+  (Colors.amber[600], Colors.black),
+  (Colors.amber[800], Colors.white),
+  (Colors.blue[500], Colors.white),
+  (Colors.blue[700], Colors.white),
+  (Colors.blue[900], Colors.white),
+  (Colors.blue[600], Colors.white),
+  (Colors.blue[900], Colors.white),
+  (Colors.red[500], Colors.white),
+  (Colors.red[700], Colors.white),
+  (Colors.red[900], Colors.white),
+  (Colors.red[600], Colors.white),
+  (Colors.red[800], Colors.white),  
+  (Colors.cyan[500], Colors.black),
+  (Colors.cyan[700], Colors.white),
+  (Colors.cyan[900], Colors.white),
+  (Colors.cyan[600], Colors.white),
+  (Colors.cyan[800], Colors.white),
+  (Colors.orange[500], Colors.black),
+  (Colors.orange[700], Colors.black),
+  (Colors.orange[900], Colors.black),
+  (Colors.orange[600], Colors.white),
+  (Colors.orange[800], Colors.white),
+  (Colors.green[500], Colors.white),
+  (Colors.green[700], Colors.white),
+  (Colors.green[900], Colors.white),
+  (Colors.green[600], Colors.white),
+  (Colors.green[800], Colors.white),
+  (Colors.purple[500], Colors.white),
+  (Colors.purple[700], Colors.white),
+  (Colors.purple[900], Colors.white),
+  (Colors.purple[600], Colors.white),
+  (Colors.purple[800], Colors.white),
+  (Colors.teal[500], Colors.white),
+  (Colors.teal[700], Colors.white),
+  (Colors.teal[900], Colors.white),
+  (Colors.teal[600], Colors.white),
+  (Colors.teal[800], Colors.white),
+  (Colors.pink[500], Colors.white),
+  (Colors.pink[700], Colors.white),
+  (Colors.pink[900], Colors.white),
+  (Colors.pink[600], Colors.white),
+  (Colors.pink[800], Colors.white),
+];
+
+var darkGraphColors =[
+  (Colors.amber[100], Colors.black),
+  (Colors.amber[300], Colors.black),
+  (Colors.amber[500], Colors.black),
+  (Colors.amber[200], Colors.black),
+  (Colors.amber[400], Colors.black),
+  (Colors.blue[100], Colors.black),
+  (Colors.blue[300], Colors.black),
+  (Colors.blue[500], Colors.black ),
+  (Colors.blue[200], Colors.black),
+  (Colors.blue[400], Colors.white),
+  (Colors.red[100], Colors.black),
+  (Colors.red[300], Colors.black),
+  (Colors.red[500], Colors.white),
+  (Colors.red[200], Colors.white),
+  (Colors.red[400], Colors.white),  
+  (Colors.cyan[100], Colors.black),
+  (Colors.cyan[300], Colors.black),
+  (Colors.cyan[500], Colors.black),
+  (Colors.cyan[200], Colors.black),
+  (Colors.cyan[400], Colors.black),
+  (Colors.orange[100], Colors.black),
+  (Colors.orange[300], Colors.black),
+  (Colors.orange[500], Colors.black),
+  (Colors.orange[200], Colors.black),
+  (Colors.orange[400], Colors.black),
+  (Colors.green[100], Colors.black),
+  (Colors.green[300], Colors.black),
+  (Colors.green[500], Colors.black),
+  (Colors.green[200], Colors.black),
+  (Colors.green[400], Colors.black),
+  (Colors.purple[100], Colors.black),
+  (Colors.purple[300], Colors.black),
+  (Colors.purple[500], Colors.white),
+  (Colors.purple[200], Colors.white),
+  (Colors.purple[400], Colors.white),
+  (Colors.teal[100], Colors.black),
+  (Colors.teal[300], Colors.black),
+  (Colors.teal[500], Colors.black),
+  (Colors.teal[200], Colors.white),
+  (Colors.teal[400], Colors.white),
+  (Colors.pink[100], Colors.black),
+  (Colors.pink[300], Colors.black),
+  (Colors.pink[500], Colors.white),
+  (Colors.pink[200], Colors.white),
+  (Colors.pink[400], Colors.white),
+];
 Future<void> main() async {
   await RustLib.init();
   WidgetsFlutterBinding.ensureInitialized();
@@ -121,6 +218,14 @@ class HSettings with ChangeNotifier {
   double _domEvalMax = 10.0;
   double _lineWidth = 2.0;
   late SharedPreferencesAsync _prefs; 
+  List<(Color?, Color?)> get graphColors {
+    if (_mode == brightModes.light ||
+    (_mode == brightModes.system &&  ThemeMode.system == ThemeMode.light)) {
+      return lightGraphColors;
+    } else {
+      return darkGraphColors;
+    }
+  }
 
   HSettings(SharedPreferencesAsync prefs, int mode, String font, double scale, double evalMax, double domEvalMax, double lineWidth){
     _prefs = prefs;

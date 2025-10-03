@@ -10,30 +10,6 @@ import 'package:touchable/touchable.dart';
 import 'package:hmmtax/src/rust/api/graph.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// List of pairs of background and foregrund colors for displaying
-// domains.  Taken from the ColorBrewer example color sets.
-// Folmat is (BGcolor, FG color)
-const domainColors = [
-  (Color(0xff9e0142), Color(0xffffffff)),
-  (Color(0xff40004b), Color(0xffffffff)),
-  (Color(0xff006837), Color(0xffffffff)),
-  (Color(0xffd53e4f), Color(0xffffffff)),
-  (Color(0xff1a9850), Color(0xffffffff)),
-  (Color(0xff0000ff), Color(0xffffffff)),
-  (Color(0xfff46d43), Color(0xffffffff)),
-  (Color(0xff6a3d9a), Color(0xffffffff)),
-  (Color(0xffabd9e9), Color(0xff000000)),
-  (Color(0xff68bd63), Color(0xffffffff)),
-  (Color(0xfffdae61), Color(0xffffffff)),
-  (Color(0xffff0000), Color(0xff000000)),
-  (Color(0xfffee08b), Color(0xff000000)),
-  (Color(0xffbc80bd), Color(0xff000000)),
-  (Color(0xffffffbf), Color(0xff000000)),
-  (Color(0xffa6d96a), Color(0xff000000)),
-  (Color(0xffcab2d6), Color(0xff000000)),
-  (Color(0xfffdaaac), Color(0xff000000)),
-  (Color(0xff00ff00), Color(0xff000000)),
-];
 
 // Draws a horizontal line as an example for the settings page
 class LinePainter extends CustomPainter{
@@ -70,7 +46,7 @@ class GraphPainter extends CustomPainter {
   GraphPainter(this.context, this.graphData, this.devicePixelRatio, this.tController, this.graphRadius, this.hSettings);
  
   bool _write_if_fits(Canvas canvas, TextTheme textTheme, String text, double angle, double startRadius, double endRadius,
-  double regionAngle, Offset center) {
+  double regionAngle, Offset center, Color textColor) {
     // The easiest way to get the dimensions of some
     // text seems to be to try rendering them and then measure the result.
     TextPainter testPainter = TextPainter(
@@ -78,10 +54,10 @@ class GraphPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     );
     testPainter.textScaler = TextScaler.linear(1/graphData.scale);
-    print("16 point text will be scaled by ${1/graphData.scale} to ${testPainter.textScaler.scale(16.0)}");
+
     testPainter.text = TextSpan(
       text: text,
-      style: textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onPrimary),
+      style: textTheme.bodyMedium!.copyWith(color: textColor),
     );
     testPainter.layout(); // laying out the text computes how much space it will take if drawn
 
@@ -142,11 +118,15 @@ class GraphPainter extends CustomPainter {
 
   // Recursive function to draw a node and its children
   void drawNode(Map<PlatformInt64, Node> graph, PlatformInt64 nodeId, PlatformInt64 parentId, Offset center, double startRadius, double radPerLevel, 
-    int startLevel, int maxLevel, Canvas myCanvas, Color myColor, Paint paint) {
+    int startLevel, int maxLevel, Canvas myCanvas, int majorColor, int minorColor, Paint paint) {
     var node = graph[nodeId]!;
+    Color nodeColor;
+    Color fillColor, fillTextColor;
+
+    (nodeColor!, _) = hSettings.graphColors[(majorColor) *shadesPerColor];
+    (fillColor!, fillTextColor!) = hSettings.graphColors[(majorColor) * shadesPerColor + minorColor];
     if (nodeId == parentId){ // This is the root node of the current graph, so reset the trackRegions structure
       graphData.trackRegions = TrackRegions(1+maxLevel-startLevel);
-      print("radPerLevel = $radPerLevel");
     }
 
 
@@ -167,11 +147,11 @@ class GraphPainter extends CustomPainter {
     var parentRadius = startRadius + ((parent.ranknum - startLevel) * radPerLevel);
    
     var parentOffset = Offset(center.dx + (parentRadius * cos(myAngle)), center.dy + (parentRadius * sin(myAngle)));
-    myCanvas.drawLine(parentOffset, myOffset, paint..strokeWidth=hSettings.lineWidth/graphData.scale..color = myColor);
+    myCanvas.drawLine(parentOffset, myOffset, paint..strokeWidth=hSettings.lineWidth/graphData.scale..color = nodeColor);
 
     final String nodeText = node.name + "\n"+ node.totalDescendants.toString();
     final bool textFit = _write_if_fits(myCanvas, Theme.of(context).textTheme, nodeText, myAngle, parentRadius, myRadius, (node.myArcEnd -
-    node.myArcStart), center);
+    node.myArcStart), center, Theme.of(context).colorScheme.onSurface);
 
     if (!textFit && node.ranknum != startLevel){
       // There isn't enough space to fit the data for the node, so turn it into a pie wedge out to the edge of 
@@ -185,13 +165,14 @@ class GraphPainter extends CustomPainter {
       var outerRect = Rect.fromCircle(center: center, radius: (maxLevel-startLevel)*radPerLevel);
       // and draw the wedge
       piePath.addArc(innerRect, node.myArcStart, node.myArcEnd - node.myArcStart);
-      piePath.lineTo(center.dx + ((maxLevel-startLevel)*radPerLevel * cos(node.myArcEnd)), center.dy +
+      piePath.lineTo(center.dx + ((maxLevel -startLevel)* radPerLevel * cos(node.myArcEnd)), center.dy +
        ((maxLevel-startLevel)*radPerLevel * sin(node.myArcEnd)));
       piePath.addArc(outerRect, node.myArcEnd, -(node.myArcEnd - node.myArcStart));
       piePath.lineTo(center.dx + (parentRadius * cos(node.myArcStart)), center.dy +
        (parentRadius * sin(node.myArcStart)));  
       piePath.close();
-      myCanvas.drawPath(piePath, paint..style = PaintingStyle.fill..color = myColor);
+      myCanvas.drawPath(piePath, paint..style = PaintingStyle.stroke..color = fillColor);
+      myCanvas.drawPath(piePath, paint..style = PaintingStyle.fill..color = fillColor);
 
       // now, add the region for the node to each level in the wedge
       for (int level = node.ranknum; level <= maxLevel; level++){
@@ -200,7 +181,7 @@ class GraphPainter extends CustomPainter {
 
       // and see if we can fit the text in the outer edge of the wedge
       _write_if_fits(myCanvas, Theme.of(context).textTheme, nodeText, myAngle, parentRadius, (maxLevel-startLevel)*
-      radPerLevel, (node.myArcEnd - node.myArcStart), center);
+      radPerLevel, (node.myArcEnd - node.myArcStart), center, fillTextColor);
     }
 
     if (drawChildren){
@@ -212,7 +193,7 @@ class GraphPainter extends CustomPainter {
         double arcStart = node.myArcStart + (graph[node.children[0].toInt()]!.totalDescendants+1) * arcPerChild / 2;
         double arcEnd = node.myArcEnd - (graph[node.children[node.children.length -1].toInt()]!.totalDescendants+1) * arcPerChild / 2;
         double sweep = arcEnd - arcStart;
-        myCanvas.drawArc(rect, arcStart, sweep, false, paint..style = PaintingStyle.stroke..color = myColor..strokeWidth=hSettings.lineWidth/graphData.scale);
+        myCanvas.drawArc(rect, arcStart, sweep, false, paint..style = PaintingStyle.stroke..color = nodeColor..strokeWidth=hSettings.lineWidth/graphData.scale);
 
       }
 
@@ -220,16 +201,17 @@ class GraphPainter extends CustomPainter {
       var i =0;
       for (var childId in node.children) {
         if (node.ranknum == startLevel){
-          myColor = domainColors[i % domainColors.length].$1;
-          i += 1;
+          majorColor = i % numColors;
         }
-        paint.color = myColor;
+        minorColor = (minorColor +1) % shadesPerColor; 
         var childNode = graph[childId.toInt()]!;
         childNode.myArcStart = lastEnd;
         childNode.myArcEnd = lastEnd + (arcPerChild * (childNode.totalDescendants+1));
         lastEnd = childNode.myArcEnd;
         
-        drawNode(graph, childId.toInt(), nodeId, center, startRadius, radPerLevel, startLevel, maxLevel, myCanvas, myColor, paint);
+        drawNode(graph, childId.toInt(), nodeId, center, startRadius, radPerLevel, startLevel, maxLevel, 
+          myCanvas, majorColor, minorColor, paint);
+        i+= 1;
       }
     }   
   }
@@ -252,7 +234,7 @@ class GraphPainter extends CustomPainter {
 
     var drawnLevels = min((graphData.depth - graphData.graph[graphData.root]!.ranknum), graphData.maxLevels);
     double radPerLevel;
-    print("drawnlevels = $drawnLevels");
+
     if(drawnLevels != 0) {
       radPerLevel = logicalRadius / drawnLevels; // How much radius to add per level of the graph
       graphData.radPerLevel = graphRadius/drawnLevels; // graphdata's radPerLevel should be in graph units, not screen
@@ -270,8 +252,8 @@ class GraphPainter extends CustomPainter {
     root.myArcEnd = 2 * pi;
     logicalCanvas.drawCircle(center, logicalRadius, paint..style = PaintingStyle.fill..color = Theme.of(context).colorScheme.surface);
     paint.style = PaintingStyle.stroke;
-    drawNode(graphData.graph, graphData.root, graphData.root, center, 0, radPerLevel, root.ranknum, maxLevel, logicalCanvas,  Theme.of(context).colorScheme.onSurface, 
-    paint);
+    drawNode(graphData.graph, graphData.root, graphData.root, center, 0, radPerLevel, root.ranknum, maxLevel, logicalCanvas,  
+    0, 0, paint);
   }
 
   @override
