@@ -79,7 +79,8 @@ class GraphPainter extends CustomPainter {
       //print("startRadius = $startRadius, endRadius = $endRadius, regionAngle = $regionAngle");
       return false;
     }
-
+    print("textlength = ${testPainter.width},scalefactor = ${1/graphData.scale} base = ${testPainter.width *graphData.scale}");
+    print("mediaquery scale factor = ${MediaQuery.textScalerOf(context).scale(1.0)}");
     // if we get here, then we can print the text.
     double rotAngle = angle;
     double startX;
@@ -164,6 +165,8 @@ class GraphPainter extends CustomPainter {
       var innerRect = Rect.fromCircle(center: center, radius: parentRadius);
       var outerRect = Rect.fromCircle(center: center, radius: (maxLevel-startLevel)*radPerLevel);
       // and draw the wedge
+      piePath.moveTo(center.dx + (parentRadius * cos(node.myArcStart)), center.dy +
+       (parentRadius * sin(node.myArcStart)));
       piePath.addArc(innerRect, node.myArcStart, node.myArcEnd - node.myArcStart);
       piePath.lineTo(center.dx + ((maxLevel -startLevel)* radPerLevel * cos(node.myArcEnd)), center.dy +
        ((maxLevel-startLevel)*radPerLevel * sin(node.myArcEnd)));
@@ -232,6 +235,7 @@ class GraphPainter extends CustomPainter {
 
     final Canvas logicalCanvas = canvas;
 
+    print("new frame");
     var drawnLevels = min((graphData.depth - graphData.graph[graphData.root]!.ranknum), graphData.maxLevels);
     double radPerLevel;
 
