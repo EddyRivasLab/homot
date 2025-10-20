@@ -6,7 +6,7 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `read_domtblout`
+// These functions are ignored because they are not marked as `pub`: `get_hits_from_tree`, `read_domtblout`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AnnotatedSequence`, `DbDomain`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
@@ -32,15 +32,12 @@ Future<SearchResults> fetchGraph({
   domEvalMax: domEvalMax,
 );
 
-Future<HitList> fetchHits({
+HitList fetchHits({
   required Map<PlatformInt64, Node> graph,
   required PlatformInt64 root,
 }) => RustLib.instance.api.crateApiGraphFetchHits(graph: graph, root: root);
 
-Future<ResultsOverview> fetchOverview({
-  required Map<PlatformInt64, Node> graph,
-  required PlatformInt64 root,
-}) => RustLib.instance.api.crateApiGraphFetchOverview(graph: graph, root: root);
+Future<ResultsOverview> spoof() => RustLib.instance.api.crateApiGraphSpoof();
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<HashMap < i64 , Node >>>
 abstract class HashMapI64Node implements RustOpaqueInterface {}

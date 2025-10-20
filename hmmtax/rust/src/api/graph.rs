@@ -6,6 +6,30 @@ use std::{collections::HashMap};
 //use std::i64::MAX;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+
+
+
+#[derive(Clone, Serialize, Deserialize)]
+struct Dmap{
+    domain: u16,
+    name: String,
+    description: String,
+    clan_name: String,
+    hmm_length: u32,
+}
+impl From<&Dmap> for Slice{
+    fn from(val: &Dmap) ->Self{
+        rmp_serde::to_vec(&val).expect("Serialization error for Dmap").into()
+    }
+}
+
+impl From<&Slice> for Dmap{
+    fn from(value: &UserValue) -> Self{
+        let item: Dmap = rmp_serde::from_slice(&value).expect("Deserialization error for Dmap");
+        item
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 #[frb(non_final)]
 pub struct Node{
@@ -275,6 +299,30 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64,
         },
     };
 
+    if !keyspace.partition_exists("domainidtoname"){
+        // we're overwriting an existing database, so delete the partition first
+        results.message = "Couldn't find domain ID to name data in database".to_string() +&annfile;
+        return results
+    }
+
+    // Retrieve the clan ID->domain name mappings from the annotations DB
+    let domain_db = match keyspace.open_partition("domainidtoname", PartitionCreateOptions::default()){
+        Ok(v) => v,
+        Err(msg) => {
+            results.message = "Failed to open domainidtoname partition, even though it exists.  Error was: ".to_string() + &msg.to_string();
+            return results;
+        },
+    };
+
+
+    let (domain_map, domain_info): (HashMap<u16, Dmap>, HashMap<String, Dmap>) = match create_domain_id_map(&domain_db){
+        Ok(v) => v,
+        Err(msg) => {
+            results.message = "Couldn't create domain ID to name map from annotations database.  Error was: ".to_string() + &msg.to_string();
+            return results;
+        },
+    };
+
     // Read all of the nodes into memory, and determine the root and depth of the tree
 
     let mut graph: HashMap<i64, Node> = HashMap::new();
@@ -291,7 +339,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64,
     // load hits from the domtblout files
     for domtbloutfile in domtblout_files{
        // println!("searching {}", domtbloutfile);
-        match read_domtblout(&domtbloutfile, &mut graph, eval_max as f32, dom_eval_max as f32, &db, &graph_db, depth){
+        match read_domtblout(&domtbloutfile, &mut graph, eval_max as f32, dom_eval_max as f32, &db, &graph_db, depth, &domain_map, &domain_info){
             Ok(v) => num_domtbl_hits += v,
             Err(msg) => {
                 results.message = "Error reading domtblout file ".to_string() + &domtbloutfile + ": " + &msg;
@@ -313,7 +361,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64,
 
 // Function that reads a domtblout file and adds the hits to the graph
 fn read_domtblout(filename: &str, graph: &mut HashMap<i64, Node>,  max_seq_evalue: f32, max_dom_evalue: f32, db: &PartitionHandle,
-    graph_db: &PartitionHandle, mut depth: u32) -> Result<i64, String> {
+    graph_db: &PartitionHandle, mut depth: u32, domain_map: &HashMap<u16, Dmap>, domain_info: &HashMap<String, Dmap>) -> Result<i64, String> {
 
    // println!("starting read_domtblout, max_seq_evalue is {}, max_dom_evalue is {}", max_seq_evalue, max_dom_evalue);
     let file = match File::open(filename){
@@ -341,7 +389,13 @@ fn read_domtblout(filename: &str, graph: &mut HashMap<i64, Node>,  max_seq_evalu
 
         let target_name = fields[0].to_string();
         let query_name = fields[3].to_string();
-        
+        let hmm_length:u32 = match fields[5].parse(){
+                Err(_) => {
+                    return Err(format!("Error converting hmmlength field of {}  to number.", fields[5]));
+
+                }
+                Ok(v) => v,
+            };
         let seq_evalue: f32 = match fields[6].parse(){
             Ok(v) => v,
             Err(e) => return Err(format!("Error parsing seq_evalue in file {}: {}", filename, e)),
@@ -422,23 +476,77 @@ fn read_domtblout(filename: &str, graph: &mut HashMap<i64, Node>,  max_seq_evalu
                 name: query_name.clone(),
                 clan: String::new(), // Clan information not available in domtblout
                 description: String::new(), // Description information not available in domtblout
-                hmm_length: 0,  // HMM length not available in domtblout
-                seq_start,
-                seq_end,
-                hmm_start,
-                hmm_end,
+                hmm_length: hmm_length,  // HMM length not available in domtblout
+                seq_start: seq_start,
+                seq_end: seq_end,
+                hmm_start: hmm_start,
+                hmm_end: hmm_end, 
                 dom_evalue: dom_evalue as f64,
                 full_match_start: hmm_start == 1,
-                full_match_end: false, // Need HMM length to determine this
+                full_match_end: hmm_end==hmm_length,
             };
+         let mut our_domains = Vec::new();
+                for db_domain in seq_ann.domains{
+                    let ddata =match domain_map.get(&db_domain.domain) {
+                        None => Dmap{
+                            domain: 0xffff,
+                            name: "No annotation data available".to_string(),
+                            description: "No annotation data available".to_string(),
+                            clan_name: "No annotation data available".to_string(),
+                            hmm_length: 0,
+                        },
+                        Some(v) => v.clone(),
+                    };
+                    let the_domain = Domain{
+                        name: ddata.name,
+                        hmm_length: ddata.hmm_length,
+                        clan: ddata.clan_name,
+                        description: ddata.description,
+                        seq_start: db_domain.alifrom,
+                        seq_end: db_domain.alito,
+                        hmm_start: db_domain.hmmfrom,
+                        hmm_end: db_domain.hmmto,
+                        dom_evalue: f64::from(db_domain.eval),
+                        full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
+                        full_match_end: db_domain.full_match_end,
+                    };
+                    our_domains.push(the_domain);
+                }
 
+                let mut structure_domains = Vec::new();
+                for db_domain in seq_ann.structure_domains{
+                    let ddata =match domain_map.get(&db_domain.domain) {
+                        None => Dmap{
+                            domain: 0xffff,
+                            name: "No annotation data available".to_string(),
+                            description: "No annotation data available".to_string(),
+                            clan_name: "No annotation data available".to_string(),
+                            hmm_length: 0,
+                        },
+                        Some(v) => v.clone(),
+                    };
+                    let the_domain = Domain{
+                        name: ddata.name,
+                        seq_start: db_domain.alifrom,
+                        seq_end: db_domain.alito,
+                        hmm_start: db_domain.hmmfrom,
+                        hmm_end: db_domain.hmmto,
+                        clan: ddata.clan_name,
+                        description: ddata.description,
+                        hmm_length: ddata.hmm_length,
+                        dom_evalue: f64::from(db_domain.eval),
+                        full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
+                        full_match_end: db_domain.full_match_end,
+                    };
+                    structure_domains.push(the_domain);
+                }
             let hit = Hit {
                 name: target_name.clone(),
                 sequence: String::new(), // Sequence information not available in domtblout
-                seq_length: 0,  // Sequence length not available in domtblout
+                seq_length: seq_ann.sequence.len() as u32,  // Sequence length not available in domtblout
                 seq_evalue: seq_evalue as f64,
-                structure_domains: vec![], // Structure domains not available in domtblout
-                domains: vec![domain.clone()], // For simplicity, just include the one domain
+                structure_domains: structure_domains,
+                domains: our_domains, // For simplicity, just include the one domain
                 queries: vec![domain.clone()],
             };
 
@@ -499,23 +607,73 @@ fn read_domtblout(filename: &str, graph: &mut HashMap<i64, Node>,  max_seq_evalu
     Ok(hit_count)
 }
 
+#[frb(sync)]
 pub fn fetch_hits(graph: HashMap<i64, Node>, root:i64) -> HitList{
 
 
+    // Get all the hits under this node
+    let mut hits: Vec<Hit> = get_hits_from_tree(&graph, root);
+    hits.sort_by(|a, b| a.seq_evalue.partial_cmp(&b.seq_evalue).unwrap());
     let hitlist = HitList{
-        num_hits: 0,
-        signature: "blort".to_string(),
-        hits: Vec::new(),
+        num_hits: hits.len() as i32,
+        signature: graph[&root].name.clone(),
+        hits: hits,
     };
-    hitlist
-}
 
-pub fn fetch_overview(graph: HashMap<i64, Node>, root:i64) -> ResultsOverview{
-        let overview= ResultsOverview{
+  /*   let overview = ResultsOverview{
         num_hits: 0,
         num_categories: 0,
         categories: Vec::new(),
         domains_contained: Vec::new(),
+    }; */
+    hitlist
+}
+
+fn get_hits_from_tree(graph: &HashMap<i64, Node>, root: i64) -> Vec<Hit>{
+    let node = &graph[&root];  // assume a correct graph at this point
+    let mut hits: Vec<Hit> = node.hits.clone();
+    let kids = node.children.clone();
+    for child in kids{
+        hits.append(&mut get_hits_from_tree(graph, child));
     };
+    hits
+}
+
+pub fn spoof() -> ResultsOverview{
+
+    let overview = ResultsOverview{
+        num_hits: 0,
+        num_categories: 0,
+        categories: Vec::new(),
+        domains_contained: Vec::new(),
+    }; 
     overview
+}
+
+fn create_domain_id_map(db: &fjall::PartitionHandle) -> Result<(HashMap<u16, Dmap>, HashMap<String, Dmap>), String>{
+    let mut map:HashMap<u16, Dmap> = HashMap::new();
+    let mut domain_info:HashMap<String, Dmap> = HashMap::new();
+    for key in db.keys(){ // This would be dangerous if we didn't know that the domainidtoname partition didn't 
+    // have a limited number of entries
+        let keybody = match key{
+            Err(why) => return Err("Error reading value from domainid data. Reason was: ".to_string() + &why.to_string()),
+            Ok(k) => k,
+        };
+
+        let res1 = match db.get(keybody){
+            Err(why) => return Err("Error reading data from domainid data. Reason was: ".to_string() + &why.to_string()),
+            Ok(d) => d,
+        };
+        let ddata:Dmap = match res1{
+            Some(d) => match rmp_serde::from_slice(&d){
+                Err(why) => return Err("Deserialization error for Dmap: ".to_string() + &why.to_string()),
+                Ok(v) =>v,
+            },
+            None => {return Err("Couldn't find domain that we know exists in annotations DB".to_string());},
+        };
+
+        map.insert(ddata.domain.clone(), ddata.clone());
+        domain_info.insert(ddata.name.clone(), ddata);
+    }
+   Ok((map, domain_info))
 }

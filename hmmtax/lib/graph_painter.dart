@@ -75,8 +75,9 @@ class GraphPainter extends CustomPainter {
 
     if (availLength < testPainter.width || availHeight < testPainter.height){ 
       // can't fit the text, so don't draw it
-      //print("availLength = $availLength, availHeight = $availHeight, text width = ${testPainter.width}, text height = ${testPainter.height}");
-      //print("startRadius = $startRadius, endRadius = $endRadius, regionAngle = $regionAngle");
+      print("availLength = $availLength, availHeight = $availHeight, text width = ${testPainter.width}, text height = ${testPainter.height}");
+      print("startRadius = $startRadius, endRadius = $endRadius, regionAngle = $regionAngle");
+      print("text = $text");
       return false;
     }
     // if we get here, then we can print the text.
@@ -122,7 +123,9 @@ class GraphPainter extends CustomPainter {
     Color nodeColor;
     Color fillColor, fillTextColor;
 
-    print("node = ${node.name}, startAngle = ${node.myArcStart}, endAngle = ${node.myArcEnd}");
+    if(nodeId == 1){
+      print("children = ${node.children}");
+    }
     (nodeColor!, _) = hSettings.graphColors[(majorColor) *shadesPerColor];
     (fillColor!, fillTextColor!) = hSettings.graphColors[(majorColor) * shadesPerColor + minorColor];
     if (nodeId == parentId){ // This is the root node of the current graph, so reset the trackRegions structure
@@ -239,7 +242,7 @@ class GraphPainter extends CustomPainter {
     double radPerLevel;
 
     if(drawnLevels != 0) {
-      radPerLevel = logicalRadius / drawnLevels; // How much radius to add per level of the graph
+      radPerLevel = logicalRadius / (drawnLevels-1); // How much radius to add per level of the graph
       graphData.radPerLevel = graphRadius/drawnLevels; // graphdata's radPerLevel should be in graph units, not screen
     }
     else{ // avoid divide-by-zero
@@ -247,7 +250,7 @@ class GraphPainter extends CustomPainter {
       graphData.radPerLevel = 0.0;
     }
     var center = Offset(logicalSize.width / 2, logicalSize.height / 2);
-    var maxLevel = graphData.graph[graphData.root]!.ranknum + drawnLevels;
+    var maxLevel = (graphData.graph[graphData.root]!.ranknum + drawnLevels)-1;
 
     var root = graphData.graph[graphData.root]!;
 
@@ -324,6 +327,7 @@ class TrackRegions {
         // click outside graph region
         return -1;
       }
+      print("level = $level");
       //print("radius = $radius, radPerLevel=$radPerLevel");
       if (xPos != centerX){ // avoid divide-by-zero
 

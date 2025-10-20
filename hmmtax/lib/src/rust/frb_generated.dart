@@ -67,7 +67,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -1861275794;
+  int get rustContentHash => -1097482285;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -90,12 +90,7 @@ abstract class RustLibApi extends BaseApi {
     required double domEvalMax,
   });
 
-  Future<HitList> crateApiGraphFetchHits({
-    required Map<PlatformInt64, Node> graph,
-    required PlatformInt64 root,
-  });
-
-  Future<ResultsOverview> crateApiGraphFetchOverview({
+  HitList crateApiGraphFetchHits({
     required Map<PlatformInt64, Node> graph,
     required PlatformInt64 root,
   });
@@ -108,6 +103,8 @@ abstract class RustLibApi extends BaseApi {
     required HashMapI64Node graph,
     required PlatformInt64 id,
   });
+
+  Future<ResultsOverview> crateApiGraphSpoof();
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_HashMapI64Node;
@@ -201,22 +198,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
-  Future<HitList> crateApiGraphFetchHits({
+  HitList crateApiGraphFetchHits({
     required Map<PlatformInt64, Node> graph,
     required PlatformInt64 root,
   }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Map_i_64_node_None(graph, serializer);
           sse_encode_i_64(root, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 3,
-            port: port_,
-          );
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_hit_list,
@@ -233,47 +225,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "fetch_hits", argNames: ["graph", "root"]);
 
   @override
-  Future<ResultsOverview> crateApiGraphFetchOverview({
-    required Map<PlatformInt64, Node> graph,
-    required PlatformInt64 root,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Map_i_64_node_None(graph, serializer);
-          sse_encode_i_64(root, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 4,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_results_overview,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiGraphFetchOverviewConstMeta,
-        argValues: [graph, root],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiGraphFetchOverviewConstMeta => const TaskConstMeta(
-    debugName: "fetch_overview",
-    argNames: ["graph", "root"],
-  );
-
-  @override
   String crateApiSimpleGreet({required String name}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 5)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -298,7 +256,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 5,
             port: port_,
           );
         },
@@ -333,7 +291,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 6,
             port: port_,
           );
         },
@@ -353,6 +311,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         debugName: "prune_hitless_nodes",
         argNames: ["graph", "id"],
       );
+
+  @override
+  Future<ResultsOverview> crateApiGraphSpoof() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_results_overview,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiGraphSpoofConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiGraphSpoofConstMeta =>
+      const TaskConstMeta(debugName: "spoof", argNames: []);
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_HashMapI64Node =>

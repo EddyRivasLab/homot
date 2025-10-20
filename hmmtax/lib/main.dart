@@ -182,6 +182,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => GraphData()),
         ChangeNotifierProvider(create: (_) => HSettings(prefs, mode, font, scale, evalMax, domEvalMax, lineWidth)),
         ChangeNotifierProvider(create: (_) => OverviewData()),
+        ChangeNotifierProvider(create: (_) => HitLists()),
 
       ],
       child: TopLevel(),
@@ -706,6 +707,10 @@ class _MacMenuBarState extends State<MacMenu> {
     builder: (context, state) => const SettingsPage(),),
     GoRoute(path: '/graph',
     builder: (context, state) => const GraphPage(),),
+    GoRoute(path: '/category',
+    builder: (context, state) => const CategoryPage(),),
+    GoRoute(path: '/sequence',
+    builder: (context, state) => const SequencePage(),),
   ]);
   Widget build(BuildContext context) {
     return PlatformMenuBar(

@@ -143,7 +143,7 @@ fn compress_taxonomy(full_tree: HashMap<i64, Node>) -> (HashMap<i64, Node>, Hash
     ranknum_to_canonical.insert(20, (6, "family".to_string()));
     ranknum_to_canonical.insert(21, (7, "genus".to_string()));
     ranknum_to_canonical.insert(22, (7, "genus".to_string()));
-    ranknum_to_canonical.insert(23, (7, "genus".to_string  ()));
+    ranknum_to_canonical.insert(23, (7, "genus".to_string()));
     ranknum_to_canonical.insert(24, (7, "genus".to_string()));
     ranknum_to_canonical.insert(25, (7, "genus".to_string()));
     ranknum_to_canonical.insert(26, (8, "species".to_string()));
@@ -183,6 +183,9 @@ fn compress_taxonomy(full_tree: HashMap<i64, Node>) -> (HashMap<i64, Node>, Hash
                             child.ranknum, parent_rank, parent.taxid, parent.rank, child.taxid, child.rank);
                     continue;
                 }
+                if child.ranknum == parent_rank {
+                    println!("taxid {} had same rank {} as its parent, {}", child_id, parent_rank, parent.taxid);
+                }
                 if canonical_ranks.contains(&child.ranknum){
                     // This child is a canonical rank, so keep it
                     let mut new_child = child.clone();
@@ -221,7 +224,9 @@ fn compress_taxonomy(full_tree: HashMap<i64, Node>) -> (HashMap<i64, Node>, Hash
                         child_clone.parent = parent.taxid; // reassign parent to the next cannonical parent
                         (child_clone.ranknum, child_clone.rank) = ranknum_to_canonical.get(&child.ranknum).unwrap().clone(); // reassign to canonical rank
                         parent.children.push(child_clone.taxid);
-                       
+                                       if child.ranknum == parent_rank {
+                    println!("taxid {} had same rank {} as its parent, {}", child_id, parent_rank, parent.taxid);
+                }
                         keep.push(child_clone);
                     }
                     else{

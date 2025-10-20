@@ -164,7 +164,7 @@ class DrawDomains extends StatelessWidget {
     // because they aren't pre-sorted
     var queryStartRow = domainRows.isNotEmpty ? domainRows.length :1;
     var numLines = queryRows.isNotEmpty ? queryStartRow + queryRows.length: 1;
-
+  print("width = $width textWidth = $textWidth length = $length");
     List<Widget> buttons = CreateButtons(newDomains, domainRows, width, (width - textWidth) /length, textWidth, textHeight, queryStartRow, 
     queries, queryRows, seqLength, seqEvalue, context);
     var _myPainter = DomainPainter(
@@ -227,10 +227,11 @@ List<Widget> CreateButtons(
       final double start = domain.seqStart * widthPerChar + widthOffset;
       final double end = domain.seqEnd * widthPerChar + widthOffset;
       final double domainWidth = end - start;
-      _addButton(buttons, (i* lineSpace + (lineSpace/2)) * heightPerLine, 
+  /*    _addButton(buttons, (i* lineSpace + (lineSpace/2)) * heightPerLine, 
       (((queryStartRow+ i)* lineSpace + (lineSpace/2)) * heightPerLine) + heightPerLine,  
       start, start + domainWidth, domain.name, domain.description, domain.clan, seqEvalue, domain.domEvalue, seqLength, domain.hmmLength, domain.seqStart, domain.seqEnd, domain.hmmStart,
       domain.hmmEnd, false, context);
+      */
     }
   }
   for (var i = 0; i<queryRows.length; i++) {
@@ -239,10 +240,10 @@ List<Widget> CreateButtons(
       final double start = query.seqStart * widthPerChar + widthOffset;
       final double end = query.seqEnd * widthPerChar + widthOffset;
       final double domainWidth = end - start;
-      _addButton(buttons, ((queryStartRow+ i)* lineSpace + (lineSpace/2)) * heightPerLine, 
+      /*_addButton(buttons, ((queryStartRow+ i)* lineSpace + (lineSpace/2)) * heightPerLine, 
         (((queryStartRow+ i)* lineSpace + (lineSpace/2)) * heightPerLine) + heightPerLine,  
         start, start + domainWidth, query.name, query.description, query.clan, seqEvalue, query.domEvalue, seqLength, query.hmmLength, query.seqStart, query.seqEnd, query.hmmStart,
-        query.hmmEnd, true, context);
+        query.hmmEnd, true, context);*/
     }
   }
   return buttons;
@@ -300,7 +301,8 @@ class DomainPainter extends CustomPainter {
         final double start = domain.seqStart * widthPerChar + widthOffset;
         final double end = domain.seqEnd * widthPerChar + widthOffset;
         final double domainWidth = end - start;
-  //    print(domain.name + " " + (startRow+domainRows[i]).toString());
+        print(domain.name + "witdPerChar= $widthPerChar, widthOffset = $widthOffset start = $start, end = $end, domainWidth = $domainWidth");
+
         _draw_domain(
           canvas,
           myCanvas,
