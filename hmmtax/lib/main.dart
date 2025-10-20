@@ -18,6 +18,32 @@ import 'dart:collection';
 import 'package:matrix4_transform/matrix4_transform.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
+// List of pairs of background and foregrund colors for displaying
+// domains.  Taken from the ColorBrewer example color sets.
+// Format is (BGcolor, FG color)
+const domainColors = [
+  (Color(0xff9e0142), Color(0xffffffff)),
+  (Color(0xff5475b4), Color(0xffffffff)),
+  (Color(0xff40004b), Color(0xffffffff)),
+  (Color(0xff006837), Color(0xffffffff)),
+  (Color(0xffd53e4f), Color(0xffffffff)),
+  (Color(0xff1a9850), Color(0xffffffff)),
+  (Color(0xff0000ff), Color(0xffffffff)),
+  (Color(0xfff46d43), Color(0xffffffff)),
+  (Color(0xff6a3d9a), Color(0xffffffff)),
+  (Color(0xffabd9e9), Color(0xff000000)),
+  (Color(0xff68bd63), Color(0xffffffff)),
+  (Color(0xfffdae61), Color(0xffffffff)),
+  (Color(0xffff0000), Color(0xff000000)),
+  (Color(0xfffee08b), Color(0xff000000)),
+  (Color(0xffbc80bd), Color(0xff000000)),
+  (Color(0xffffffbf), Color(0xff000000)),
+  (Color(0xffa6d96a), Color(0xff000000)),
+  (Color(0xffcab2d6), Color(0xff000000)),
+  (Color(0xfffdaaac), Color(0xff000000)),
+  (Color(0xff00ff00), Color(0xff000000)),
+];
+
 ColorScheme lightScheme = ColorScheme.fromSeed(
     seedColor: const Color(0xff5475b4),
     primary: const Color(0xff5475b4),
@@ -155,6 +181,8 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => FileData()),
         ChangeNotifierProvider(create: (_) => GraphData()),
         ChangeNotifierProvider(create: (_) => HSettings(prefs, mode, font, scale, evalMax, domEvalMax, lineWidth)),
+        ChangeNotifierProvider(create: (_) => OverviewData()),
+
       ],
       child: TopLevel(),
     ),
@@ -890,3 +918,102 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
   }
 }
  
+
+// ChangeNotifier for the search results
+class OverviewData with ChangeNotifier {
+  ResultsOverview _overview = ResultsOverview(
+    numHits: 0,
+    numCategories: 0,
+    categories: [],
+    domainsContained: [],
+  );
+  bool _overviewLoaded = false;
+  bool _categoryLoaded = false;
+
+  HashMap<String, (Color, Color)> _domainColors = HashMap();
+  int get numHits => _overview.numHits;
+  int get numCategories => _overview.numCategories;
+  List<SigCategory> get categories => _overview.categories;
+  bool get overviewLoaded => _overviewLoaded;
+  bool get categoryLoaded => _categoryLoaded;
+
+  (Color, Color) get_colors(String domain) {
+    if (_domainColors.containsKey(domain)) {
+      return _domainColors[domain]!;
+    } else {
+      // Defarut to black-and-white if we don't have a color for this domain
+      // (this should never happen, but just in case)
+      final color = (Color(0xff000000), Color(0xffffffff));
+      return color;
+    }
+  }
+
+  void set(ResultsOverview newOverview) {
+    _overview = newOverview;
+    _domainColors = HashMap();
+    var i = 0;
+    for (String domain in _overview.domainsContained) {
+      if (_domainColors.containsKey(domain)) {
+        // should never happen
+        continue;
+      }
+      // Get the next color from the list
+      final color = domainColors[i % domainColors.length];
+      _domainColors[domain] = color;
+      i++;
+    }
+    _overviewLoaded = true;
+    _categoryLoaded = false;
+    notifyListeners();
+  }
+
+  void clear() {
+    _overview = ResultsOverview(
+      numHits: 0,
+      numCategories: 0,
+      categories: [],
+      domainsContained: [],
+    );
+    notifyListeners();
+  }
+
+  void setCategoryLoaded(bool loaded){
+    _categoryLoaded = loaded;
+  }
+}
+
+//ChangeNotifier for hit lists
+class HitLists with ChangeNotifier {
+  List<HitList> _hitLists = [];
+  int _selected = -1;
+  int _sequence = -1;
+
+  int get sequence => _sequence;
+
+  void setSequence(int seq) {
+    _sequence = seq;
+  }
+  List<HitList> get hitLists => _hitLists;
+  int get selected => _selected;
+  void clear() {
+    _hitLists = [];
+    notifyListeners();
+  }
+  void setSelected(int which){
+    _selected = which;
+  }
+
+  void set(int which, HitList newHitList) {
+    assert(which < _hitLists.length);
+    _hitLists[which] = newHitList;
+    notifyListeners();
+  }
+
+  void init(int numHitLists) {
+    for (var q = 0; q < numHitLists; q++) {
+      HitList newHit = HitList(numHits: 0, signature: "", hits: []);
+      _hitLists.add(newHit);
+    }
+    notifyListeners();
+  }
+}

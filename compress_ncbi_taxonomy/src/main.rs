@@ -117,14 +117,57 @@ fn count_findable(graph: &HashMap<i64, Node>, start: i64) -> i64{
 }
 
 fn compress_taxonomy(full_tree: HashMap<i64, Node>) -> (HashMap<i64, Node>, HashMap<i64, i64>){
+
+    // create HashMap mapping all ranknums to their canonical ranks (compressing upward)
+    let mut ranknum_to_canonical: HashMap<u32, (u32, String)> = HashMap::new();
+    ranknum_to_canonical.insert(0, (0, "no rank".to_string()));
+    ranknum_to_canonical.insert(1, (1, "domain".to_string()));
+    ranknum_to_canonical.insert(2, (2, "kingdom".to_string()));
+    ranknum_to_canonical.insert(3, (2, "kingdom".to_string()));
+    ranknum_to_canonical.insert(4, (2, "kingdom".to_string()));
+    ranknum_to_canonical.insert(5, (3, "phylum".to_string()));
+    ranknum_to_canonical.insert(6, (3, "phylum".to_string()));
+    ranknum_to_canonical.insert(7, (3, "phylum".to_string()));
+    ranknum_to_canonical.insert(8, (4, "class".to_string()));
+    ranknum_to_canonical.insert(9, (4, "class".to_string()));
+    ranknum_to_canonical.insert(10, (4, "class".to_string()));
+    ranknum_to_canonical.insert(11, (4, "class".to_string()));
+    ranknum_to_canonical.insert(12, (4, "class".to_string()));
+    ranknum_to_canonical.insert(13, (4, "class".to_string()));
+    ranknum_to_canonical.insert(14, (5, "order".to_string()));
+    ranknum_to_canonical.insert(15, (5, "order".to_string()));
+    ranknum_to_canonical.insert(16, (5, "order".to_string()));
+    ranknum_to_canonical.insert(17, (5, "order".to_string()));
+    ranknum_to_canonical.insert(18, (5, "order".to_string()));
+    ranknum_to_canonical.insert(19, (6, "family".to_string()));
+    ranknum_to_canonical.insert(20, (6, "family".to_string()));
+    ranknum_to_canonical.insert(21, (7, "genus".to_string()));
+    ranknum_to_canonical.insert(22, (7, "genus".to_string()));
+    ranknum_to_canonical.insert(23, (7, "genus".to_string  ()));
+    ranknum_to_canonical.insert(24, (7, "genus".to_string()));
+    ranknum_to_canonical.insert(25, (7, "genus".to_string()));
+    ranknum_to_canonical.insert(26, (8, "species".to_string()));
+    ranknum_to_canonical.insert(27, (8, "species".to_string()));
+    ranknum_to_canonical.insert(28, (8, "species".to_string()));
+    ranknum_to_canonical.insert(29, (8, "species".to_string()));
+    ranknum_to_canonical.insert(30, (8, "species".to_string()));
+    ranknum_to_canonical.insert(31, (8, "species".to_string()));
+    ranknum_to_canonical.insert(32, (8, "species".to_string()));
+    ranknum_to_canonical.insert(33, (8, "species".to_string()));
+    ranknum_to_canonical.insert(34, (8, "species".to_string()));
+
+  
     let mut compressed_tree: HashMap<i64, Node> = HashMap::new();
     let canonical_ranks: Vec<u32> = vec![1,2,5,8,14,19,21,26]; // domain, kingdom, phylum, class, order, family, genus, species
     let mut keep: Vec<Node> = Vec::new();
     let mut compress_out: Vec<Node> = vec![];
     let mut compressed:i64 = 0;
     let mut old_to_new: HashMap<i64, i64> = HashMap::new(); // map from old taxid to new taxid (if compressed out)
-    keep.push(full_tree.get(&1).unwrap().clone()); // always keep root node
 
+    let mut root = full_tree.get(&1).unwrap().clone();
+    (root.ranknum, root.rank) = ranknum_to_canonical.get(&root.ranknum).unwrap().clone(); // reassign root to canonical rank
+    keep.push(root);    
+    let mut max_ranknum = 0;
     while !keep.is_empty(){
         let mut parent = keep.pop().unwrap();
         let parent_children = parent.children;  
@@ -141,10 +184,12 @@ fn compress_taxonomy(full_tree: HashMap<i64, Node>) -> (HashMap<i64, Node>, Hash
                     continue;
                 }
                 if canonical_ranks.contains(&child.ranknum){
-
-                    // This child has a canonical rank, so keep it
-                    parent.children.push(child.taxid);
-                    keep.push(child.clone());
+                    // This child is a canonical rank, so keep it
+                    let mut new_child = child.clone();
+                    (new_child.ranknum, new_child.rank) = ranknum_to_canonical.get(&child.ranknum).unwrap().clone(); // reassign to canonical rank
+                    new_child.parent = parent.taxid; // reassign parent to the new parent
+                    parent.children.push(new_child.taxid);
+                    keep.push(new_child);
                 }
                 else{ // Child has rank between parent and next canonical rank, so compress it out
                     compress_out.push(child.clone());
@@ -174,7 +219,9 @@ fn compress_taxonomy(full_tree: HashMap<i64, Node>) -> (HashMap<i64, Node>, Hash
                         // This child is the next canonical rank, so keep it
                         let mut child_clone = child.clone();
                         child_clone.parent = parent.taxid; // reassign parent to the next cannonical parent
-                        parent.children.push(child.taxid);
+                        (child_clone.ranknum, child_clone.rank) = ranknum_to_canonical.get(&child.ranknum).unwrap().clone(); // reassign to canonical rank
+                        parent.children.push(child_clone.taxid);
+                       
                         keep.push(child_clone);
                     }
                     else{
@@ -188,7 +235,9 @@ fn compress_taxonomy(full_tree: HashMap<i64, Node>) -> (HashMap<i64, Node>, Hash
                 }
             }
         }
-
+        if parent.ranknum > max_ranknum{
+            max_ranknum = parent.ranknum;
+        }
         compressed_tree.insert(parent.taxid, parent);
     }
     println!("original graph had {} nodes, compressed out {} nodes, compressed graph has {} nodes", 
@@ -199,7 +248,7 @@ fn compress_taxonomy(full_tree: HashMap<i64, Node>) -> (HashMap<i64, Node>, Hash
     if old_to_new.len() != compressed as usize{
         eprintln!("Warning: Old to new mapping size mismatch after compression");
     }
-
+    println!("Max ranknum in compressed tree is {}", max_ranknum);
     (compressed_tree, old_to_new)
 }
 

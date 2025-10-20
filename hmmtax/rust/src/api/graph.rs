@@ -1,9 +1,11 @@
 use flutter_rust_bridge::frb;
 use serde::{Serialize, Deserialize};
-use fjall::{Config, PartitionCreateOptions,UserValue, Slice};
+use fjall::{Config, PartitionCreateOptions,UserValue, Slice, PartitionHandle};
 use core::panic;
 use std::{collections::HashMap};
-use rand::prelude::*;
+//use std::i64::MAX;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 #[derive(Serialize, Deserialize, Clone)]
 #[frb(non_final)]
 pub struct Node{
@@ -13,7 +15,8 @@ pub struct Node{
     pub rank: String,
     pub ranknum: u32,
     pub name: String,
-    pub total_descendants: i64,
+    pub hits_below: i64,
+    pub hits: Vec<Hit>,
     #[frb(non_final)]
     pub my_arc_start: f64, // Not used on the Rust side, but useful for Flutter visualization
     #[frb(non_final)]
@@ -24,12 +27,111 @@ impl From<&Node> for Slice{
         rmp_serde::to_vec(&val).expect("Serialization error for Node").into()
     }
 }
+
 impl From<&UserValue> for Node{
     fn from(value: &UserValue) -> Self{
         let item: Node = rmp_serde::from_slice(&value).expect("Deserialization error for Node");
         item
     }
 }
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Domain{
+    pub name: String,
+    pub clan: String,
+    pub description: String,
+    pub hmm_length: u32,  // Length of the HMM for this domain
+    pub seq_start: u32,
+    pub seq_end: u32,
+    pub hmm_start: u32,
+    pub hmm_end: u32,
+    pub dom_evalue: f64,
+    pub full_match_start: bool,
+    pub full_match_end: bool,
+  }
+impl From<&Domain> for Slice{
+    fn from(val: &Domain) ->Self{
+        rmp_serde::to_vec(&val).expect("Serialization error for Domain").into()
+    }
+}
+
+impl From<&UserValue> for Domain{
+    fn from(value: &UserValue) -> Self{
+        let item: Domain = rmp_serde::from_slice(&value).expect("Deserialization error for Domain");
+        item
+    }
+}
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Hit{
+    pub name: String,  // Name of the sequence that the hit was to
+    pub sequence: String,  // Sequence  that was hit
+    pub seq_length: u32,  // length of sequence. need this to handle hits without annotation dato
+    pub seq_evalue: f64,
+    pub structure_domains: Vec<Domain>,  // The (possibly-shortened) domains that make up the 
+    // sequence's domain structure
+    pub domains: Vec<Domain>,  // all of the domains that hit this sequence
+    pub queries: Vec<Domain>,  // Queries that were hit
+  }
+
+impl From<&Hit> for Slice{
+    fn from(val: &Hit) ->Self{
+        rmp_serde::to_vec(&val).expect("Serialization error for Node").into()
+    }
+}
+
+impl From<&UserValue> for Hit{
+    fn from(value: &UserValue) -> Self{
+        let item: Hit = rmp_serde::from_slice(&value).expect("Deserialization error for Node");
+        item
+    }
+}
+
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SigCategory{
+    pub num_hits: i32,
+    pub signature: String,
+    pub example: Hit, 
+  }
+
+
+impl From<&SigCategory> for Slice{
+    fn from(val: &SigCategory) ->Self{
+        rmp_serde::to_vec(&val).expect("Serialization error for SigCategory").into()
+    }
+}
+
+impl From<&UserValue> for SigCategory{
+    fn from(value: &UserValue) -> Self{
+        let item: SigCategory = rmp_serde::from_slice(&value).expect("Deserialization error for SigCategory");
+        item
+    }
+}
+#[derive(Clone)]
+pub struct ResultsOverview{
+    pub num_hits: i32,
+    pub num_categories: i32,
+    pub categories: Vec<SigCategory>,
+    pub domains_contained: Vec<String>,
+  }
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct HitList{
+    pub num_hits: i32,
+    pub signature: String,
+    pub hits: Vec<Hit>,
+}
+impl From<&HitList> for Slice{
+    fn from(val: &HitList) ->Self{
+        rmp_serde::to_vec(&val).expect("Serialization error for SearchResults").into()
+    }
+}
+impl From<&UserValue> for HitList{
+    fn from(value: &UserValue) -> Self{
+        let item: HitList = rmp_serde::from_slice(&value).expect("Deserialization error for SearchResults");
+        item
+    }
+}
+
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SearchResults{
@@ -41,21 +143,70 @@ pub struct SearchResults{
 }
 impl From<&SearchResults> for Slice{
     fn from(val: &SearchResults) ->Self{
-        rmp_serde::to_vec(&val).expect("Serialization error for Node").into()
+        rmp_serde::to_vec(&val).expect("Serialization error for SearchResults").into()
     }
 }
 impl From<&UserValue> for SearchResults{
     fn from(value: &UserValue) -> Self{
-        let item: SearchResults = rmp_serde::from_slice(&value).expect("Deserialization error for Node");
+        let item: SearchResults = rmp_serde::from_slice(&value).expect("Deserialization error for SearchResults");
         item
     }
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+struct DbDomain{
+    domain: u16,  //numeric ID of the domain
+    clan: u16, // numeric ID of the clan, FFFF if none 
+    alifrom: u32, // Start of the hit to the domain
+    alito: u32,  // End of the hit to the domain
+    hmmfrom: u32, // Start of the hit to the HMM
+    hmmto: u32, // End of the hit to the HMM
+    eval: f32, // evalue of the hit
+    full_match_start: bool,  // Was the domain a full match to the start of HMM
+    full_match_end: bool,  // and/or th end
+}
 
-pub fn count_descendants(graph: &mut HashMap<i64, Node>, id: i64) -> i64 {
-    let mut total: i64 = 0;   
+impl From<&DbDomain> for Vec<u8>{
+    fn from(val: &DbDomain) ->Self{
+        rmp_serde::to_vec(&val).expect("Serialization error for Domain")
+    }
+}
+
+impl From<&UserValue> for DbDomain{
+    fn from(value: &UserValue) -> Self{
+        let item: DbDomain = rmp_serde::from_slice(&value).expect("Deserialization error for Domain");
+        item
+    }
+}
+#[derive(Serialize, Deserialize, Clone)]
+struct AnnotatedSequence{
+    name: String, 
+    sequence: String,
+    length: u32,
+    taxid: i64,
+    domains: Vec<DbDomain>,
+    structure_domains: Vec<DbDomain>,
+    real: bool,
+}
+
+impl From<&AnnotatedSequence> for Slice{
+    fn from(val: &AnnotatedSequence) ->Self{
+        rmp_serde::to_vec(&val).expect("Serialization error for AnnotatedSequence").into()
+    }
+}
+
+impl From<&UserValue> for AnnotatedSequence{
+    fn from(value: &UserValue) -> Self{
+        let item: AnnotatedSequence = rmp_serde::from_slice(&value).expect("Deserialization error for AnnotatedSequence");
+        item
+    }
+}
+
+pub fn count_hits(graph: &mut HashMap<i64, Node>, id: i64) -> i64 {
+    let mut total: i64=0;   
     let children: Vec<i64>;
     if let Some(node) = graph.get(&id) {
+        total += node.hits.len() as i64;
         children = node.children.clone();
 
     } else {
@@ -63,10 +214,10 @@ pub fn count_descendants(graph: &mut HashMap<i64, Node>, id: i64) -> i64 {
     }
 
     for child_id in children {
-        total += 1 + count_descendants(graph, child_id as i64);
+        total += count_hits(graph, child_id as i64);
     }
     if let Some(node) = graph.get_mut(&id) {
-        node.total_descendants = total;
+        node.hits_below = total;
     }
     else{
         panic!("Node with taxid {} not found in graph", id);
@@ -74,112 +225,297 @@ pub fn count_descendants(graph: &mut HashMap<i64, Node>, id: i64) -> i64 {
     total
 }
 
-fn add_children(mut graph: HashMap<i64, Node>, parent_id: i64, current_level: u32, max_levels: u32, max_children: u32, next_id: i64) -> (i64, HashMap<i64, Node>) {
-    if current_level >= max_levels {
-        return (next_id, graph);
+// remove nodes that have no hits below them from the graph
+pub fn prune_hitless_nodes(graph: &mut HashMap<i64, Node>, id: i64){
+    let node: Node = graph.get(&id).unwrap().clone();
+    for child_id in &node.children{
+        prune_hitless_nodes(graph, *child_id);
     }
-
-    let mut rng = rand::rng();
-    let num_children = rng.random_range(1..=max_children) as u64;
-    let mut children_ids: Vec<i64> = Vec::new();
     
-    let mut new_next = next_id;
-    for _ in 0..num_children {
-        let child_id = new_next;
-        new_next += 1;
-        children_ids.push(child_id);
-        let child_node = Node {
-            taxid: child_id,
-            parent: parent_id,
-            children: Vec::new(),
-            rank: format!("rank_{}", current_level + 1),
-            ranknum: current_level + 1,
-            name: format!("Node_{}", child_id),
-            total_descendants: 0,
-            my_arc_start: 0.0,
-            my_arc_end: 0.0,
-        };
-        graph.insert(child_id as i64, child_node);
-        (new_next, graph) = add_children(graph, child_id,  current_level + 1, max_levels, max_children, new_next);
+    if node.hits_below == 0{
+        graph.remove(&id);
+        let parent = graph.get_mut(&node.parent).unwrap();
+        parent.children.retain(|&x| x != id);
     }
-    graph.get_mut(&(parent_id as i64)).unwrap().children = children_ids;
-
-    return (new_next, graph);
+        
 }
 
 #[frb(serialize)]
-#[frb(sync)]
-pub fn create_graph(num_levels:u32, max_children:u32)-> SearchResults{
-    let mut graph: HashMap<i64, Node> = HashMap::new();
-    let root = Node {
-        taxid: 0,
-        parent: 0,
-        children: vec![1, 2],
-        rank: "root".to_string(),
-        ranknum: 0,
-        name: "Root".to_string(),
-        total_descendants: 0,
-        my_arc_start: 0.0,
-        my_arc_end: 0.0,
+pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64, dom_eval_max:f64) -> SearchResults{
+   // println!("Starting fetch_graph");
+    let mut results = SearchResults{
+        succeeded: false,
+        message: String::from(""),
+        depth: 0,
+        root: -1,
+        graph: HashMap::new(),
     };
-    graph.insert(0, root);
-    let (_next_id,graph) = add_children(graph, 0, 0, num_levels, max_children, 1);
-    let mut graph = graph;
-    
-    count_descendants(&mut graph, 0);
-    let result = SearchResults{
-        succeeded: true,
-        message: format!("Graph with {} nodes created", graph.len()),
-        depth: num_levels,
-        root: 0,
-        graph: graph,
-    };
-    result
 
-}
-
-#[frb(serialize)]
-#[frb(sync)]
-pub fn fetch_graph(database_path: String) -> HashMap<i64, Node> {
-    let db_config = Config::new(&database_path);
-    
+    // open the database
+    let db_config = Config::new(&annfile);
     let keyspace = match db_config.open() {
         Ok(ks) => ks,
-        Err(e) => panic!("Could not open keyspace: {}", e),
+        Err(e) => {
+            results.message = "Error ".to_string() + &e.to_string()+ " opening database at " +   &annfile.to_string();
+            return results
+        }
     };
 
-    let mut graph: HashMap<i64, Node> = HashMap::new();
-    let partition = keyspace.open_partition("nodes", PartitionCreateOptions::default()).expect("Could not open partition 'nodes'");
-    for key in partition.keys(){
-        let keybody: Slice = match key{
-            Ok(k) => k,
-            Err(e) => {
-                eprintln!("Error retrieving key: {}", e);
-                continue;
-            }
-        };
-        let res1 = match partition.get(&keybody){
-            Ok(v) => v,
-            Err(e) => {
-                eprintln!("Error retrieving value for key {:?}: {}", keybody, e);
-                continue;
-            }
-        };
-        let node: Node = match res1{
-            Some(v) => match rmp_serde::from_slice(&v){
-                Ok(n) => n,
-                Err(e) =>{
-                    eprintln!("Deserialization error for key {:?}: {}", keybody, e);
-                    continue;
-                }
-            },
-            None => {
-                eprintln!("No value found for key {:?}", keybody);
-                continue;
-            }
-        };
-        let taxid: i64 = rmp_serde::from_slice(&keybody).expect("Deserialization error for key");
-        graph.insert(taxid, node);
+    // Load the annotated sequences
+    if !keyspace.partition_exists("annotations"){
+        results.message = "Couldn't find annotations data in database ".to_string() +&annfile;
+        return results
     }
-    graph
+    // open the annotated sequence database
+    let db = match keyspace.open_partition("annotations", PartitionCreateOptions::default()){
+        Ok(v) =>v,
+        Err(msg) => {
+            results.message = "Failed to open annotations partition, even though it exists.  Error was: ".to_string() + &msg.to_string();
+            return results;
+        },
+    };
+
+    // Read all of the nodes into memory, and determine the root and depth of the tree
+
+    let mut graph: HashMap<i64, Node> = HashMap::new();
+    let depth: u32 = 0;
+    let graph_db = match keyspace.open_partition("nodes", PartitionCreateOptions::default()){
+        Ok(v) =>v,
+        Err(msg) => {
+            results.message = "Failed to open nodes partition, even though it exists. Error was: ".to_string() + &msg.to_string();
+            return results;
+        }
+    };
+
+    let mut num_domtbl_hits:i64 = 0;
+    // load hits from the domtblout files
+    for domtbloutfile in domtblout_files{
+       // println!("searching {}", domtbloutfile);
+        match read_domtblout(&domtbloutfile, &mut graph, eval_max as f32, dom_eval_max as f32, &db, &graph_db, depth){
+            Ok(v) => num_domtbl_hits += v,
+            Err(msg) => {
+                results.message = "Error reading domtblout file ".to_string() + &domtbloutfile + ": " + &msg;
+                return results;
+            },
+        }
+    }
+    let root =1; // graph.keys().min().unwrap().clone();
+    let total_hits = count_hits(&mut graph, root);
+
+    println!("Hits in domtbl(s): {}, in graph: {}",num_domtbl_hits, total_hits);
+    results.succeeded = true;
+    results.message = "Successfully read database".to_string();
+    results.depth = 9;
+    results.root = root;
+    results.graph = graph;
+    results
+}
+
+// Function that reads a domtblout file and adds the hits to the graph
+fn read_domtblout(filename: &str, graph: &mut HashMap<i64, Node>,  max_seq_evalue: f32, max_dom_evalue: f32, db: &PartitionHandle,
+    graph_db: &PartitionHandle, mut depth: u32) -> Result<i64, String> {
+
+   // println!("starting read_domtblout, max_seq_evalue is {}, max_dom_evalue is {}", max_seq_evalue, max_dom_evalue);
+    let file = match File::open(filename){
+        Ok(f) => f,
+        Err(e) => {
+            return Err(format!("Error opening domtblout file {}: {}", filename, e));
+        }
+    };
+    
+    let reader = BufReader::new(file);
+    let mut hit_count: i64 = 0;
+    for l in reader.lines() {
+        let line = match l{
+            Err(e) => return Err(format!("Error reading line in file {}: {}", filename, e)),
+            Ok(l) => l,
+        };
+        if line.starts_with('#') {
+            continue; // Skip comment lines
+        }
+     //   println!("Examining line {}", line);
+        let fields: Vec<&str> = line.split_whitespace().collect();
+        if fields.len() < 23 {
+            return Err(format!("Malformed line in file {}: {}", filename, line));
+        }
+
+        let target_name = fields[0].to_string();
+        let query_name = fields[3].to_string();
+        
+        let seq_evalue: f32 = match fields[6].parse(){
+            Ok(v) => v,
+            Err(e) => return Err(format!("Error parsing seq_evalue in file {}: {}", filename, e)),
+        };
+
+        let seq_start: u32 = match fields[17].parse(){
+            Ok(v) => v,
+            Err(e) => return Err(format!("Error parsing seq_start in file {}: {}", filename, e)),
+        };
+        
+        let seq_end: u32 = match fields[18].parse(){
+            Ok(v) => v,
+            Err(e) => return Err(format!("Error parsing seq_end in file {}: {}", filename, e)),
+        }; 
+
+        let hmm_start: u32 = match fields[15].parse(){
+            Ok(v) => v,
+            Err(e) => return Err(format!("Error parsing hmm_start in file {}: {}", filename, e)),
+        };
+
+        let hmm_end: u32 = match fields[16].parse(){
+            Ok(v) => v,
+            Err(e) => return Err(format!("Error parsing hmm_end in file {}: {}", filename, e)),
+        };
+
+        let dom_evalue: f32= match fields[12].parse(){
+            Ok(v) => v,
+            Err(e) => return Err(format!("Error parsing dom_evalue in file {}: {}", filename, e)),
+        };
+     //   println!("seq_evalue = {}, dom_evalue = {}", seq_evalue, dom_evalue);
+        if seq_evalue <= max_seq_evalue && dom_evalue <= max_dom_evalue{
+            // get the annotated sequence from the db that corresponds to the target
+          //  println!("Found hit in domtblout");
+            let res1 = match db.get(&target_name){
+                Err(why) => {
+                    return Err(format!("Sequence {} not found in annotation database, reason was: {}", target_name, why));
+                }
+                Ok(d) => d,
+            };
+            let seq_ann: AnnotatedSequence = match res1{
+                Some(d) => match rmp_serde::from_slice(&d){
+                    Ok(d) => d,
+                    Err(msg) => {
+                     return Err(format!("Deserialization error for Annotated Sequence, reason was: {}" , &msg.to_string()));
+                    },
+                },
+                None => {let mut fake_sequence = AnnotatedSequence{
+                        name: target_name.clone(),
+                        sequence: "No annotation data found".to_string(),
+                        length: 0, // This is a fake sequence, not in the database
+                        taxid: 1,  // root node if using NCBI taxonomy, figure out a better plan later
+                        domains: Vec::new(),
+                        structure_domains: Vec::new(),
+                        real: false, // This is a fake sequence, not in the database
+                        };
+                    
+                        let struct_domain = DbDomain{
+                            domain: 0xffff,
+                            clan: 0xffff,
+                            alifrom: 1,
+                            alito: 1,
+                            hmmfrom: 1,
+                            hmmto: 1,
+                            eval: 0.0,
+                            full_match_start: true,
+                            full_match_end: true,
+                        };
+                        let all_domain = struct_domain.clone();
+                        fake_sequence.domains.push(all_domain);
+                        fake_sequence.structure_domains.push(struct_domain);
+                        fake_sequence
+                
+                    },
+            };
+       //     println!("Hit had taxid {}", seq_ann.taxid);
+            // Create a new Hit and Domain for the hit
+            let domain = Domain {
+                name: query_name.clone(),
+                clan: String::new(), // Clan information not available in domtblout
+                description: String::new(), // Description information not available in domtblout
+                hmm_length: 0,  // HMM length not available in domtblout
+                seq_start,
+                seq_end,
+                hmm_start,
+                hmm_end,
+                dom_evalue: dom_evalue as f64,
+                full_match_start: hmm_start == 1,
+                full_match_end: false, // Need HMM length to determine this
+            };
+
+            let hit = Hit {
+                name: target_name.clone(),
+                sequence: String::new(), // Sequence information not available in domtblout
+                seq_length: 0,  // Sequence length not available in domtblout
+                seq_evalue: seq_evalue as f64,
+                structure_domains: vec![], // Structure domains not available in domtblout
+                domains: vec![domain.clone()], // For simplicity, just include the one domain
+                queries: vec![domain.clone()],
+            };
+
+            if graph.contains_key(&seq_ann.taxid){ // simple case, just add this hit to the node in the graph
+                let node = graph.get_mut(&seq_ann.taxid).unwrap();
+                node.hits.push(hit);
+            }
+            else{ // Need to fetch the appropriate node and possibly all its parents from the graph db
+                let res1 = match graph_db.get(&seq_ann.taxid.to_string()){
+                    Err(why) => return Err(format!("Error looking up taxid {} in graph DB, reason was: {}", seq_ann.taxid, why)),
+                    Ok(d) => d,
+                };
+                let mut node: Node = match res1{
+                    Some(d) => match rmp_serde::from_slice(&d){
+                            Ok(d) => d,
+                            Err(msg) => return Err(format!("Error deserializing graph node, message was {}.", msg)),
+                        },
+                    None => return Err(format!("Couldn't find taxid {} in node DB", seq_ann.taxid)),
+                };
+                if node.ranknum >= depth {
+                    depth = node.ranknum+1;
+                }
+                node.children = Vec::new(); // we'll build new children list as we go for the pruned DB
+                node.hits = vec![hit];
+                graph.insert(seq_ann.taxid, node.clone());
+    //            println!("Adding taxid {} to graph in main step", seq_ann.taxid);
+
+                // Now, make sure all of the node's parents are in the graph
+                while !graph.contains_key(&node.parent){
+                    let res1 = match graph_db.get(node.parent.to_string()){
+                    Err(why) => return Err(format!("Error looking up taxid {} in graph DB, reason was: {}", seq_ann.taxid, why)),
+                    Ok(d) => d,
+                    };
+                    let mut parent: Node = match res1{
+                        Some(d) => match rmp_serde::from_slice(&d){
+                                Ok(d) => d,
+                                Err(msg) => return Err(format!("Error deserializing graph node, message was {}.", msg)),
+                        },
+                        None => return Err(format!("Couldn't find taxid {} in node DB", seq_ann.taxid)),
+                    };
+                    parent.children = vec!(node.taxid); // we'll build the pruned tree as we go
+                    parent.hits = Vec::new(); // Make sure this is empty to start with
+                    graph.insert(parent.taxid, parent.clone());
+     //               println!("Adding taxid {} to graph in parent chain", parent.taxid);
+                    node = parent;  // on to the next level up
+                }
+
+                //When we get here, either we've found some ancestor of the node or we've hit the root.
+                if node.parent != node.taxid{ // we aren't at the root, but we know that the parent node is in the graph 
+                    let parent = graph.get_mut(&node.parent).unwrap();
+                    parent.children.push(node.taxid); // add the node to the parent's child list 
+                }   
+            }
+
+            hit_count += 1;
+        }
+    }
+    Ok(hit_count)
+}
+
+pub fn fetch_hits(graph: HashMap<i64, Node>, root:i64) -> HitList{
+
+
+    let hitlist = HitList{
+        num_hits: 0,
+        signature: "blort".to_string(),
+        hits: Vec::new(),
+    };
+    hitlist
+}
+
+pub fn fetch_overview(graph: HashMap<i64, Node>, root:i64) -> ResultsOverview{
+        let overview= ResultsOverview{
+        num_hits: 0,
+        num_categories: 0,
+        categories: Vec::new(),
+        domains_contained: Vec::new(),
+    };
+    overview
 }

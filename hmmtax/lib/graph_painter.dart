@@ -79,8 +79,6 @@ class GraphPainter extends CustomPainter {
       //print("startRadius = $startRadius, endRadius = $endRadius, regionAngle = $regionAngle");
       return false;
     }
-    print("textlength = ${testPainter.width},scalefactor = ${1/graphData.scale} base = ${testPainter.width *graphData.scale}");
-    print("mediaquery scale factor = ${MediaQuery.textScalerOf(context).scale(1.0)}");
     // if we get here, then we can print the text.
     double rotAngle = angle;
     double startX;
@@ -124,22 +122,23 @@ class GraphPainter extends CustomPainter {
     Color nodeColor;
     Color fillColor, fillTextColor;
 
+    print("node = ${node.name}, startAngle = ${node.myArcStart}, endAngle = ${node.myArcEnd}");
     (nodeColor!, _) = hSettings.graphColors[(majorColor) *shadesPerColor];
     (fillColor!, fillTextColor!) = hSettings.graphColors[(majorColor) * shadesPerColor + minorColor];
     if (nodeId == parentId){ // This is the root node of the current graph, so reset the trackRegions structure
       graphData.trackRegions = TrackRegions(1+maxLevel-startLevel);
     }
-
-
-    // Add the node's region to the trackRegion structure
-    graphData.trackRegions.addRegion(node.ranknum - startLevel, Region(node.myArcStart, node.myArcEnd, nodeId));
     var parent = graph[parentId]!;
+      // now, add the region for the node to each level it crosses
+    for (int level = parent.ranknum+1; level <= min(node.ranknum, maxLevel); level++){
+        graphData.trackRegions.addRegion(level - startLevel, Region(node.myArcStart, node.myArcEnd, nodeId));
+    }
+
     bool drawChildren = node.ranknum < maxLevel;
 
-    var myRadius = startRadius + ((node.ranknum - startLevel) * radPerLevel);
-    if (!drawChildren){ // Handle the case where this node would be off the edge
-      myRadius = (maxLevel-startLevel) * radPerLevel;
-    }
+    // keep the node from going beyond the max radius of the graph
+    var myRadius = min(startRadius + ((node.ranknum - startLevel) * radPerLevel), (maxLevel-startLevel)*radPerLevel);
+
     
     var myAngle = (node.myArcStart + node.myArcEnd) / 2;
     var myOffset = Offset(center.dx + (myRadius * cos(myAngle)), center.dy + (myRadius * sin(myAngle)));
@@ -150,7 +149,7 @@ class GraphPainter extends CustomPainter {
     var parentOffset = Offset(center.dx + (parentRadius * cos(myAngle)), center.dy + (parentRadius * sin(myAngle)));
     myCanvas.drawLine(parentOffset, myOffset, paint..strokeWidth=hSettings.lineWidth/graphData.scale..color = nodeColor);
 
-    final String nodeText = node.name + "\n"+ node.totalDescendants.toString();
+    final String nodeText = node.name + "\n"+ node.hitsBelow.toString();
     final bool textFit = _write_if_fits(myCanvas, Theme.of(context).textTheme, nodeText, myAngle, parentRadius, myRadius, (node.myArcEnd -
     node.myArcStart), center, Theme.of(context).colorScheme.onSurface);
 
@@ -166,18 +165,19 @@ class GraphPainter extends CustomPainter {
       var outerRect = Rect.fromCircle(center: center, radius: (maxLevel-startLevel)*radPerLevel);
       // and draw the wedge
       piePath.moveTo(center.dx + (parentRadius * cos(node.myArcStart)), center.dy +
-       (parentRadius * sin(node.myArcStart)));
+        (parentRadius * sin(node.myArcStart)));
       piePath.addArc(innerRect, node.myArcStart, node.myArcEnd - node.myArcStart);
       piePath.lineTo(center.dx + ((maxLevel -startLevel)* radPerLevel * cos(node.myArcEnd)), center.dy +
        ((maxLevel-startLevel)*radPerLevel * sin(node.myArcEnd)));
       piePath.addArc(outerRect, node.myArcEnd, -(node.myArcEnd - node.myArcStart));
       piePath.lineTo(center.dx + (parentRadius * cos(node.myArcStart)), center.dy +
        (parentRadius * sin(node.myArcStart)));  
-      piePath.close();
+
       myCanvas.drawPath(piePath, paint..style = PaintingStyle.stroke..color = fillColor);
       myCanvas.drawPath(piePath, paint..style = PaintingStyle.fill..color = fillColor);
 
-      // now, add the region for the node to each level in the wedge
+      // now, add the region for the node to each level in the wedge outside the 
+      //node's actual level
       for (int level = node.ranknum; level <= maxLevel; level++){
         graphData.trackRegions.addRegion(level - startLevel, Region(node.myArcStart, node.myArcEnd, nodeId));
       }
@@ -188,13 +188,13 @@ class GraphPainter extends CustomPainter {
     }
 
     if (drawChildren){
-      double arcPerChild  = (node.myArcEnd - node.myArcStart) / max(node.totalDescendants, 1);
+      double arcPerChild  = (node.myArcEnd - node.myArcStart) / max(node.hitsBelow, 1);
       if (node.children.length >1){ // Need to draw the arc for this node  
         var rect = Rect.fromCircle(center: center, radius: myRadius);
 
-        // the +1's in this calculation are to leave some space between the outer nodes of the graph
-        double arcStart = node.myArcStart + (graph[node.children[0].toInt()]!.totalDescendants+1) * arcPerChild / 2;
-        double arcEnd = node.myArcEnd - (graph[node.children[node.children.length -1].toInt()]!.totalDescendants+1) * arcPerChild / 2;
+
+        double arcStart = node.myArcStart + (graph[node.children[0].toInt()]!.hitsBelow) * arcPerChild / 2;
+        double arcEnd = node.myArcEnd - (graph[node.children[node.children.length -1].toInt()]!.hitsBelow) * arcPerChild / 2;
         double sweep = arcEnd - arcStart;
         myCanvas.drawArc(rect, arcStart, sweep, false, paint..style = PaintingStyle.stroke..color = nodeColor..strokeWidth=hSettings.lineWidth/graphData.scale);
 
@@ -209,7 +209,7 @@ class GraphPainter extends CustomPainter {
         minorColor = (minorColor +1) % shadesPerColor; 
         var childNode = graph[childId.toInt()]!;
         childNode.myArcStart = lastEnd;
-        childNode.myArcEnd = lastEnd + (arcPerChild * (childNode.totalDescendants+1));
+        childNode.myArcEnd = lastEnd + (arcPerChild * (childNode.hitsBelow));
         lastEnd = childNode.myArcEnd;
         
         drawNode(graph, childId.toInt(), nodeId, center, startRadius, radPerLevel, startLevel, maxLevel, 
@@ -235,7 +235,6 @@ class GraphPainter extends CustomPainter {
 
     final Canvas logicalCanvas = canvas;
 
-    print("new frame");
     var drawnLevels = min((graphData.depth - graphData.graph[graphData.root]!.ranknum), graphData.maxLevels);
     double radPerLevel;
 

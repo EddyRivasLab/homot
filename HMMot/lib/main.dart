@@ -15,7 +15,7 @@ import 'dart:io';
 import "package:go_router/go_router.dart";
 // List of pairs of background and foregrund colors for displaying
 // domains.  Taken from the ColorBrewer example color sets.
-// Folmat is (BGcolor, FG color)
+// Format is (BGcolor, FG color)
 const domainColors = [
   (Color(0xff9e0142), Color(0xffffffff)),
   (Color(0xff5475b4), Color(0xffffffff)),

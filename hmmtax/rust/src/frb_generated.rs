@@ -38,7 +38,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1547407279;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1861275794;
 
 // Section: executor
 
@@ -46,7 +46,7 @@ flutter_rust_bridge::frb_generated_default_handler!();
 
 // Section: wire_funcs
 
-fn wire__crate__api__graph__count_descendants_impl(
+fn wire__crate__api__graph__count_hits_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -54,7 +54,7 @@ fn wire__crate__api__graph__count_descendants_impl(
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "count_descendants",
+            debug_name: "count_hits",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
@@ -89,7 +89,7 @@ fn wire__crate__api__graph__count_descendants_impl(
                         }
                     }
                     let mut api_graph_guard = api_graph_guard.unwrap();
-                    let output_ok = Result::<_, ()>::Ok(crate::api::graph::count_descendants(
+                    let output_ok = Result::<_, ()>::Ok(crate::api::graph::count_hits(
                         &mut *api_graph_guard,
                         api_id,
                     ))?;
@@ -99,16 +99,17 @@ fn wire__crate__api__graph__count_descendants_impl(
         },
     )
 }
-fn wire__crate__api__graph__create_graph_impl(
+fn wire__crate__api__graph__fetch_graph_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
-) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "create_graph",
-            port: None,
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+            debug_name: "fetch_graph",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
             let message = unsafe {
@@ -120,29 +121,36 @@ fn wire__crate__api__graph__create_graph_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_num_levels = <u32>::sse_decode(&mut deserializer);
-            let api_max_children = <u32>::sse_decode(&mut deserializer);
+            let api_annfile = <String>::sse_decode(&mut deserializer);
+            let api_domtblout_files = <Vec<String>>::sse_decode(&mut deserializer);
+            let api_eval_max = <f64>::sse_decode(&mut deserializer);
+            let api_dom_eval_max = <f64>::sse_decode(&mut deserializer);
             deserializer.end();
-            transform_result_sse::<_, ()>((move || {
-                let output_ok = Result::<_, ()>::Ok(crate::api::graph::create_graph(
-                    api_num_levels,
-                    api_max_children,
-                ))?;
-                Ok(output_ok)
-            })())
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok(crate::api::graph::fetch_graph(
+                        api_annfile,
+                        api_domtblout_files,
+                        api_eval_max,
+                        api_dom_eval_max,
+                    ))?;
+                    Ok(output_ok)
+                })())
+            }
         },
     )
 }
-fn wire__crate__api__graph__fetch_graph_impl(
+fn wire__crate__api__graph__fetch_hits_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
-) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "fetch_graph",
-            port: None,
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+            debug_name: "fetch_hits",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
             let message = unsafe {
@@ -154,13 +162,56 @@ fn wire__crate__api__graph__fetch_graph_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_database_path = <String>::sse_decode(&mut deserializer);
+            let api_graph = <std::collections::HashMap<i64, crate::api::graph::Node>>::sse_decode(
+                &mut deserializer,
+            );
+            let api_root = <i64>::sse_decode(&mut deserializer);
             deserializer.end();
-            transform_result_sse::<_, ()>((move || {
-                let output_ok =
-                    Result::<_, ()>::Ok(crate::api::graph::fetch_graph(api_database_path))?;
-                Ok(output_ok)
-            })())
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok =
+                        Result::<_, ()>::Ok(crate::api::graph::fetch_hits(api_graph, api_root))?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__graph__fetch_overview_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "fetch_overview",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_graph = <std::collections::HashMap<i64, crate::api::graph::Node>>::sse_decode(
+                &mut deserializer,
+            );
+            let api_root = <i64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok(crate::api::graph::fetch_overview(
+                        api_graph, api_root,
+                    ))?;
+                    Ok(output_ok)
+                })())
+            }
         },
     )
 }
@@ -228,6 +279,58 @@ fn wire__crate__api__simple__init_app_impl(
         },
     )
 }
+fn wire__crate__api__graph__prune_hitless_nodes_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "prune_hitless_nodes",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_graph = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<HashMap<i64, Node>>,
+            >>::sse_decode(&mut deserializer);
+            let api_id = <i64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let mut api_graph_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_graph, 0, true,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_graph_guard = Some(api_graph.lockable_decode_sync_ref_mut()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let mut api_graph_guard = api_graph_guard.unwrap();
+                    let output_ok = Result::<_, ()>::Ok({
+                        crate::api::graph::prune_hitless_nodes(&mut *api_graph_guard, api_id);
+                    })?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 
 // Section: related_funcs
 
@@ -270,6 +373,36 @@ impl SseDecode for bool {
     }
 }
 
+impl SseDecode for crate::api::graph::Domain {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_clan = <String>::sse_decode(deserializer);
+        let mut var_description = <String>::sse_decode(deserializer);
+        let mut var_hmmLength = <u32>::sse_decode(deserializer);
+        let mut var_seqStart = <u32>::sse_decode(deserializer);
+        let mut var_seqEnd = <u32>::sse_decode(deserializer);
+        let mut var_hmmStart = <u32>::sse_decode(deserializer);
+        let mut var_hmmEnd = <u32>::sse_decode(deserializer);
+        let mut var_domEvalue = <f64>::sse_decode(deserializer);
+        let mut var_fullMatchStart = <bool>::sse_decode(deserializer);
+        let mut var_fullMatchEnd = <bool>::sse_decode(deserializer);
+        return crate::api::graph::Domain {
+            name: var_name,
+            clan: var_clan,
+            description: var_description,
+            hmm_length: var_hmmLength,
+            seq_start: var_seqStart,
+            seq_end: var_seqEnd,
+            hmm_start: var_hmmStart,
+            hmm_end: var_hmmEnd,
+            dom_evalue: var_domEvalue,
+            full_match_start: var_fullMatchStart,
+            full_match_end: var_fullMatchEnd,
+        };
+    }
+}
+
 impl SseDecode for f64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -277,10 +410,89 @@ impl SseDecode for f64 {
     }
 }
 
+impl SseDecode for crate::api::graph::Hit {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_sequence = <String>::sse_decode(deserializer);
+        let mut var_seqLength = <u32>::sse_decode(deserializer);
+        let mut var_seqEvalue = <f64>::sse_decode(deserializer);
+        let mut var_structureDomains = <Vec<crate::api::graph::Domain>>::sse_decode(deserializer);
+        let mut var_domains = <Vec<crate::api::graph::Domain>>::sse_decode(deserializer);
+        let mut var_queries = <Vec<crate::api::graph::Domain>>::sse_decode(deserializer);
+        return crate::api::graph::Hit {
+            name: var_name,
+            sequence: var_sequence,
+            seq_length: var_seqLength,
+            seq_evalue: var_seqEvalue,
+            structure_domains: var_structureDomains,
+            domains: var_domains,
+            queries: var_queries,
+        };
+    }
+}
+
+impl SseDecode for crate::api::graph::HitList {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_numHits = <i32>::sse_decode(deserializer);
+        let mut var_signature = <String>::sse_decode(deserializer);
+        let mut var_hits = <Vec<crate::api::graph::Hit>>::sse_decode(deserializer);
+        return crate::api::graph::HitList {
+            num_hits: var_numHits,
+            signature: var_signature,
+            hits: var_hits,
+        };
+    }
+}
+
+impl SseDecode for i32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_i32::<NativeEndian>().unwrap()
+    }
+}
+
 impl SseDecode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_i64::<NativeEndian>().unwrap()
+    }
+}
+
+impl SseDecode for Vec<String> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<String>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::graph::Domain> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::graph::Domain>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::graph::Hit> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::graph::Hit>::sse_decode(deserializer));
+        }
+        return ans_;
     }
 }
 
@@ -320,6 +532,18 @@ impl SseDecode for Vec<(i64, crate::api::graph::Node)> {
     }
 }
 
+impl SseDecode for Vec<crate::api::graph::SigCategory> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::graph::SigCategory>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for crate::api::graph::Node {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -329,7 +553,8 @@ impl SseDecode for crate::api::graph::Node {
         let mut var_rank = <String>::sse_decode(deserializer);
         let mut var_ranknum = <u32>::sse_decode(deserializer);
         let mut var_name = <String>::sse_decode(deserializer);
-        let mut var_totalDescendants = <i64>::sse_decode(deserializer);
+        let mut var_hitsBelow = <i64>::sse_decode(deserializer);
+        let mut var_hits = <Vec<crate::api::graph::Hit>>::sse_decode(deserializer);
         let mut var_myArcStart = <f64>::sse_decode(deserializer);
         let mut var_myArcEnd = <f64>::sse_decode(deserializer);
         return crate::api::graph::Node {
@@ -339,7 +564,8 @@ impl SseDecode for crate::api::graph::Node {
             rank: var_rank,
             ranknum: var_ranknum,
             name: var_name,
-            total_descendants: var_totalDescendants,
+            hits_below: var_hitsBelow,
+            hits: var_hits,
             my_arc_start: var_myArcStart,
             my_arc_end: var_myArcEnd,
         };
@@ -352,6 +578,22 @@ impl SseDecode for (i64, crate::api::graph::Node) {
         let mut var_field0 = <i64>::sse_decode(deserializer);
         let mut var_field1 = <crate::api::graph::Node>::sse_decode(deserializer);
         return (var_field0, var_field1);
+    }
+}
+
+impl SseDecode for crate::api::graph::ResultsOverview {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_numHits = <i32>::sse_decode(deserializer);
+        let mut var_numCategories = <i32>::sse_decode(deserializer);
+        let mut var_categories = <Vec<crate::api::graph::SigCategory>>::sse_decode(deserializer);
+        let mut var_domainsContained = <Vec<String>>::sse_decode(deserializer);
+        return crate::api::graph::ResultsOverview {
+            num_hits: var_numHits,
+            num_categories: var_numCategories,
+            categories: var_categories,
+            domains_contained: var_domainsContained,
+        };
     }
 }
 
@@ -370,6 +612,20 @@ impl SseDecode for crate::api::graph::SearchResults {
             depth: var_depth,
             root: var_root,
             graph: var_graph,
+        };
+    }
+}
+
+impl SseDecode for crate::api::graph::SigCategory {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_numHits = <i32>::sse_decode(deserializer);
+        let mut var_signature = <String>::sse_decode(deserializer);
+        let mut var_example = <crate::api::graph::Hit>::sse_decode(deserializer);
+        return crate::api::graph::SigCategory {
+            num_hits: var_numHits,
+            signature: var_signature,
+            example: var_example,
         };
     }
 }
@@ -400,13 +656,6 @@ impl SseDecode for usize {
     }
 }
 
-impl SseDecode for i32 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        deserializer.cursor.read_i32::<NativeEndian>().unwrap()
-    }
-}
-
 fn pde_ffi_dispatcher_primary_impl(
     func_id: i32,
     port: flutter_rust_bridge::for_generated::MessagePort,
@@ -416,8 +665,12 @@ fn pde_ffi_dispatcher_primary_impl(
 ) {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        1 => wire__crate__api__graph__count_descendants_impl(port, ptr, rust_vec_len, data_len),
-        5 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        1 => wire__crate__api__graph__count_hits_impl(port, ptr, rust_vec_len, data_len),
+        2 => wire__crate__api__graph__fetch_graph_impl(port, ptr, rust_vec_len, data_len),
+        3 => wire__crate__api__graph__fetch_hits_impl(port, ptr, rust_vec_len, data_len),
+        4 => wire__crate__api__graph__fetch_overview_impl(port, ptr, rust_vec_len, data_len),
+        6 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        7 => wire__crate__api__graph__prune_hitless_nodes_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -430,15 +683,76 @@ fn pde_ffi_dispatcher_sync_impl(
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        2 => wire__crate__api__graph__create_graph_impl(ptr, rust_vec_len, data_len),
-        3 => wire__crate__api__graph__fetch_graph_impl(ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
+        5 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
 
 // Section: rust2dart
 
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::graph::Domain {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.name.into_into_dart().into_dart(),
+            self.clan.into_into_dart().into_dart(),
+            self.description.into_into_dart().into_dart(),
+            self.hmm_length.into_into_dart().into_dart(),
+            self.seq_start.into_into_dart().into_dart(),
+            self.seq_end.into_into_dart().into_dart(),
+            self.hmm_start.into_into_dart().into_dart(),
+            self.hmm_end.into_into_dart().into_dart(),
+            self.dom_evalue.into_into_dart().into_dart(),
+            self.full_match_start.into_into_dart().into_dart(),
+            self.full_match_end.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::graph::Domain {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::graph::Domain> for crate::api::graph::Domain {
+    fn into_into_dart(self) -> crate::api::graph::Domain {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::graph::Hit {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.name.into_into_dart().into_dart(),
+            self.sequence.into_into_dart().into_dart(),
+            self.seq_length.into_into_dart().into_dart(),
+            self.seq_evalue.into_into_dart().into_dart(),
+            self.structure_domains.into_into_dart().into_dart(),
+            self.domains.into_into_dart().into_dart(),
+            self.queries.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::graph::Hit {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::graph::Hit> for crate::api::graph::Hit {
+    fn into_into_dart(self) -> crate::api::graph::Hit {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::graph::HitList {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.num_hits.into_into_dart().into_dart(),
+            self.signature.into_into_dart().into_dart(),
+            self.hits.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::graph::HitList {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::graph::HitList> for crate::api::graph::HitList {
+    fn into_into_dart(self) -> crate::api::graph::HitList {
+        self
+    }
+}
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::graph::Node {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
@@ -449,7 +763,8 @@ impl flutter_rust_bridge::IntoDart for crate::api::graph::Node {
             self.rank.into_into_dart().into_dart(),
             self.ranknum.into_into_dart().into_dart(),
             self.name.into_into_dart().into_dart(),
-            self.total_descendants.into_into_dart().into_dart(),
+            self.hits_below.into_into_dart().into_dart(),
+            self.hits.into_into_dart().into_dart(),
             self.my_arc_start.into_into_dart().into_dart(),
             self.my_arc_end.into_into_dart().into_dart(),
         ]
@@ -459,6 +774,29 @@ impl flutter_rust_bridge::IntoDart for crate::api::graph::Node {
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::graph::Node {}
 impl flutter_rust_bridge::IntoIntoDart<crate::api::graph::Node> for crate::api::graph::Node {
     fn into_into_dart(self) -> crate::api::graph::Node {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::graph::ResultsOverview {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.num_hits.into_into_dart().into_dart(),
+            self.num_categories.into_into_dart().into_dart(),
+            self.categories.into_into_dart().into_dart(),
+            self.domains_contained.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::graph::ResultsOverview
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::graph::ResultsOverview>
+    for crate::api::graph::ResultsOverview
+{
+    fn into_into_dart(self) -> crate::api::graph::ResultsOverview {
         self
     }
 }
@@ -483,6 +821,28 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::graph::SearchResults>
     for crate::api::graph::SearchResults
 {
     fn into_into_dart(self) -> crate::api::graph::SearchResults {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::graph::SigCategory {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.num_hits.into_into_dart().into_dart(),
+            self.signature.into_into_dart().into_dart(),
+            self.example.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::graph::SigCategory
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::graph::SigCategory>
+    for crate::api::graph::SigCategory
+{
+    fn into_into_dart(self) -> crate::api::graph::SigCategory {
         self
     }
 }
@@ -519,6 +879,23 @@ impl SseEncode for bool {
     }
 }
 
+impl SseEncode for crate::api::graph::Domain {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.name, serializer);
+        <String>::sse_encode(self.clan, serializer);
+        <String>::sse_encode(self.description, serializer);
+        <u32>::sse_encode(self.hmm_length, serializer);
+        <u32>::sse_encode(self.seq_start, serializer);
+        <u32>::sse_encode(self.seq_end, serializer);
+        <u32>::sse_encode(self.hmm_start, serializer);
+        <u32>::sse_encode(self.hmm_end, serializer);
+        <f64>::sse_encode(self.dom_evalue, serializer);
+        <bool>::sse_encode(self.full_match_start, serializer);
+        <bool>::sse_encode(self.full_match_end, serializer);
+    }
+}
+
 impl SseEncode for f64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -526,10 +903,69 @@ impl SseEncode for f64 {
     }
 }
 
+impl SseEncode for crate::api::graph::Hit {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.name, serializer);
+        <String>::sse_encode(self.sequence, serializer);
+        <u32>::sse_encode(self.seq_length, serializer);
+        <f64>::sse_encode(self.seq_evalue, serializer);
+        <Vec<crate::api::graph::Domain>>::sse_encode(self.structure_domains, serializer);
+        <Vec<crate::api::graph::Domain>>::sse_encode(self.domains, serializer);
+        <Vec<crate::api::graph::Domain>>::sse_encode(self.queries, serializer);
+    }
+}
+
+impl SseEncode for crate::api::graph::HitList {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.num_hits, serializer);
+        <String>::sse_encode(self.signature, serializer);
+        <Vec<crate::api::graph::Hit>>::sse_encode(self.hits, serializer);
+    }
+}
+
+impl SseEncode for i32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_i32::<NativeEndian>(self).unwrap();
+    }
+}
+
 impl SseEncode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_i64::<NativeEndian>(self).unwrap();
+    }
+}
+
+impl SseEncode for Vec<String> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <String>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::graph::Domain> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::graph::Domain>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::graph::Hit> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::graph::Hit>::sse_encode(item, serializer);
+        }
     }
 }
 
@@ -563,6 +999,16 @@ impl SseEncode for Vec<(i64, crate::api::graph::Node)> {
     }
 }
 
+impl SseEncode for Vec<crate::api::graph::SigCategory> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::graph::SigCategory>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for crate::api::graph::Node {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -572,7 +1018,8 @@ impl SseEncode for crate::api::graph::Node {
         <String>::sse_encode(self.rank, serializer);
         <u32>::sse_encode(self.ranknum, serializer);
         <String>::sse_encode(self.name, serializer);
-        <i64>::sse_encode(self.total_descendants, serializer);
+        <i64>::sse_encode(self.hits_below, serializer);
+        <Vec<crate::api::graph::Hit>>::sse_encode(self.hits, serializer);
         <f64>::sse_encode(self.my_arc_start, serializer);
         <f64>::sse_encode(self.my_arc_end, serializer);
     }
@@ -586,6 +1033,16 @@ impl SseEncode for (i64, crate::api::graph::Node) {
     }
 }
 
+impl SseEncode for crate::api::graph::ResultsOverview {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.num_hits, serializer);
+        <i32>::sse_encode(self.num_categories, serializer);
+        <Vec<crate::api::graph::SigCategory>>::sse_encode(self.categories, serializer);
+        <Vec<String>>::sse_encode(self.domains_contained, serializer);
+    }
+}
+
 impl SseEncode for crate::api::graph::SearchResults {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -596,6 +1053,15 @@ impl SseEncode for crate::api::graph::SearchResults {
         <std::collections::HashMap<i64, crate::api::graph::Node>>::sse_encode(
             self.graph, serializer,
         );
+    }
+}
+
+impl SseEncode for crate::api::graph::SigCategory {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.num_hits, serializer);
+        <String>::sse_encode(self.signature, serializer);
+        <crate::api::graph::Hit>::sse_encode(self.example, serializer);
     }
 }
 
@@ -625,13 +1091,6 @@ impl SseEncode for usize {
             .cursor
             .write_u64::<NativeEndian>(self as _)
             .unwrap();
-    }
-}
-
-impl SseEncode for i32 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        serializer.cursor.write_i32::<NativeEndian>(self).unwrap();
     }
 }
 

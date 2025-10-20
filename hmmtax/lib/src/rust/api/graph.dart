@@ -6,25 +6,170 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `add_children`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `from`, `from`, `from`, `from`
+// These functions are ignored because they are not marked as `pub`: `read_domtblout`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AnnotatedSequence`, `DbDomain`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
-Future<PlatformInt64> countDescendants({
+Future<PlatformInt64> countHits({
   required HashMapI64Node graph,
   required PlatformInt64 id,
-}) => RustLib.instance.api.crateApiGraphCountDescendants(graph: graph, id: id);
+}) => RustLib.instance.api.crateApiGraphCountHits(graph: graph, id: id);
 
-SearchResults createGraph({required int numLevels, required int maxChildren}) =>
-    RustLib.instance.api.crateApiGraphCreateGraph(
-      numLevels: numLevels,
-      maxChildren: maxChildren,
-    );
+Future<void> pruneHitlessNodes({
+  required HashMapI64Node graph,
+  required PlatformInt64 id,
+}) => RustLib.instance.api.crateApiGraphPruneHitlessNodes(graph: graph, id: id);
 
-Map<PlatformInt64, Node> fetchGraph({required String databasePath}) =>
-    RustLib.instance.api.crateApiGraphFetchGraph(databasePath: databasePath);
+Future<SearchResults> fetchGraph({
+  required String annfile,
+  required List<String> domtbloutFiles,
+  required double evalMax,
+  required double domEvalMax,
+}) => RustLib.instance.api.crateApiGraphFetchGraph(
+  annfile: annfile,
+  domtbloutFiles: domtbloutFiles,
+  evalMax: evalMax,
+  domEvalMax: domEvalMax,
+);
+
+Future<HitList> fetchHits({
+  required Map<PlatformInt64, Node> graph,
+  required PlatformInt64 root,
+}) => RustLib.instance.api.crateApiGraphFetchHits(graph: graph, root: root);
+
+Future<ResultsOverview> fetchOverview({
+  required Map<PlatformInt64, Node> graph,
+  required PlatformInt64 root,
+}) => RustLib.instance.api.crateApiGraphFetchOverview(graph: graph, root: root);
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<HashMap < i64 , Node >>>
 abstract class HashMapI64Node implements RustOpaqueInterface {}
+
+class Domain {
+  final String name;
+  final String clan;
+  final String description;
+  final int hmmLength;
+  final int seqStart;
+  final int seqEnd;
+  final int hmmStart;
+  final int hmmEnd;
+  final double domEvalue;
+  final bool fullMatchStart;
+  final bool fullMatchEnd;
+
+  const Domain({
+    required this.name,
+    required this.clan,
+    required this.description,
+    required this.hmmLength,
+    required this.seqStart,
+    required this.seqEnd,
+    required this.hmmStart,
+    required this.hmmEnd,
+    required this.domEvalue,
+    required this.fullMatchStart,
+    required this.fullMatchEnd,
+  });
+
+  @override
+  int get hashCode =>
+      name.hashCode ^
+      clan.hashCode ^
+      description.hashCode ^
+      hmmLength.hashCode ^
+      seqStart.hashCode ^
+      seqEnd.hashCode ^
+      hmmStart.hashCode ^
+      hmmEnd.hashCode ^
+      domEvalue.hashCode ^
+      fullMatchStart.hashCode ^
+      fullMatchEnd.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Domain &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          clan == other.clan &&
+          description == other.description &&
+          hmmLength == other.hmmLength &&
+          seqStart == other.seqStart &&
+          seqEnd == other.seqEnd &&
+          hmmStart == other.hmmStart &&
+          hmmEnd == other.hmmEnd &&
+          domEvalue == other.domEvalue &&
+          fullMatchStart == other.fullMatchStart &&
+          fullMatchEnd == other.fullMatchEnd;
+}
+
+class Hit {
+  final String name;
+  final String sequence;
+  final int seqLength;
+  final double seqEvalue;
+  final List<Domain> structureDomains;
+  final List<Domain> domains;
+  final List<Domain> queries;
+
+  const Hit({
+    required this.name,
+    required this.sequence,
+    required this.seqLength,
+    required this.seqEvalue,
+    required this.structureDomains,
+    required this.domains,
+    required this.queries,
+  });
+
+  @override
+  int get hashCode =>
+      name.hashCode ^
+      sequence.hashCode ^
+      seqLength.hashCode ^
+      seqEvalue.hashCode ^
+      structureDomains.hashCode ^
+      domains.hashCode ^
+      queries.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Hit &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          sequence == other.sequence &&
+          seqLength == other.seqLength &&
+          seqEvalue == other.seqEvalue &&
+          structureDomains == other.structureDomains &&
+          domains == other.domains &&
+          queries == other.queries;
+}
+
+class HitList {
+  final int numHits;
+  final String signature;
+  final List<Hit> hits;
+
+  const HitList({
+    required this.numHits,
+    required this.signature,
+    required this.hits,
+  });
+
+  @override
+  int get hashCode => numHits.hashCode ^ signature.hashCode ^ hits.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is HitList &&
+          runtimeType == other.runtimeType &&
+          numHits == other.numHits &&
+          signature == other.signature &&
+          hits == other.hits;
+}
 
 class Node {
   final PlatformInt64 taxid;
@@ -33,7 +178,8 @@ class Node {
   final String rank;
   final int ranknum;
   final String name;
-  final PlatformInt64 totalDescendants;
+  final PlatformInt64 hitsBelow;
+  final List<Hit> hits;
   double myArcStart;
   double myArcEnd;
 
@@ -44,7 +190,8 @@ class Node {
     required this.rank,
     required this.ranknum,
     required this.name,
-    required this.totalDescendants,
+    required this.hitsBelow,
+    required this.hits,
     required this.myArcStart,
     required this.myArcEnd,
   });
@@ -57,7 +204,8 @@ class Node {
       rank.hashCode ^
       ranknum.hashCode ^
       name.hashCode ^
-      totalDescendants.hashCode ^
+      hitsBelow.hashCode ^
+      hits.hashCode ^
       myArcStart.hashCode ^
       myArcEnd.hashCode;
 
@@ -72,9 +220,41 @@ class Node {
           rank == other.rank &&
           ranknum == other.ranknum &&
           name == other.name &&
-          totalDescendants == other.totalDescendants &&
+          hitsBelow == other.hitsBelow &&
+          hits == other.hits &&
           myArcStart == other.myArcStart &&
           myArcEnd == other.myArcEnd;
+}
+
+class ResultsOverview {
+  final int numHits;
+  final int numCategories;
+  final List<SigCategory> categories;
+  final List<String> domainsContained;
+
+  const ResultsOverview({
+    required this.numHits,
+    required this.numCategories,
+    required this.categories,
+    required this.domainsContained,
+  });
+
+  @override
+  int get hashCode =>
+      numHits.hashCode ^
+      numCategories.hashCode ^
+      categories.hashCode ^
+      domainsContained.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ResultsOverview &&
+          runtimeType == other.runtimeType &&
+          numHits == other.numHits &&
+          numCategories == other.numCategories &&
+          categories == other.categories &&
+          domainsContained == other.domainsContained;
 }
 
 class SearchResults {
@@ -110,4 +290,28 @@ class SearchResults {
           depth == other.depth &&
           root == other.root &&
           graph == other.graph;
+}
+
+class SigCategory {
+  final int numHits;
+  final String signature;
+  final Hit example;
+
+  const SigCategory({
+    required this.numHits,
+    required this.signature,
+    required this.example,
+  });
+
+  @override
+  int get hashCode => numHits.hashCode ^ signature.hashCode ^ example.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SigCategory &&
+          runtimeType == other.runtimeType &&
+          numHits == other.numHits &&
+          signature == other.signature &&
+          example == other.example;
 }

@@ -7,10 +7,8 @@ use std::path::PathBuf;
 use serde::{Serialize, Deserialize};
 use fjall::{Config, PersistMode, PartitionCreateOptions, UserValue, Slice};
 use bio::io::fasta;
-use rayon::prelude::*;
-use dashmap::DashMap;
 use std::time::{Instant};
-
+use clap::{Parser};
 
 #[derive(Clone, Serialize, Deserialize)]
 struct DomainInfo{
@@ -113,6 +111,10 @@ struct Node{
     rank: String,
     ranknum: u32,
     name: String,
+    pub hits_below: i64,
+    pub hits: Vec<i64>,  // We don't use this, hope that an empty vector is the same size as an empty vec<Hit>
+    pub my_arc_start: f64, // Not used on the Rust side, but useful for Flutter visualization
+    pub my_arc_end: f64,    // Not used on the Rust side, but useful for Flutter visualization
 }
 impl From<&Node> for Slice{
     fn from(val: &Node) ->Self{
@@ -126,7 +128,7 @@ impl From<&UserValue> for Node{
     }
 }
 
-fn parse_domtblout(domtblout: PathBuf, clan_map:&HashMap<String, (u16, u16, String)>, domains:&DashMap<String, Vec<Domain>>){
+fn parse_domtblout(domtblout: PathBuf, clan_map:&HashMap<String, (u16, u16, String)>, domains:&mut HashMap<String, Vec<Domain>>){
     let fp = match File::open(&domtblout){
         Err(why) => panic!("Couldn't open {} for reading: {}", domtblout.display(), why),
         Ok(file) => file,
@@ -176,7 +178,7 @@ fn parse_domtblout(domtblout: PathBuf, clan_map:&HashMap<String, (u16, u16, Stri
                 full_match_end: (hmmto == qlen),   
             };
 
-            if let Some(mut x) = domains.get_mut(&sequence){
+            if let Some(x) = domains.get_mut(&sequence){
                 x.push(dentry)
             }
             else{
@@ -288,6 +290,32 @@ fn handle_overlaps(mut sequence:AnnotatedSequence)->AnnotatedSequence{
    sequence
 }
 
+// reads a file containing mappings from old->new taxids for 
+// nodes that have been compressed out of the taxonomy.
+fn read_substitutions(subfile: PathBuf) -> HashMap<i64, i64>{
+    let fp = match File::open(&subfile){
+        Err(why) => panic!("Couldn't open {} for reading: {}", subfile.display(), why),
+        Ok(file) => file,
+    };
+    let freader = BufReader::new(fp);
+    let mut sub_map:HashMap<i64, i64> = HashMap::new();
+    for line_result in freader.lines(){
+        let line = match line_result{
+            Err(why) => panic!("Error reading line from {}: {}", subfile.display(), why),
+            Ok(h) => h,
+        };
+        let fields: Vec<&str> = line.split('\t').collect();
+        if fields.len() < 2{
+            continue; // skip malformed lines
+        }
+        let old:i64 = fields[0].parse().expect("Error converting old taxid to number");
+        let new:i64 = fields[1].parse().expect("Error converting new taxid to number");
+        sub_map.insert(old, new);
+    }
+
+    sub_map
+}
+
 fn parse_clanfile(clanfile: PathBuf) -> HashMap<String, (u16, u16, String)>{
     let fp = match File::open(&clanfile){
         Err(why) => panic!("Couldn't open {} for reading: {}", clanfile.display(), why),
@@ -380,7 +408,7 @@ fn parse_taxfile(taxfile: PathBuf) -> HashMap<String, u32>{
     };
     let freader = BufReader::new(fp);
     let mut tax_map:HashMap<String, u32> = HashMap::new();
-    for tax_result in freader.lines(){  
+    for tax_result in freader.lines().skip(1){  
         let line = match tax_result{
             Err(why) => panic!("Error reading line from {}: {}", taxfile.display(), why),
             Ok(h) => h,
@@ -390,7 +418,7 @@ fn parse_taxfile(taxfile: PathBuf) -> HashMap<String, u32>{
             continue; // skip malformed lines
         }
         let accession = fields[0].to_string();
-        let taxid:u32 = fields[2].parse().expect("Error converting taxid to number");
+        let taxid:u32 = fields[2].parse().expect("Error converting taxid {} to number");
         tax_map.insert(accession, taxid);
     }
     tax_map
@@ -399,7 +427,7 @@ fn parse_taxfile(taxfile: PathBuf) -> HashMap<String, u32>{
 // Read an NCBI nodes.dmp file and create a graph from it.  
 // The graph is implemented as a HashMap from taxid to Node struct,
 // where node 1 is the root of the tree.
-fn read_nodes_dmp(nodesfile: PathBuf, name_map: &HashMap<i64, String>) -> HashMap<i64, Node>{
+fn read_nodes_dmp(nodesfile: PathBuf, name_map: &HashMap<i64, String>, compressed: bool) -> HashMap<i64, Node>{
     // First, read through the file and create a node object for each taxid
     let fp = match File::open(&nodesfile){
         Err(why) => panic!("Couldn't open {} for reading: {}", nodesfile.display(), why),
@@ -416,7 +444,23 @@ fn read_nodes_dmp(nodesfile: PathBuf, name_map: &HashMap<i64, String>) -> HashMa
         let taxid:i64 = fields[0].parse().expect("Error converting taxid to number");
         let parent:i64 = fields[1].parse().expect("Error converting parent taxid to number");
         let rank = fields[2].to_string();
-        let ranknum:u32 = match rank.as_str(){
+        let ranknum:u32;
+        if compressed{
+            ranknum =  match rank.as_str(){
+            "no rank" => 0,
+            "domain" => 1,
+            "kingdom" => 2,
+            "phylum" => 3,
+            "class" => 4,
+            "order" => 5,
+            "family" => 6,   
+            "genus" => 7,
+            "species" => 8,
+            _ => 100, // other ranks
+            }; 
+        }
+        else{
+            ranknum = match rank.as_str(){
             "no rank" => 0,
             "domain" => 1,
             "cellular root" => 1,
@@ -467,7 +511,8 @@ fn read_nodes_dmp(nodesfile: PathBuf, name_map: &HashMap<i64, String>) -> HashMa
             "clade" => 34,
             "genotype" => 34,
             _ => 100, // other ranks
-        };
+            };
+        }
         if ranknum == 100{
             eprintln!("Warning: Unrecognized rank {} for taxid {}", rank, taxid);
         }
@@ -482,6 +527,10 @@ fn read_nodes_dmp(nodesfile: PathBuf, name_map: &HashMap<i64, String>) -> HashMa
             rank: rank,
             ranknum: ranknum,
             name: name,
+            hits_below: 0,
+            hits: Vec::new(),
+            my_arc_start: 0.0,
+            my_arc_end: 0.0,    
         };
         node_map.insert(taxid, node);
     }
@@ -506,9 +555,9 @@ fn read_nodes_dmp(nodesfile: PathBuf, name_map: &HashMap<i64, String>) -> HashMa
     //println!("Root node is taxid 1 with {} children", node_map.get(&  
     node_map
 }
-fn write_annotated_db(domains: DashMap<String, Vec<Domain>>, clan_map: &HashMap<String, (u16, u16, String)>, 
+fn write_annotated_db(domains: HashMap<String, Vec<Domain>>, clan_map: &HashMap<String, (u16, u16, String)>, 
     domain_info: &HashMap<String, DomainInfo>, seqfile: PathBuf, tax_map: &HashMap<String, u32>, 
-    node_graph: &HashMap<i64, Node>, ofile: String){
+    node_graph: &HashMap<i64, Node>, substitutions: &HashMap<i64, i64>, ofile: String){
     let fp = match File::open(&seqfile){
         Err(why) => panic!("Couldn't open {} for reading: {}", seqfile.display(), why),
         Ok(file) => file,
@@ -531,9 +580,15 @@ fn write_annotated_db(domains: DashMap<String, Vec<Domain>>, clan_map: &HashMap<
         let old_db = keyspace.open_partition("nodes", PartitionCreateOptions::default()).expect("Somehow couldn't open a partition we know exists");
         keyspace.delete_partition(old_db).expect("Somehow couldn't delete a partition that we know exists");
     }
+    if keyspace.partition_exists("taxidsubstitutions"){
+        // we're overwriting an existing database, so delete the partition first
+        let old_db = keyspace.open_partition("nodes", PartitionCreateOptions::default()).expect("Somehow couldn't open a partition we know exists");
+        keyspace.delete_partition(old_db).expect("Somehow couldn't delete a partition that we know exists");
+    }
 
     let db = keyspace.open_partition("annotations", PartitionCreateOptions::default()).expect("Unable to create output partition");
   
+    let subst_db = keyspace.open_partition("taxidsubstitutions", PartitionCreateOptions::default()).expect("Unable to create output partition");
     // Add the domain ID -> name mappings so that the viewer doesn't need the clans file.
     let domain_db = keyspace.open_partition("domainidtoname", PartitionCreateOptions::default()).expect("Unable to create output partition");
     let node_db = keyspace.open_partition("nodes", PartitionCreateOptions::default()).expect("Unable to create output partition");
@@ -559,6 +614,13 @@ fn write_annotated_db(domains: DashMap<String, Vec<Domain>>, clan_map: &HashMap<
         node_db.insert(&node.taxid.to_string(), node).expect("Couldn't insert entry into nodes part of database");
     }
     keyspace.persist(PersistMode::SyncAll).expect("Failed to persist output db");
+
+    for key in substitutions.keys(){
+        let newid = substitutions.get(key).expect("Couldn't find key we know exists in taxid substitutions.");
+        subst_db.insert(&key.to_string(), newid.to_be_bytes()).expect("Couldn't insert entry into taxid substitutions part of database");
+    }
+    keyspace.persist(PersistMode::SyncAll).expect("Failed to persist output db");
+
     let reader = fasta::Reader::new(fp);
 
     for result in reader.records(){ // iterate through the records in the sequence file
@@ -571,17 +633,22 @@ fn write_annotated_db(domains: DashMap<String, Vec<Domain>>, clan_map: &HashMap<
         };
     
         let accession = sequence.id().to_string().split('|').skip(1).next().unwrap_or("none").to_string();
-        let taxid = match tax_map.get(&accession){
+        let mut taxid = match tax_map.get(&accession){
             Some(t) => *t as i64,
             None => {
                 eprintln!("Warning: No taxid found for accession {}, setting to -1", accession);
                 -1 as i64
             }
         };
+
+        if let Some(newid) = substitutions.get(&taxid){
+            taxid = *newid; // remap to new taxid if needed
+        }
+        
         let mut annotated = AnnotatedSequence{
             name: sequence.id().to_string(),
 	    length: sequence.id().len() as u32,
-            sequence: String::from_utf8(sequence.seq().to_vec()).expect("Invalid sequnce data found"),
+            sequence: String::from_utf8(sequence.seq().to_vec()).expect("Invalid sequence data found"),
             taxid: taxid,   
             domains: Vec::new(),
             structure_domains: Vec::new(),
@@ -628,29 +695,51 @@ fn read_names_dmp(namfile: PathBuf) -> HashMap<i64, String>{
     name_map
 }
 
-fn main() {
-    let mut args = std::env::args().skip(1);
-    if args.len() != 8{
-        eprintln!("Usage: create_annotations <seqfile> <hmmfile> <domtbldir> <clanfile> <accessiontotaxidfile> <names.dmp> <nodes.dmp> <outfile>");
-        std::process::exit(1);
-    }
+// Define command-line arguments for clap
+#[derive(Parser)]
+#[command(name = "create_annotations")]
+#[command(about = "Create annotated sequence database from HMMER domtblout files and NCBI taxonomy", long_about = None)]
+struct Cli {
+    /// Input FASTA sequence file
+    seqfile: String,
+    /// Input HMM file
+    hmmfile: String,
+    /// Directory containing HMMER domtblout files
+    domtbldir: String,
+    /// Clan file mapping domains to clans
+    clanfile: String,
+    /// Accession to taxid mapping file
+    accessiontotaxidfile: String,
+    /// NCBI names.dmp file
+    names_dmp: String,
+    /// NCBI nodes.dmp file
+    nodes_dmp: String,
+    /// Output database file
+    outfile: String,
 
-    // extract arguments
-    let seqfile = args.next().unwrap();
-    let hmmfile = args.next().unwrap();
-    let mut dname = args.next().unwrap();
-    let cfile = args.next().unwrap();
-    let taxfile = args.next().unwrap();
-    let namefile = args.next().unwrap();
-    let nodesfile = args.next().unwrap();
-    let ofile = args.next().unwrap();
+    /// Optional: File containing old->new taxid mappings for use when non-canonical ranks have been compressed out of the taxonomy
+    #[arg(short='c', long="compress")]
+    renamefile: Option<String>,
+}
+
+
+fn main() {
+
+    let cli = Cli::parse();
+    let mut compressed = false;
+    let mut substitutions: HashMap<i64, i64> = HashMap::new();
+    if cli.renamefile.is_some(){ // We were passed a file containing mappings from old->new taxids
+        substitutions = read_substitutions(PathBuf::from(cli.renamefile.unwrap()));
+        compressed = true;
+    }
 
     let now = Instant::now();
     // first, create a hashmap mapping domain names to IDs and clans 
-    let clan_map:HashMap<String, (u16, u16, String)> = parse_clanfile(Into::into(cfile));
+    let clan_map:HashMap<String, (u16, u16, String)> = parse_clanfile(Into::into(cli.clanfile));
     println!("{}ms to parse clan map", now.elapsed().as_millis());
     let now = Instant::now();
-    let domain_info: HashMap<String, DomainInfo> = parse_hmmfile(Into::into(hmmfile));
+    let domain_info: HashMap<String, DomainInfo> = parse_hmmfile(Into::into(cli.hmmfile));
+    let mut dname = cli.domtbldir.clone();
     // Create pattern to match all domtblout files in domtbldir
     if dname.chars().last().unwrap() == '/'{
         dname.push_str("*.domtblout");
@@ -658,18 +747,19 @@ fn main() {
     else{
         dname.push_str("/*.domtblout");
     }
-    
-    let tax_map: HashMap<String, u32> = parse_taxfile(Into::into(taxfile));
-    let domains:DashMap<String, Vec<Domain>> = DashMap::new();
+    println!("Looking for domtblout files in {}", dname);
+    let tax_map: HashMap<String, u32> = parse_taxfile(Into::into(cli.accessiontotaxidfile));
+    println!("{}ms to parse accession to taxid map", now.elapsed().as_millis());
+    let mut domains:HashMap<String, Vec<Domain>> = HashMap::new();
     let mut dfiles = Vec::new();
     println!("{}ms to parse HMM file and taxid map", now.elapsed().as_millis());
 
     let now = Instant::now();
-    let name_map: HashMap<i64, String> = read_names_dmp(Into::into(namefile));
+    let name_map: HashMap<i64, String> = read_names_dmp(Into::into(cli.names_dmp));
     println!("{}ms to parse names.dmp", now.elapsed().as_millis());
     
     let mut now = Instant::now();   
-    let node_graph:HashMap<i64, Node> = read_nodes_dmp(Into::into(nodesfile), &name_map);
+    let node_graph:HashMap<i64, Node> = read_nodes_dmp(Into::into(cli.nodes_dmp), &name_map, compressed);
     println!("{}ms to parse nodes.dmp", now.elapsed().as_millis());
     // Gather a vector of all the files in the domtblout directory so we can parse them in parallel
     for dfile in glob(&dname).expect("Couldn't find any domtbloutfiles in domtbldir"){
@@ -683,16 +773,14 @@ fn main() {
             }
     }
     now = Instant::now();
-    dfiles.into_par_iter().for_each(|dfile| {
-    //for dfile in dfiles{
-       parse_domtblout(dfile, &clan_map, &domains);
-    });
+    for dfile in dfiles{
+       parse_domtblout(dfile, &clan_map, &mut domains);
+    }
     
     println!("{}ms to parse domtblouts", now.elapsed().as_millis());
     now = Instant::now();
 
-    write_annotated_db(domains, &clan_map, &domain_info, seqfile.into(), &tax_map, &node_graph, ofile);
+    write_annotated_db(domains, &clan_map, &domain_info, cli.seqfile.into(), &tax_map, &node_graph, &substitutions, cli.outfile);
     //Write the results to a database
     println!("{}ms to write annotated DB", now.elapsed().as_millis());
-
-}
+    }
