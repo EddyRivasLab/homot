@@ -117,6 +117,7 @@ fn count_findable(graph: &HashMap<i64, Node>, start: i64) -> i64{
 }
 
 fn compress_taxonomy(full_tree: HashMap<i64, Node>) -> (HashMap<i64, Node>, HashMap<i64, i64>){
+    let always_compress:Vec<i64> = vec![131567, 2787823, 2787854];  // cellular organisms, unclassified, other
 
     // create HashMap mapping all ranknums to their canonical ranks (compressing upward)
     let mut ranknum_to_canonical: HashMap<u32, (u32, String)> = HashMap::new();
@@ -156,46 +157,51 @@ fn compress_taxonomy(full_tree: HashMap<i64, Node>) -> (HashMap<i64, Node>, Hash
     ranknum_to_canonical.insert(33, (8, "species".to_string()));
     ranknum_to_canonical.insert(34, (8, "species".to_string()));
 
+    
   
     let mut compressed_tree: HashMap<i64, Node> = HashMap::new();
     let canonical_ranks: Vec<u32> = vec![1,2,5,8,14,19,21,26]; // domain, kingdom, phylum, class, order, family, genus, species
-    let mut keep: Vec<Node> = Vec::new();
-    let mut compress_out: Vec<Node> = vec![];
+    let mut keep: Vec<(Node, bool)> = Vec::new();
+    let mut compress_out: Vec<(Node, bool)> = vec![];
     let mut compressed:i64 = 0;
     let mut old_to_new: HashMap<i64, i64> = HashMap::new(); // map from old taxid to new taxid (if compressed out)
 
     let mut root = full_tree.get(&1).unwrap().clone();
+    if root.name == "Orthagio p. Whackitude"{ // This is stupid, but should silence compiler warnings about never reading the name field.
+        print!("really wierd taxon name found")
+    }
     (root.ranknum, root.rank) = ranknum_to_canonical.get(&root.ranknum).unwrap().clone(); // reassign root to canonical rank
-    keep.push(root);    
+    keep.push((root, false));    
     let mut max_ranknum = 0;
     while !keep.is_empty(){
-        let mut parent = keep.pop().unwrap();
+        let mut parent:Node;
+        let force_compressed: bool;
+        (parent, force_compressed) = keep.pop().unwrap();
         let parent_children = parent.children;  
         parent.children = vec![]; // clear out the children so we can add the ones we want to keep.
-        let parent_rank = parent.ranknum;
+       // let parent_rank = parent.ranknum;
 
         // Figure out which of the parent's children we should keep
         for child_id in parent_children.iter(){
             if let Some(child) = full_tree.get(child_id){
-                if child.ranknum < parent_rank && child.ranknum != 0{
-                    // This should never happen, but just in case
-                    eprintln!("Warning: Child rank {} is less than parent rank {} for parent {} ({}) and child {} ({})", 
-                            child.ranknum, parent_rank, parent.taxid, parent.rank, child.taxid, child.rank);
-                    continue;
+                if always_compress.contains(child_id){
+                    println!("force-compressing ID {}", child_id);
                 }
-                if child.ranknum == parent_rank {
-                    println!("taxid {} had same rank {} as its parent, {}", child_id, parent_rank, parent.taxid);
-                }
-                if canonical_ranks.contains(&child.ranknum){
+                if canonical_ranks.contains(&child.ranknum) && !always_compress.contains(child_id){
                     // This child is a canonical rank, so keep it
                     let mut new_child = child.clone();
                     (new_child.ranknum, new_child.rank) = ranknum_to_canonical.get(&child.ranknum).unwrap().clone(); // reassign to canonical rank
+                    if !force_compressed{ // need to adjust ranknum because node has two ancestors with same rank 
+                        new_child.ranknum +=1;
+                        new_child.rank = new_child.rank + "+";
+                        println!("Incrementing ranknum of {} to {}", new_child.name, new_child.ranknum);
+                    }
                     new_child.parent = parent.taxid; // reassign parent to the new parent
                     parent.children.push(new_child.taxid);
-                    keep.push(new_child);
+                    keep.push((new_child, force_compressed));
                 }
                 else{ // Child has rank between parent and next canonical rank, so compress it out
-                    compress_out.push(child.clone());
+                    compress_out.push((child.clone(), force_compressed || always_compress.contains(child_id)));
                     compressed += 1;
                 }
             }
@@ -208,30 +214,26 @@ fn compress_taxonomy(full_tree: HashMap<i64, Node>) -> (HashMap<i64, Node>, Hash
         //let mut to_process = compress_out.clone();
         //compress_out.clear();
         while !compress_out.is_empty(){
-            let node = compress_out.pop().unwrap();
+            let (node, force_compressed) = compress_out.pop().unwrap();
             old_to_new.insert(node.taxid, parent.taxid); // map old taxid to new parent taxid
             for child_id in node.children.iter(){
                 if let Some(child) = full_tree.get(child_id){
-                    if child.ranknum < parent_rank && child.ranknum != 0{
-                        // This should never happen, but just in case
-                        eprintln!("Warning: Child rank {} is less than parent rank {} for parent {} ({}) and child {} ({})", 
-                            child.ranknum, parent_rank, parent.taxid, parent.rank, child.taxid, child.rank);
-                        continue;
-                    }
-                    if canonical_ranks.contains(&child.ranknum){
-                        // This child is the next canonical rank, so keep it
+                    if canonical_ranks.contains(&child.ranknum) && !always_compress.contains(&child.taxid) {
+                        // This child is the next canonical rank, and not a node we always compress out so keep it
                         let mut child_clone = child.clone();
                         child_clone.parent = parent.taxid; // reassign parent to the next cannonical parent
                         (child_clone.ranknum, child_clone.rank) = ranknum_to_canonical.get(&child.ranknum).unwrap().clone(); // reassign to canonical rank
+                    if !force_compressed{ // need to adjust ranknum because node has two ancestors with same rank 
+                        child_clone.ranknum +=1;
+                        child_clone.rank = child_clone.rank+"+";
+                        println!("incrementing ranknum of {} to {}", child_clone.name, child_clone.ranknum);
+                    }
                         parent.children.push(child_clone.taxid);
-                                       if child.ranknum == parent_rank {
-                    println!("taxid {} had same rank {} as its parent, {}", child_id, parent_rank, parent.taxid);
-                }
-                        keep.push(child_clone);
+                        keep.push((child_clone, force_compressed ));
                     }
                     else{
                         // This child is still between canonical ranks, so keep compressing
-                        compress_out.push(child.clone()); 
+                        compress_out.push((child.clone(), force_compressed || always_compress.contains(&child.taxid))); 
                         compressed += 1;
                     }
                 }

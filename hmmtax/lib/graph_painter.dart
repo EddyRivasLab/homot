@@ -10,7 +10,6 @@ import 'package:touchable/touchable.dart';
 import 'package:hmmtax/src/rust/api/graph.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-
 // Draws a horizontal line as an example for the settings page
 class LinePainter extends CustomPainter{
   final BuildContext context;
@@ -75,9 +74,9 @@ class GraphPainter extends CustomPainter {
 
     if (availLength < testPainter.width || availHeight < testPainter.height){ 
       // can't fit the text, so don't draw it
-      print("availLength = $availLength, availHeight = $availHeight, text width = ${testPainter.width}, text height = ${testPainter.height}");
-      print("startRadius = $startRadius, endRadius = $endRadius, regionAngle = $regionAngle");
-      print("text = $text");
+  //    print("availLength = $availLength, availHeight = $availHeight, text width = ${testPainter.width}, text height = ${testPainter.height}");
+  //    print("startRadius = $startRadius, endRadius = $endRadius, regionAngle = $regionAngle");
+  //    print("text = $text");
       return false;
     }
     // if we get here, then we can print the text.
@@ -120,76 +119,80 @@ class GraphPainter extends CustomPainter {
   void drawNode(Map<PlatformInt64, Node> graph, PlatformInt64 nodeId, PlatformInt64 parentId, Offset center, double startRadius, double radPerLevel, 
     int startLevel, int maxLevel, Canvas myCanvas, int majorColor, int minorColor, Paint paint) {
     var node = graph[nodeId]!;
+    bool drawChildren = node.ranknum < maxLevel;
     Color nodeColor;
     Color fillColor, fillTextColor;
 
-    if(nodeId == 1){
-      print("children = ${node.children}");
-    }
     (nodeColor!, _) = hSettings.graphColors[(majorColor) *shadesPerColor];
     (fillColor!, fillTextColor!) = hSettings.graphColors[(majorColor) * shadesPerColor + minorColor];
-    if (nodeId == parentId){ // This is the root node of the current graph, so reset the trackRegions structure
-      graphData.trackRegions = TrackRegions(1+maxLevel-startLevel);
-    }
-    var parent = graph[parentId]!;
-      // now, add the region for the node to each level it crosses
-    for (int level = parent.ranknum+1; level <= min(node.ranknum, maxLevel); level++){
-        graphData.trackRegions.addRegion(level - startLevel, Region(node.myArcStart, node.myArcEnd, nodeId));
-    }
 
-    bool drawChildren = node.ranknum < maxLevel;
 
     // keep the node from going beyond the max radius of the graph
-    var myRadius = min(startRadius + ((node.ranknum - startLevel) * radPerLevel), (maxLevel-startLevel)*radPerLevel);
+    var myRadius = min(startRadius + ((node.ranknum - startLevel) * radPerLevel), startRadius + ((maxLevel-startLevel)*radPerLevel));
 
     
     var myAngle = (node.myArcStart + node.myArcEnd) / 2;
     var myOffset = Offset(center.dx + (myRadius * cos(myAngle)), center.dy + (myRadius * sin(myAngle)));
     // Note: In Flutter, the y-axis increases downward, and angles increase clockwise, not counter-clockwise so we add sin(myAngle) to the y-coordinate.
-
+      var parent = graph[parentId]!;
     var parentRadius = startRadius + ((parent.ranknum - startLevel) * radPerLevel);
    
     var parentOffset = Offset(center.dx + (parentRadius * cos(myAngle)), center.dy + (parentRadius * sin(myAngle)));
     myCanvas.drawLine(parentOffset, myOffset, paint..strokeWidth=hSettings.lineWidth/graphData.scale..color = nodeColor);
 
-    final String nodeText = node.name + "\n"+ node.hitsBelow.toString();
-    final bool textFit = _write_if_fits(myCanvas, Theme.of(context).textTheme, nodeText, myAngle, parentRadius, myRadius, (node.myArcEnd -
-    node.myArcStart), center, Theme.of(context).colorScheme.onSurface);
 
-    if (!textFit && node.ranknum != startLevel){
+    if (nodeId == parentId){ // This is the root node of the current graph, so reset the trackRegions structure
+      graphData.trackRegions = TrackRegions(1+maxLevel-startLevel);
+      graphData.trackRegions.addRegion(0, Region(0, 2*pi, nodeId));
+      myCanvas.drawCircle(center, startRadius, paint..style=PaintingStyle.fill..color=nodeColor);
+    }
+    else{
+      // now, add the region for the node to each level it crosses
+      // Won't conflict with the region we added for the root node, because parent.ranknum +1 will be > node.ranknum, 
+      // since node = parent
+      for (int level = parent.ranknum+1; level <= min(node.ranknum, maxLevel); level++){
+          graphData.trackRegions.addRegion(level - startLevel, Region(node.myArcStart, node.myArcEnd, nodeId));
+      }
+
+      final String nodeText = node.name + "\n"+ node.hitsBelow.toString();
+      final bool textFit = _write_if_fits(myCanvas, Theme.of(context).textTheme, nodeText, myAngle, parentRadius, myRadius, (node.myArcEnd -
+      node.myArcStart), center, Theme.of(context).colorScheme.onSurface);
+
+      if (!textFit && node.ranknum != startLevel){
       // There isn't enough space to fit the data for the node, so turn it into a pie wedge out to the edge of 
       // graph
       // There's never enough space to do this for the root node, so don't try
 
-      drawChildren = false; // don't bother with children, since there won't be space
-      var piePath = Path();
+        drawChildren = false; // don't bother with children, since there won't be space
+        var piePath = Path();
+        var outerRadius = startRadius + ((maxLevel-startLevel)*radPerLevel);
       // define the rectangles we'll use to draw the inner and outer arcs of the pie wedge
-      var innerRect = Rect.fromCircle(center: center, radius: parentRadius);
-      var outerRect = Rect.fromCircle(center: center, radius: (maxLevel-startLevel)*radPerLevel);
+        var innerRect = Rect.fromCircle(center: center, radius: parentRadius);
+        var outerRect = Rect.fromCircle(center: center, radius: outerRadius);
       // and draw the wedge
-      piePath.moveTo(center.dx + (parentRadius * cos(node.myArcStart)), center.dy +
-        (parentRadius * sin(node.myArcStart)));
-      piePath.addArc(innerRect, node.myArcStart, node.myArcEnd - node.myArcStart);
-      piePath.lineTo(center.dx + ((maxLevel -startLevel)* radPerLevel * cos(node.myArcEnd)), center.dy +
-       ((maxLevel-startLevel)*radPerLevel * sin(node.myArcEnd)));
-      piePath.addArc(outerRect, node.myArcEnd, -(node.myArcEnd - node.myArcStart));
-      piePath.lineTo(center.dx + (parentRadius * cos(node.myArcStart)), center.dy +
-       (parentRadius * sin(node.myArcStart)));  
+        piePath.moveTo(center.dx + (parentRadius * cos(node.myArcStart)), center.dy +
+          (parentRadius * sin(node.myArcStart)));
+        piePath.addArc(innerRect, node.myArcStart, node.myArcEnd - node.myArcStart);
+        piePath.lineTo(center.dx + (outerRadius * cos(node.myArcEnd)), center.dy +
+        (outerRadius * sin(node.myArcEnd)));
+        piePath.addArc(outerRect, node.myArcEnd, -(node.myArcEnd - node.myArcStart));
+        piePath.lineTo(center.dx + (parentRadius * cos(node.myArcStart)), center.dy +
+        (parentRadius * sin(node.myArcStart)));  
 
-      myCanvas.drawPath(piePath, paint..style = PaintingStyle.stroke..color = fillColor);
-      myCanvas.drawPath(piePath, paint..style = PaintingStyle.fill..color = fillColor);
+        myCanvas.drawPath(piePath, paint..style = PaintingStyle.stroke..color = fillColor);
+        myCanvas.drawPath(piePath, paint..style = PaintingStyle.fill..color = fillColor);
 
-      // now, add the region for the node to each level in the wedge outside the 
-      //node's actual level
-      for (int level = node.ranknum; level <= maxLevel; level++){
-        graphData.trackRegions.addRegion(level - startLevel, Region(node.myArcStart, node.myArcEnd, nodeId));
+        // now, add the region for the node to each level in the wedge outside the 
+        //node's actual level
+        for (int level = node.ranknum; level <= maxLevel; level++){
+          graphData.trackRegions.addRegion(level - startLevel, Region(node.myArcStart, node.myArcEnd, nodeId));
+        }
+
+        // and see if we can fit the text in the outer edge of the wedge
+        _write_if_fits(myCanvas, Theme.of(context).textTheme, nodeText, myAngle, parentRadius, (maxLevel-startLevel)*
+        radPerLevel, (node.myArcEnd - node.myArcStart), center, fillTextColor);
       }
-
-      // and see if we can fit the text in the outer edge of the wedge
-      _write_if_fits(myCanvas, Theme.of(context).textTheme, nodeText, myAngle, parentRadius, (maxLevel-startLevel)*
-      radPerLevel, (node.myArcEnd - node.myArcStart), center, fillTextColor);
     }
-
     if (drawChildren){
       double arcPerChild  = (node.myArcEnd - node.myArcStart) / max(node.hitsBelow, 1);
       if (node.children.length >1){ // Need to draw the arc for this node  
@@ -204,7 +207,7 @@ class GraphPainter extends CustomPainter {
       }
 
       double lastEnd = node.myArcStart;
-      var i =0;
+      var i =1;
       for (var childId in node.children) {
         if (node.ranknum == startLevel){
           majorColor = i % numColors;
@@ -225,7 +228,7 @@ class GraphPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-
+    const rootFrac = 0.025;
     var paint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
@@ -242,8 +245,9 @@ class GraphPainter extends CustomPainter {
     double radPerLevel;
 
     if(drawnLevels != 0) {
-      radPerLevel = logicalRadius / (drawnLevels-1); // How much radius to add per level of the graph
-      graphData.radPerLevel = graphRadius/drawnLevels; // graphdata's radPerLevel should be in graph units, not screen
+      // Here the drawnLevels -0.75 is drawnlevels -1 full levels + 0.25 for the root node
+      radPerLevel =(1-rootFrac)* logicalRadius / (drawnLevels-1); // How much radius to add per level of the graph
+      graphData.radPerLevel = radPerLevel;
     }
     else{ // avoid divide-by-zero
       radPerLevel = 0.0;
@@ -253,12 +257,12 @@ class GraphPainter extends CustomPainter {
     var maxLevel = (graphData.graph[graphData.root]!.ranknum + drawnLevels)-1;
 
     var root = graphData.graph[graphData.root]!;
-
+    graphData.rootRadius = rootFrac * logicalRadius;
     root.myArcStart = 0.0;
     root.myArcEnd = 2 * pi;
     logicalCanvas.drawCircle(center, logicalRadius, paint..style = PaintingStyle.fill..color = Theme.of(context).colorScheme.surface);
     paint.style = PaintingStyle.stroke;
-    drawNode(graphData.graph, graphData.root, graphData.root, center, 0, radPerLevel, root.ranknum, maxLevel, logicalCanvas,  
+    drawNode(graphData.graph, graphData.root, graphData.root, center, 0.025*logicalRadius, radPerLevel, root.ranknum, maxLevel, logicalCanvas,  
     0, 0, paint);
   }
 
@@ -314,7 +318,7 @@ class TrackRegions {
 
     // wrapper around binary search to find the region at a given level and angle
     // and return its nodeId
-    PlatformInt64 findNode(double xPos, double yPos, double centerX, double centerY, double radPerLevel) {
+    PlatformInt64 findNode(double xPos, double yPos, double centerX, double centerY, double radPerLevel, double rootRadius) {
       // Convert the cartesian coords to an angle.  Both flutter Y-coordinates and angles are flipped
       // around the X-axis, which cancels as far as atan is concerned
       double angle = 0.0;
@@ -322,12 +326,14 @@ class TrackRegions {
       double dy = yPos -centerY;
 
       double radius = sqrt((dx * dx) + (dy * dy));
-      int level = (radius/radPerLevel).ceil();
+      int level= 0;
+      if (radius > rootRadius){ // 0 level has radius <= rootRadius
+        level = ((radius-rootRadius)/radPerLevel).ceil();
+      }
       if (level >= _radii.length){
         // click outside graph region
         return -1;
       }
-      print("level = $level");
       //print("radius = $radius, radPerLevel=$radPerLevel");
       if (xPos != centerX){ // avoid divide-by-zero
 

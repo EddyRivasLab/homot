@@ -326,7 +326,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64,
     // Read all of the nodes into memory, and determine the root and depth of the tree
 
     let mut graph: HashMap<i64, Node> = HashMap::new();
-    let depth: u32 = 0;
+    let mut depth: u32 = 0;
     let graph_db = match keyspace.open_partition("nodes", PartitionCreateOptions::default()){
         Ok(v) =>v,
         Err(msg) => {
@@ -339,21 +339,26 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64,
     // load hits from the domtblout files
     for domtbloutfile in domtblout_files{
        // println!("searching {}", domtbloutfile);
-        match read_domtblout(&domtbloutfile, &mut graph, eval_max as f32, dom_eval_max as f32, &db, &graph_db, depth, &domain_map, &domain_info){
-            Ok(v) => num_domtbl_hits += v,
+        let depth_old = depth;
+        match read_domtblout(&domtbloutfile, &mut graph, eval_max as f32, dom_eval_max as f32, &db, &graph_db, &domain_map){
+            Ok(v) => {num_domtbl_hits += v.0;
+                        depth = v.1;
+                        assert!(depth >= depth_old);
+            }
             Err(msg) => {
                 results.message = "Error reading domtblout file ".to_string() + &domtbloutfile + ": " + &msg;
                 return results;
             },
         }
     }
-    let root =1; // graph.keys().min().unwrap().clone();
+    let root = graph.keys().min().unwrap().clone();
+    print!("root = {}, depth= {}", root, depth);
     let total_hits = count_hits(&mut graph, root);
 
     println!("Hits in domtbl(s): {}, in graph: {}",num_domtbl_hits, total_hits);
     results.succeeded = true;
     results.message = "Successfully read database".to_string();
-    results.depth = 9;
+    results.depth = depth;
     results.root = root;
     results.graph = graph;
     results
@@ -361,7 +366,9 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64,
 
 // Function that reads a domtblout file and adds the hits to the graph
 fn read_domtblout(filename: &str, graph: &mut HashMap<i64, Node>,  max_seq_evalue: f32, max_dom_evalue: f32, db: &PartitionHandle,
-    graph_db: &PartitionHandle, mut depth: u32, domain_map: &HashMap<u16, Dmap>, domain_info: &HashMap<String, Dmap>) -> Result<i64, String> {
+    graph_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap>) -> Result<(i64, u32), String> {
+
+    let mut depth = 0;
 
    // println!("starting read_domtblout, max_seq_evalue is {}, max_dom_evalue is {}", max_seq_evalue, max_dom_evalue);
     let file = match File::open(filename){
@@ -553,6 +560,9 @@ fn read_domtblout(filename: &str, graph: &mut HashMap<i64, Node>,  max_seq_evalu
             if graph.contains_key(&seq_ann.taxid){ // simple case, just add this hit to the node in the graph
                 let node = graph.get_mut(&seq_ann.taxid).unwrap();
                 node.hits.push(hit);
+                if node.ranknum >= depth{ // assume ranknum zero-indexed
+                    depth = node.ranknum+1;
+                }
             }
             else{ // Need to fetch the appropriate node and possibly all its parents from the graph db
                 let res1 = match graph_db.get(&seq_ann.taxid.to_string()){
@@ -604,7 +614,7 @@ fn read_domtblout(filename: &str, graph: &mut HashMap<i64, Node>,  max_seq_evalu
             hit_count += 1;
         }
     }
-    Ok(hit_count)
+    Ok((hit_count, depth))
 }
 
 #[frb(sync)]

@@ -87,6 +87,16 @@ var lightGraphColors =[
   (Colors.red[900], Colors.white),
   (Colors.red[600], Colors.white),
   (Colors.red[800], Colors.white),  
+  (Colors.purple[500], Colors.white),
+  (Colors.purple[700], Colors.white),
+  (Colors.purple[900], Colors.white),
+  (Colors.purple[600], Colors.white),
+  (Colors.purple[800], Colors.white),
+    (Colors.green[500], Colors.white),
+  (Colors.green[700], Colors.white),
+  (Colors.green[900], Colors.white),
+  (Colors.green[600], Colors.white),
+  (Colors.green[800], Colors.white),
   (Colors.cyan[500], Colors.black),
   (Colors.cyan[700], Colors.white),
   (Colors.cyan[900], Colors.white),
@@ -97,26 +107,17 @@ var lightGraphColors =[
   (Colors.orange[900], Colors.black),
   (Colors.orange[600], Colors.white),
   (Colors.orange[800], Colors.white),
-  (Colors.green[500], Colors.white),
-  (Colors.green[700], Colors.white),
-  (Colors.green[900], Colors.white),
-  (Colors.green[600], Colors.white),
-  (Colors.green[800], Colors.white),
-  (Colors.purple[500], Colors.white),
-  (Colors.purple[700], Colors.white),
-  (Colors.purple[900], Colors.white),
-  (Colors.purple[600], Colors.white),
-  (Colors.purple[800], Colors.white),
-  (Colors.teal[500], Colors.white),
-  (Colors.teal[700], Colors.white),
-  (Colors.teal[900], Colors.white),
-  (Colors.teal[600], Colors.white),
-  (Colors.teal[800], Colors.white),
   (Colors.pink[500], Colors.white),
   (Colors.pink[700], Colors.white),
   (Colors.pink[900], Colors.white),
   (Colors.pink[600], Colors.white),
   (Colors.pink[800], Colors.white),
+  (Colors.teal[500], Colors.white),
+  (Colors.teal[700], Colors.white),
+  (Colors.teal[900], Colors.white),
+  (Colors.teal[600], Colors.white),
+  (Colors.teal[800], Colors.white),
+
 ];
 
 var darkGraphColors =[
@@ -135,6 +136,16 @@ var darkGraphColors =[
   (Colors.red[500], Colors.white),
   (Colors.red[200], Colors.white),
   (Colors.red[400], Colors.white),  
+    (Colors.purple[100], Colors.black),
+  (Colors.purple[300], Colors.black),
+  (Colors.purple[500], Colors.white),
+  (Colors.purple[200], Colors.white),
+  (Colors.purple[400], Colors.white),
+    (Colors.green[100], Colors.black),
+  (Colors.green[300], Colors.black),
+  (Colors.green[500], Colors.black),
+  (Colors.green[200], Colors.black),
+  (Colors.green[400], Colors.black),
   (Colors.cyan[100], Colors.black),
   (Colors.cyan[300], Colors.black),
   (Colors.cyan[500], Colors.black),
@@ -145,26 +156,16 @@ var darkGraphColors =[
   (Colors.orange[500], Colors.black),
   (Colors.orange[200], Colors.black),
   (Colors.orange[400], Colors.black),
-  (Colors.green[100], Colors.black),
-  (Colors.green[300], Colors.black),
-  (Colors.green[500], Colors.black),
-  (Colors.green[200], Colors.black),
-  (Colors.green[400], Colors.black),
-  (Colors.purple[100], Colors.black),
-  (Colors.purple[300], Colors.black),
-  (Colors.purple[500], Colors.white),
-  (Colors.purple[200], Colors.white),
-  (Colors.purple[400], Colors.white),
+    (Colors.pink[100], Colors.black),
+  (Colors.pink[300], Colors.black),
+  (Colors.pink[500], Colors.white),
+  (Colors.pink[200], Colors.white),
+  (Colors.pink[400], Colors.white),
   (Colors.teal[100], Colors.black),
   (Colors.teal[300], Colors.black),
   (Colors.teal[500], Colors.black),
   (Colors.teal[200], Colors.white),
   (Colors.teal[400], Colors.white),
-  (Colors.pink[100], Colors.black),
-  (Colors.pink[300], Colors.black),
-  (Colors.pink[500], Colors.white),
-  (Colors.pink[200], Colors.white),
-  (Colors.pink[400], Colors.white),
 ];
 Future<void> main() async {
   await RustLib.init();
@@ -404,7 +405,8 @@ class GraphData with ChangeNotifier {
   double _translateX = 0.0;
   double _translateY = 0.0;
   double _scale = 1.0;
-  double _radPerLevel = 1.0;
+  double _radPerLevel = 0.0;
+  double _rootRadius = 0.0;
   Size _size = Size.zero;
   Matrix4 _transform = Matrix4.identity();
   TrackRegions _trackRegions= TrackRegions(0); // Data structure to track regions of the graph on screen
@@ -414,7 +416,10 @@ class GraphData with ChangeNotifier {
 
   ItemScrollController get itemScrollController=> _sController;
   TransformationController get tController => _tController;
-
+  double get radPerLevel => _radPerLevel;
+  set radPerLevel(double rad){
+    _radPerLevel = rad;
+  }
   void updateTransform(){
     Matrix4Transform m4t = Matrix4Transform();
     m4t = m4t.scale(_scale, origin: Offset(_size.width/2, _size.height/2));
@@ -456,14 +461,14 @@ class GraphData with ChangeNotifier {
   int get historyLength => _history.length;
   int get historyIndex => _historyIndex;
   Size get size => _size;
-  void set radPerLevel(double newRad){
-    _radPerLevel = newRad;
-  }
-  double get radPerLevel => _radPerLevel;
   Matrix4 get transform => _transform;
   double get translateX => _translateX;
   double get translateY => _translateY;
   double get scale => _scale;
+  double get rootRadius => rootRadius;
+  set rootRadius(double rad){
+    _rootRadius = rad;
+  }
   void set translateX(double x) {
     _translateX = x;
     updateTransform();
@@ -488,7 +493,7 @@ class GraphData with ChangeNotifier {
   }
 
   PlatformInt64 findNode(double xPos, double yPos, double centerX, double centerY) {
-    return _trackRegions.findNode(xPos, yPos, centerX, centerY, _radPerLevel);
+    return _trackRegions.findNode(xPos, yPos, centerX, centerY, _radPerLevel, _rootRadius);
   }
 
   Map<PlatformInt64, Node> get graph => _graph;

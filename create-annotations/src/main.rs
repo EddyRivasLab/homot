@@ -445,17 +445,25 @@ fn read_nodes_dmp(nodesfile: PathBuf, name_map: &HashMap<i64, String>, compresse
         let parent:i64 = fields[1].parse().expect("Error converting parent taxid to number");
         let rank = fields[2].to_string();
         let ranknum:u32;
-        if compressed{
+        if compressed{ // "+" refers to ranks whose level has been boosted by non-compression of the virus domain
             ranknum =  match rank.as_str(){
             "no rank" => 0,
             "domain" => 1,
+            "domain+" =>2,
             "kingdom" => 2,
+            "kingdom+" =>3,
             "phylum" => 3,
+            "phylum+" =>4,
             "class" => 4,
+            "class+" => 5,
             "order" => 5,
-            "family" => 6,   
+            "order+" =>6,
+            "family" => 6,
+            "family+" => 7,   
             "genus" => 7,
+            "genus+" => 8,
             "species" => 8,
+            "species+" => 9,
             _ => 100, // other ranks
             }; 
         }
