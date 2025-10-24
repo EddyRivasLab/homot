@@ -487,6 +487,18 @@ impl SseDecode for Vec<crate::api::graph::Hit> {
     }
 }
 
+impl SseDecode for Vec<crate::api::graph::HitList> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::graph::HitList>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<i64> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -597,12 +609,17 @@ impl SseDecode for crate::api::graph::SearchResults {
         let mut var_root = <i64>::sse_decode(deserializer);
         let mut var_graph =
             <std::collections::HashMap<i64, crate::api::graph::Node>>::sse_decode(deserializer);
+        let mut var_resultsOverview =
+            <crate::api::graph::ResultsOverview>::sse_decode(deserializer);
+        let mut var_hitLists = <Vec<crate::api::graph::HitList>>::sse_decode(deserializer);
         return crate::api::graph::SearchResults {
             succeeded: var_succeeded,
             message: var_message,
             depth: var_depth,
             root: var_root,
             graph: var_graph,
+            results_overview: var_resultsOverview,
+            hit_lists: var_hitLists,
         };
     }
 }
@@ -800,6 +817,8 @@ impl flutter_rust_bridge::IntoDart for crate::api::graph::SearchResults {
             self.depth.into_into_dart().into_dart(),
             self.root.into_into_dart().into_dart(),
             self.graph.into_into_dart().into_dart(),
+            self.results_overview.into_into_dart().into_dart(),
+            self.hit_lists.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -960,6 +979,16 @@ impl SseEncode for Vec<crate::api::graph::Hit> {
     }
 }
 
+impl SseEncode for Vec<crate::api::graph::HitList> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::graph::HitList>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<i64> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -1044,6 +1073,8 @@ impl SseEncode for crate::api::graph::SearchResults {
         <std::collections::HashMap<i64, crate::api::graph::Node>>::sse_encode(
             self.graph, serializer,
         );
+        <crate::api::graph::ResultsOverview>::sse_encode(self.results_overview, serializer);
+        <Vec<crate::api::graph::HitList>>::sse_encode(self.hit_lists, serializer);
     }
 }
 

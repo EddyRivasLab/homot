@@ -260,6 +260,8 @@ class SearchResults {
   final int depth;
   final PlatformInt64 root;
   final Map<PlatformInt64, Node> graph;
+  final ResultsOverview resultsOverview;
+  final List<HitList> hitLists;
 
   const SearchResults({
     required this.succeeded,
@@ -267,6 +269,8 @@ class SearchResults {
     required this.depth,
     required this.root,
     required this.graph,
+    required this.resultsOverview,
+    required this.hitLists,
   });
 
   @override
@@ -275,7 +279,9 @@ class SearchResults {
       message.hashCode ^
       depth.hashCode ^
       root.hashCode ^
-      graph.hashCode;
+      graph.hashCode ^
+      resultsOverview.hashCode ^
+      hitLists.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -286,7 +292,9 @@ class SearchResults {
           message == other.message &&
           depth == other.depth &&
           root == other.root &&
-          graph == other.graph;
+          graph == other.graph &&
+          resultsOverview == other.resultsOverview &&
+          hitLists == other.hitLists;
 }
 
 class SigCategory {

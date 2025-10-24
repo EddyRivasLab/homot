@@ -473,6 +473,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<HitList> dco_decode_list_hit_list(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_hit_list).toList();
+  }
+
+  @protected
   Int64List dco_decode_list_prim_i_64_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dcoDecodeInt64List(raw);
@@ -544,14 +550,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   SearchResults dco_decode_search_results(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
     return SearchResults(
       succeeded: dco_decode_bool(arr[0]),
       message: dco_decode_String(arr[1]),
       depth: dco_decode_u_32(arr[2]),
       root: dco_decode_i_64(arr[3]),
       graph: dco_decode_Map_i_64_node_None(arr[4]),
+      resultsOverview: dco_decode_results_overview(arr[5]),
+      hitLists: dco_decode_list_hit_list(arr[6]),
     );
   }
 
@@ -756,6 +764,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<HitList> sse_decode_list_hit_list(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <HitList>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_hit_list(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   Int64List sse_decode_list_prim_i_64_strict(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
@@ -855,12 +875,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_depth = sse_decode_u_32(deserializer);
     var var_root = sse_decode_i_64(deserializer);
     var var_graph = sse_decode_Map_i_64_node_None(deserializer);
+    var var_resultsOverview = sse_decode_results_overview(deserializer);
+    var var_hitLists = sse_decode_list_hit_list(deserializer);
     return SearchResults(
       succeeded: var_succeeded,
       message: var_message,
       depth: var_depth,
       root: var_root,
       graph: var_graph,
+      resultsOverview: var_resultsOverview,
+      hitLists: var_hitLists,
     );
   }
 
@@ -1032,6 +1056,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_hit_list(List<HitList> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_hit_list(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_prim_i_64_strict(
     Int64List self,
     SseSerializer serializer,
@@ -1120,6 +1153,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_32(self.depth, serializer);
     sse_encode_i_64(self.root, serializer);
     sse_encode_Map_i_64_node_None(self.graph, serializer);
+    sse_encode_results_overview(self.resultsOverview, serializer);
+    sse_encode_list_hit_list(self.hitLists, serializer);
   }
 
   @protected

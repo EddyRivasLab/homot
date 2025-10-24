@@ -227,11 +227,11 @@ List<Widget> CreateButtons(
       final double start = domain.seqStart * widthPerChar + widthOffset;
       final double end = domain.seqEnd * widthPerChar + widthOffset;
       final double domainWidth = end - start;
-  /*    _addButton(buttons, (i* lineSpace + (lineSpace/2)) * heightPerLine, 
+      _addButton(buttons, (i* lineSpace + (lineSpace/2)) * heightPerLine, 
       (((queryStartRow+ i)* lineSpace + (lineSpace/2)) * heightPerLine) + heightPerLine,  
       start, start + domainWidth, domain.name, domain.description, domain.clan, seqEvalue, domain.domEvalue, seqLength, domain.hmmLength, domain.seqStart, domain.seqEnd, domain.hmmStart,
       domain.hmmEnd, false, context);
-      */
+    
     }
   }
   for (var i = 0; i<queryRows.length; i++) {
@@ -240,10 +240,10 @@ List<Widget> CreateButtons(
       final double start = query.seqStart * widthPerChar + widthOffset;
       final double end = query.seqEnd * widthPerChar + widthOffset;
       final double domainWidth = end - start;
-      /*_addButton(buttons, ((queryStartRow+ i)* lineSpace + (lineSpace/2)) * heightPerLine, 
+      _addButton(buttons, ((queryStartRow+ i)* lineSpace + (lineSpace/2)) * heightPerLine, 
         (((queryStartRow+ i)* lineSpace + (lineSpace/2)) * heightPerLine) + heightPerLine,  
         start, start + domainWidth, query.name, query.description, query.clan, seqEvalue, query.domEvalue, seqLength, query.hmmLength, query.seqStart, query.seqEnd, query.hmmStart,
-        query.hmmEnd, true, context);*/
+        query.hmmEnd, true, context);
     }
   }
   return buttons;
@@ -404,11 +404,9 @@ class DomainPainter extends CustomPainter {
         path.lineTo(position.dx + (width - height / 2), startY + height);
       }
       path.lineTo(position.dx + height / 2, startY + height);
-      myCanvas.drawPath(path, paint..color = overview.get_colors(domain.name).$1..style=PaintingStyle.fill,
-        // add a gesture recognizer to the domain
-      );
+      canvas.drawPath(path, paint..color = overview.get_colors(domain.name).$1..style=PaintingStyle.fill);
     
-      myCanvas.drawPath(path, paint..color = Theme.of(context).colorScheme.onSurface..style=PaintingStyle.stroke..strokeWidth = 2.0);
+      canvas.drawPath(path, paint..color = Theme.of(context).colorScheme.onSurface..style=PaintingStyle.stroke..strokeWidth = 2.0);
     }
     // Now, add the name of the domain
     TextPainter painter;

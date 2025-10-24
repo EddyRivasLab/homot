@@ -130,7 +130,7 @@ impl From<&UserValue> for SigCategory{
         item
     }
 }
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ResultsOverview{
     pub num_hits: i32,
     pub num_categories: i32,
@@ -164,6 +164,8 @@ pub struct SearchResults{
     pub depth: u32,
     pub root: i64,
     pub graph: HashMap<i64, Node>,
+    pub results_overview: ResultsOverview,
+    pub hit_lists: Vec<HitList>,
 }
 impl From<&SearchResults> for Slice{
     fn from(val: &SearchResults) ->Self{
@@ -267,12 +269,21 @@ pub fn prune_hitless_nodes(graph: &mut HashMap<i64, Node>, id: i64){
 #[frb(serialize)]
 pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64, dom_eval_max:f64) -> SearchResults{
    // println!("Starting fetch_graph");
+
+    let overview = ResultsOverview{
+        num_hits: 0,
+        num_categories: 0,
+        categories: Vec::new(),
+        domains_contained: Vec::new(),
+    };
     let mut results = SearchResults{
         succeeded: false,
         message: String::from(""),
         depth: 0,
         root: -1,
         graph: HashMap::new(),
+        results_overview: overview,
+        hit_lists: Vec::new(),
     };
 
     // open the database
@@ -361,6 +372,8 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64,
     results.depth = depth;
     results.root = root;
     results.graph = graph;
+    
+    results.hit_lists = Vec::new();
     results
 }
 
