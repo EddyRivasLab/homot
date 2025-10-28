@@ -6,19 +6,9 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `create_domain_id_map`, `get_hits_from_tree`, `read_domtblout`
+// These functions are ignored because they are not marked as `pub`: `build_graph_from_hits`, `count_hits`, `create_domain_id_map`, `get_hits_from_tree`, `read_hits_from_domtblout`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AnnotatedSequence`, `DbDomain`, `Dmap`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
-
-Future<PlatformInt64> countHits({
-  required HashMapI64Node graph,
-  required PlatformInt64 id,
-}) => RustLib.instance.api.crateApiGraphCountHits(graph: graph, id: id);
-
-Future<void> pruneHitlessNodes({
-  required HashMapI64Node graph,
-  required PlatformInt64 id,
-}) => RustLib.instance.api.crateApiGraphPruneHitlessNodes(graph: graph, id: id);
 
 Future<SearchResults> fetchGraph({
   required String annfile,
@@ -36,11 +26,6 @@ HitList fetchHits({
   required Map<PlatformInt64, Node> graph,
   required PlatformInt64 root,
 }) => RustLib.instance.api.crateApiGraphFetchHits(graph: graph, root: root);
-
-Future<ResultsOverview> spoof() => RustLib.instance.api.crateApiGraphSpoof();
-
-// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<HashMap < i64 , Node >>>
-abstract class HashMapI64Node implements RustOpaqueInterface {}
 
 class Domain {
   final String name;
@@ -104,6 +89,7 @@ class Domain {
 class Hit {
   final String name;
   final String sequence;
+  final PlatformInt64 taxid;
   final int seqLength;
   final double seqEvalue;
   final List<Domain> structureDomains;
@@ -113,6 +99,7 @@ class Hit {
   const Hit({
     required this.name,
     required this.sequence,
+    required this.taxid,
     required this.seqLength,
     required this.seqEvalue,
     required this.structureDomains,
@@ -124,6 +111,7 @@ class Hit {
   int get hashCode =>
       name.hashCode ^
       sequence.hashCode ^
+      taxid.hashCode ^
       seqLength.hashCode ^
       seqEvalue.hashCode ^
       structureDomains.hashCode ^
@@ -137,6 +125,7 @@ class Hit {
           runtimeType == other.runtimeType &&
           name == other.name &&
           sequence == other.sequence &&
+          taxid == other.taxid &&
           seqLength == other.seqLength &&
           seqEvalue == other.seqEvalue &&
           structureDomains == other.structureDomains &&
@@ -147,7 +136,7 @@ class Hit {
 class HitList {
   final int numHits;
   final String signature;
-  final List<Hit> hits;
+  final Int64List hits;
 
   const HitList({
     required this.numHits,
@@ -176,7 +165,7 @@ class Node {
   final int ranknum;
   final String name;
   final PlatformInt64 hitsBelow;
-  final List<Hit> hits;
+  final Int64List hits;
   double myArcStart;
   double myArcEnd;
 
@@ -261,6 +250,7 @@ class SearchResults {
   final PlatformInt64 root;
   final Map<PlatformInt64, Node> graph;
   final ResultsOverview resultsOverview;
+  final List<Hit> hits;
   final List<HitList> hitLists;
 
   const SearchResults({
@@ -270,6 +260,7 @@ class SearchResults {
     required this.root,
     required this.graph,
     required this.resultsOverview,
+    required this.hits,
     required this.hitLists,
   });
 
@@ -281,6 +272,7 @@ class SearchResults {
       root.hashCode ^
       graph.hashCode ^
       resultsOverview.hashCode ^
+      hits.hashCode ^
       hitLists.hashCode;
 
   @override
@@ -294,6 +286,7 @@ class SearchResults {
           root == other.root &&
           graph == other.graph &&
           resultsOverview == other.resultsOverview &&
+          hits == other.hits &&
           hitLists == other.hitLists;
 }
 

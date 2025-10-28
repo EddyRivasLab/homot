@@ -610,6 +610,8 @@ class GraphData with ChangeNotifier {
   }
 }
 
+enum PdfUnits{inches, cm}
+
 // ChangeNotifier for input files
 class FileData with ChangeNotifier {
   String _annotationsFile = "";
@@ -618,7 +620,14 @@ class FileData with ChangeNotifier {
   bool _domtbloutFilesSet = false;
   String _annFileDir = ".";
   String _domtbloutFileDir = ".";
-
+  String _pdfFile = "";
+  String _pdfFileDir =".";
+  bool _pdfFileSet = false;
+  double _pdfHeight = 11.0;
+  double _pdfWidth = 8.5;
+  PdfUnits _pdfUnits = PdfUnits.inches;
+  String get pdfFile => _pdfFile;
+  String get pdfFileDir => _pdfFileDir;
   String get annotationsFile => _annotationsFile;
   List<String> get domtbloutFiles => _domtbloutFiles;
   bool get annFileSet => _annFileSet;
@@ -631,6 +640,22 @@ class FileData with ChangeNotifier {
     } else {
       return "Change";
     }
+  }
+  double get pdfHeight => _pdfHeight;
+  double get pdfWidth => _pdfWidth;
+  PdfUnits get pdfUnits => _pdfUnits;
+
+  void set pdfHeight(double height){
+    _pdfHeight = height;
+    notifyListeners();
+  }
+  void set pdfWidth(double width){
+    _pdfWidth = width;
+    notifyListeners();
+  }
+  void set pdfUnits(PdfUnits unit){
+    _pdfUnits = unit;
+    notifyListeners();
   }
   // Don't notify listners after these functions,
   // because we want to make all changes, then trigger a load
@@ -677,7 +702,15 @@ class FileData with ChangeNotifier {
     }
     notifyListeners();
   }
-
+ void setPdfFile(String newFile) {
+    _pdfFile = newFile;
+    _pdfFileSet = true;
+    var splits = newFile.split('/');
+    if(splits.length > 1){
+      _pdfFileDir = splits.getRange(0, splits.length-1).join("/");
+    }
+    notifyListeners();
+  }
 }
 
 // Wrapper that selects the correct menu bar for the platform
@@ -840,39 +873,47 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
     return MenuAnchor(
       menuChildren: <Widget>[
         MenuItemButton(
-          style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary,),
+          style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.onPrimary,),
           onPressed: () {
               showAboutDialog(
                 context: context,
-                applicationName: 'Hmmtax: A taxonomy viewer for HMMER"',
+                applicationName: 'Hmmtax: A taxonomy viewer for HMMER',
                 applicationVersion: '0.0.1',
               );
             },
             child: Text("About",
-              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary,),),
+              style: TextStyle(color: Theme.of(context).colorScheme.primary,),),
         ),
         MenuItemButton(
-            style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary,),
+            style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.onPrimary,),
             onPressed: () {
               showDialog(context: context,
                 builder: (BuildContext context){
                 return AlertDialog(title: const Text("Quit Hmmtax?"),
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  titleTextStyle: TextStyle(color: Theme.of(context).colorScheme.onPrimary,),
+                  backgroundColor: Theme.of(context).colorScheme.onPrimary,
+                  titleTextStyle: TextStyle(color: Theme.of(context).colorScheme.primary,),
                   actions: <Widget>[
                     ElevatedButton(
-                      style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.onPrimary,),
-                      onPressed: (){exit(0);}, child: Text("Quit",style: TextStyle(color: Theme.of(context).colorScheme.primary,),),),
+                      style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary,),
+                      onPressed: (){exit(0);}, child: Text("Quit",style: TextStyle(color: Theme.of(context).colorScheme.onPrimary,),),),
                     ElevatedButton(
-                      style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.onPrimary,),
-                      onPressed:(){Navigator.pop(context,'Cancel');}, child: Text("Cancel", style: TextStyle(color: Theme.of(context).colorScheme.primary,),),),
+                      style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary,),
+                      onPressed:(){Navigator.pop(context,'Cancel');}, child: Text("Cancel", style: TextStyle(color: Theme.of(context).colorScheme.onPrimary,),),),
                     ],
                   );
                 },
               );
             },
             child: Text('Quit Hmmtax',
-            style: TextStyle(color: Theme.of(context).colorScheme.onPrimary,),),
+            style: TextStyle(color: Theme.of(context).colorScheme.primary,),),
+          ),
+        MenuItemButton(
+            style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.onPrimary,),
+            onPressed: () {
+              drawPdfDialog(context);
+            },
+            child: Text('Export to PDF',
+            style: TextStyle(color: Theme.of(context).colorScheme.primary,),),
           ),
       ],
       builder: (BuildContext context, MenuController controller, Widget? child){

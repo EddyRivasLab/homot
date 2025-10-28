@@ -564,7 +564,7 @@ fn read_nodes_dmp(nodesfile: PathBuf, name_map: &HashMap<i64, String>, compresse
     node_map
 }
 fn write_annotated_db(domains: HashMap<String, Vec<Domain>>, clan_map: &HashMap<String, (u16, u16, String)>, 
-    domain_info: &HashMap<String, DomainInfo>, seqfile: PathBuf, tax_map: &HashMap<String, u32>, 
+    domain_info: &HashMap<String, DomainInfo>, seqfile: PathBuf, merged_map: &HashMap<i64, i64>, 
     node_graph: &HashMap<i64, Node>, substitutions: &HashMap<i64, i64>, ofile: String){
     let fp = match File::open(&seqfile){
         Err(why) => panic!("Couldn't open {} for reading: {}", seqfile.display(), why),
@@ -634,25 +634,44 @@ fn write_annotated_db(domains: HashMap<String, Vec<Domain>>, clan_map: &HashMap<
     for result in reader.records(){ // iterate through the records in the sequence file
         // adding their annotation if any
         let sequence = result.expect("Error reading fasta sequence file");
-    
+       // println!("{:?}", sequence.desc());
         let annotations  = match domains.get(sequence.id()){
             Some(vals) => (*vals).clone(),
             None => Vec::new(), //Not all sequences will have domains, so handle this
         };
     
         let accession = sequence.id().to_string().split('|').skip(1).next().unwrap_or("none").to_string();
-        let mut taxid = match tax_map.get(&accession){
+
+        let fields: Vec<&str> = sequence.desc().unwrap_or("none").split_whitespace().collect();
+        let mut taxid: i64 = -1;
+        for field in fields{
+            if field.starts_with("OX="){ // found taxid field
+                let string_taxid = field.split("=").nth(1).unwrap();
+               // let string_taxid = pieces.nth(1).unwrap();
+                taxid = string_taxid.parse::<i64>().unwrap();
+            }
+        }
+
+        if taxid == -1{
+            println!("failed to find taxid for accession {}, description was {:?}", accession, sequence.desc());
+        }
+        /*let mut taxid = match tax_map.get(&accession){
             Some(t) => *t as i64,
             None => {
                 eprintln!("Warning: No taxid found for accession {}, setting to -1", accession);
                 -1 as i64
             }
-        };
-
+        };*/
+        if let Some(mergedid) = merged_map.get(&taxid){
+            // taxid has been merged into another
+            taxid = *mergedid;
+        }
         if let Some(newid) = substitutions.get(&taxid){
             taxid = *newid; // remap to new taxid if needed
         }
-        
+        if !node_graph.contains_key(&taxid){
+            println!("Failed to find taxid {} in graph", taxid);
+        }
         let mut annotated = AnnotatedSequence{
             name: sequence.id().to_string(),
 	    length: sequence.id().len() as u32,
@@ -703,6 +722,32 @@ fn read_names_dmp(namfile: PathBuf) -> HashMap<i64, String>{
     name_map
 }
 
+// Read in a merged.dmp file and create a mapping from old->new id
+fn read_merged_dmp(mergefile: PathBuf) -> HashMap<i64, i64>{
+    let fp = match File::open(&mergefile){
+        Err(why) => panic!("Couldn't open {} for reading: {}", mergefile.display(), why),
+        Ok(file) => file,
+    };
+    let freader = BufReader::new(fp);
+    let mut merge_map:HashMap<i64, i64> = HashMap::new();
+    for name_result in freader.lines(){  
+        let line = match name_result{
+            Err(why) => panic!("Error reading line from {}: {}", mergefile.display(), why),
+            Ok(h) => h,
+        };
+        let fields: Vec<&str> = line.split('|').map(|s| s.trim()).collect();
+        if fields.len() < 2{
+            continue; // skip malformed lines
+        }
+        let oldid:i64 = fields[0].parse().expect("Error converting oldid to number in read_merged_dmp");
+        let newid = fields[1].parse().expect("Error converting newid to number in read_merged_dmp");
+        merge_map.insert(oldid, newid);
+        
+    }
+    merge_map
+}
+
+
 // Define command-line arguments for clap
 #[derive(Parser)]
 #[command(name = "create_annotations")]
@@ -717,7 +762,7 @@ struct Cli {
     /// Clan file mapping domains to clans
     clanfile: String,
     /// Accession to taxid mapping file
-    accessiontotaxidfile: String,
+    merge_dmp: String,
     /// NCBI names.dmp file
     names_dmp: String,
     /// NCBI nodes.dmp file
@@ -745,7 +790,6 @@ fn main() {
     // first, create a hashmap mapping domain names to IDs and clans 
     let clan_map:HashMap<String, (u16, u16, String)> = parse_clanfile(Into::into(cli.clanfile));
     println!("{}ms to parse clan map", now.elapsed().as_millis());
-    let now = Instant::now();
     let domain_info: HashMap<String, DomainInfo> = parse_hmmfile(Into::into(cli.hmmfile));
     let mut dname = cli.domtbldir.clone();
     // Create pattern to match all domtblout files in domtbldir
@@ -756,11 +800,12 @@ fn main() {
         dname.push_str("/*.domtblout");
     }
     println!("Looking for domtblout files in {}", dname);
-    let tax_map: HashMap<String, u32> = parse_taxfile(Into::into(cli.accessiontotaxidfile));
-    println!("{}ms to parse accession to taxid map", now.elapsed().as_millis());
+    let now:Instant = Instant::now();
+    let merge_map: HashMap<i64, i64> = read_merged_dmp(Into::into(cli.merge_dmp));
+   println!("{}ms to create merge map", now.elapsed().as_millis());
     let mut domains:HashMap<String, Vec<Domain>> = HashMap::new();
     let mut dfiles = Vec::new();
-    println!("{}ms to parse HMM file and taxid map", now.elapsed().as_millis());
+    //println!("{}ms to parse HMM file and taxid map", now.elapsed().as_millis());
 
     let now = Instant::now();
     let name_map: HashMap<i64, String> = read_names_dmp(Into::into(cli.names_dmp));
@@ -788,7 +833,7 @@ fn main() {
     println!("{}ms to parse domtblouts", now.elapsed().as_millis());
     now = Instant::now();
 
-    write_annotated_db(domains, &clan_map, &domain_info, cli.seqfile.into(), &tax_map, &node_graph, &substitutions, cli.outfile);
+    write_annotated_db(domains, &clan_map, &domain_info, cli.seqfile.into(), &merge_map, &node_graph, &substitutions, cli.outfile);
     //Write the results to a database
     println!("{}ms to write annotated DB", now.elapsed().as_millis());
     }

@@ -25,7 +25,6 @@
 
 // Section: imports
 
-use crate::api::graph::*;
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
 use flutter_rust_bridge::{Handler, IntoIntoDart};
@@ -38,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1097482285;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 608037223;
 
 // Section: executor
 
@@ -46,59 +45,6 @@ flutter_rust_bridge::frb_generated_default_handler!();
 
 // Section: wire_funcs
 
-fn wire__crate__api__graph__count_hits_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "count_hits",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_graph = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<HashMap<i64, Node>>,
-            >>::sse_decode(&mut deserializer);
-            let api_id = <i64>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| {
-                transform_result_sse::<_, ()>((move || {
-                    let mut api_graph_guard = None;
-                    let decode_indices_ =
-                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
-                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                &api_graph, 0, true,
-                            ),
-                        ]);
-                    for i in decode_indices_ {
-                        match i {
-                            0 => api_graph_guard = Some(api_graph.lockable_decode_sync_ref_mut()),
-                            _ => unreachable!(),
-                        }
-                    }
-                    let mut api_graph_guard = api_graph_guard.unwrap();
-                    let output_ok = Result::<_, ()>::Ok(crate::api::graph::count_hits(
-                        &mut *api_graph_guard,
-                        api_id,
-                    ))?;
-                    Ok(output_ok)
-                })())
-            }
-        },
-    )
-}
 fn wire__crate__api__graph__fetch_graph_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -123,8 +69,8 @@ fn wire__crate__api__graph__fetch_graph_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_annfile = <String>::sse_decode(&mut deserializer);
             let api_domtblout_files = <Vec<String>>::sse_decode(&mut deserializer);
-            let api_eval_max = <f64>::sse_decode(&mut deserializer);
-            let api_dom_eval_max = <f64>::sse_decode(&mut deserializer);
+            let api_eval_max = <f32>::sse_decode(&mut deserializer);
+            let api_dom_eval_max = <f32>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, ()>((move || {
@@ -238,96 +184,6 @@ fn wire__crate__api__simple__init_app_impl(
         },
     )
 }
-fn wire__crate__api__graph__prune_hitless_nodes_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "prune_hitless_nodes",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_graph = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<HashMap<i64, Node>>,
-            >>::sse_decode(&mut deserializer);
-            let api_id = <i64>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| {
-                transform_result_sse::<_, ()>((move || {
-                    let mut api_graph_guard = None;
-                    let decode_indices_ =
-                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
-                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                &api_graph, 0, true,
-                            ),
-                        ]);
-                    for i in decode_indices_ {
-                        match i {
-                            0 => api_graph_guard = Some(api_graph.lockable_decode_sync_ref_mut()),
-                            _ => unreachable!(),
-                        }
-                    }
-                    let mut api_graph_guard = api_graph_guard.unwrap();
-                    let output_ok = Result::<_, ()>::Ok({
-                        crate::api::graph::prune_hitless_nodes(&mut *api_graph_guard, api_id);
-                    })?;
-                    Ok(output_ok)
-                })())
-            }
-        },
-    )
-}
-fn wire__crate__api__graph__spoof_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "spoof",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
-            move |context| {
-                transform_result_sse::<_, ()>((move || {
-                    let output_ok = Result::<_, ()>::Ok(crate::api::graph::spoof())?;
-                    Ok(output_ok)
-                })())
-            }
-        },
-    )
-}
-
-// Section: related_funcs
-
-flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
-    flutter_rust_bridge::for_generated::RustAutoOpaqueInner<HashMap<i64, Node>>
-);
 
 // Section: dart2rust
 
@@ -336,16 +192,6 @@ impl SseDecode for std::collections::HashMap<i64, crate::api::graph::Node> {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <Vec<(i64, crate::api::graph::Node)>>::sse_decode(deserializer);
         return inner.into_iter().collect();
-    }
-}
-
-impl SseDecode
-    for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<HashMap<i64, Node>>>
-{
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut inner = <usize>::sse_decode(deserializer);
-        return decode_rust_opaque_moi(inner);
     }
 }
 
@@ -394,6 +240,13 @@ impl SseDecode for crate::api::graph::Domain {
     }
 }
 
+impl SseDecode for f32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_f32::<NativeEndian>().unwrap()
+    }
+}
+
 impl SseDecode for f64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -406,6 +259,7 @@ impl SseDecode for crate::api::graph::Hit {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_sequence = <String>::sse_decode(deserializer);
+        let mut var_taxid = <i64>::sse_decode(deserializer);
         let mut var_seqLength = <u32>::sse_decode(deserializer);
         let mut var_seqEvalue = <f64>::sse_decode(deserializer);
         let mut var_structureDomains = <Vec<crate::api::graph::Domain>>::sse_decode(deserializer);
@@ -414,6 +268,7 @@ impl SseDecode for crate::api::graph::Hit {
         return crate::api::graph::Hit {
             name: var_name,
             sequence: var_sequence,
+            taxid: var_taxid,
             seq_length: var_seqLength,
             seq_evalue: var_seqEvalue,
             structure_domains: var_structureDomains,
@@ -428,7 +283,7 @@ impl SseDecode for crate::api::graph::HitList {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_numHits = <i32>::sse_decode(deserializer);
         let mut var_signature = <String>::sse_decode(deserializer);
-        let mut var_hits = <Vec<crate::api::graph::Hit>>::sse_decode(deserializer);
+        let mut var_hits = <Vec<i64>>::sse_decode(deserializer);
         return crate::api::graph::HitList {
             num_hits: var_numHits,
             signature: var_signature,
@@ -557,7 +412,7 @@ impl SseDecode for crate::api::graph::Node {
         let mut var_ranknum = <u32>::sse_decode(deserializer);
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_hitsBelow = <i64>::sse_decode(deserializer);
-        let mut var_hits = <Vec<crate::api::graph::Hit>>::sse_decode(deserializer);
+        let mut var_hits = <Vec<i64>>::sse_decode(deserializer);
         let mut var_myArcStart = <f64>::sse_decode(deserializer);
         let mut var_myArcEnd = <f64>::sse_decode(deserializer);
         return crate::api::graph::Node {
@@ -611,6 +466,7 @@ impl SseDecode for crate::api::graph::SearchResults {
             <std::collections::HashMap<i64, crate::api::graph::Node>>::sse_decode(deserializer);
         let mut var_resultsOverview =
             <crate::api::graph::ResultsOverview>::sse_decode(deserializer);
+        let mut var_hits = <Vec<crate::api::graph::Hit>>::sse_decode(deserializer);
         let mut var_hitLists = <Vec<crate::api::graph::HitList>>::sse_decode(deserializer);
         return crate::api::graph::SearchResults {
             succeeded: var_succeeded,
@@ -619,6 +475,7 @@ impl SseDecode for crate::api::graph::SearchResults {
             root: var_root,
             graph: var_graph,
             results_overview: var_resultsOverview,
+            hits: var_hits,
             hit_lists: var_hitLists,
         };
     }
@@ -657,13 +514,6 @@ impl SseDecode for () {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {}
 }
 
-impl SseDecode for usize {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        deserializer.cursor.read_u64::<NativeEndian>().unwrap() as _
-    }
-}
-
 fn pde_ffi_dispatcher_primary_impl(
     func_id: i32,
     port: flutter_rust_bridge::for_generated::MessagePort,
@@ -673,11 +523,8 @@ fn pde_ffi_dispatcher_primary_impl(
 ) {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        1 => wire__crate__api__graph__count_hits_impl(port, ptr, rust_vec_len, data_len),
-        2 => wire__crate__api__graph__fetch_graph_impl(port, ptr, rust_vec_len, data_len),
-        5 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
-        6 => wire__crate__api__graph__prune_hitless_nodes_impl(port, ptr, rust_vec_len, data_len),
-        7 => wire__crate__api__graph__spoof_impl(port, ptr, rust_vec_len, data_len),
+        1 => wire__crate__api__graph__fetch_graph_impl(port, ptr, rust_vec_len, data_len),
+        4 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -690,8 +537,8 @@ fn pde_ffi_dispatcher_sync_impl(
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        3 => wire__crate__api__graph__fetch_hits_impl(ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
+        2 => wire__crate__api__graph__fetch_hits_impl(ptr, rust_vec_len, data_len),
+        3 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -729,6 +576,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::graph::Hit {
         [
             self.name.into_into_dart().into_dart(),
             self.sequence.into_into_dart().into_dart(),
+            self.taxid.into_into_dart().into_dart(),
             self.seq_length.into_into_dart().into_dart(),
             self.seq_evalue.into_into_dart().into_dart(),
             self.structure_domains.into_into_dart().into_dart(),
@@ -818,6 +666,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::graph::SearchResults {
             self.root.into_into_dart().into_dart(),
             self.graph.into_into_dart().into_dart(),
             self.results_overview.into_into_dart().into_dart(),
+            self.hits.into_into_dart().into_dart(),
             self.hit_lists.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -864,17 +713,6 @@ impl SseEncode for std::collections::HashMap<i64, crate::api::graph::Node> {
     }
 }
 
-impl SseEncode
-    for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<HashMap<i64, Node>>>
-{
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        let (ptr, size) = self.sse_encode_raw();
-        <usize>::sse_encode(ptr, serializer);
-        <i32>::sse_encode(size, serializer);
-    }
-}
-
 impl SseEncode for String {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -906,6 +744,13 @@ impl SseEncode for crate::api::graph::Domain {
     }
 }
 
+impl SseEncode for f32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_f32::<NativeEndian>(self).unwrap();
+    }
+}
+
 impl SseEncode for f64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -918,6 +763,7 @@ impl SseEncode for crate::api::graph::Hit {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.name, serializer);
         <String>::sse_encode(self.sequence, serializer);
+        <i64>::sse_encode(self.taxid, serializer);
         <u32>::sse_encode(self.seq_length, serializer);
         <f64>::sse_encode(self.seq_evalue, serializer);
         <Vec<crate::api::graph::Domain>>::sse_encode(self.structure_domains, serializer);
@@ -931,7 +777,7 @@ impl SseEncode for crate::api::graph::HitList {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.num_hits, serializer);
         <String>::sse_encode(self.signature, serializer);
-        <Vec<crate::api::graph::Hit>>::sse_encode(self.hits, serializer);
+        <Vec<i64>>::sse_encode(self.hits, serializer);
     }
 }
 
@@ -1039,7 +885,7 @@ impl SseEncode for crate::api::graph::Node {
         <u32>::sse_encode(self.ranknum, serializer);
         <String>::sse_encode(self.name, serializer);
         <i64>::sse_encode(self.hits_below, serializer);
-        <Vec<crate::api::graph::Hit>>::sse_encode(self.hits, serializer);
+        <Vec<i64>>::sse_encode(self.hits, serializer);
         <f64>::sse_encode(self.my_arc_start, serializer);
         <f64>::sse_encode(self.my_arc_end, serializer);
     }
@@ -1074,6 +920,7 @@ impl SseEncode for crate::api::graph::SearchResults {
             self.graph, serializer,
         );
         <crate::api::graph::ResultsOverview>::sse_encode(self.results_overview, serializer);
+        <Vec<crate::api::graph::Hit>>::sse_encode(self.hits, serializer);
         <Vec<crate::api::graph::HitList>>::sse_encode(self.hit_lists, serializer);
     }
 }
@@ -1106,16 +953,6 @@ impl SseEncode for () {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {}
 }
 
-impl SseEncode for usize {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        serializer
-            .cursor
-            .write_u64::<NativeEndian>(self as _)
-            .unwrap();
-    }
-}
-
 #[cfg(not(target_family = "wasm"))]
 mod io {
     // This file is automatically generated, so please do not edit it.
@@ -1124,7 +961,6 @@ mod io {
     // Section: imports
 
     use super::*;
-    use crate::api::graph::*;
     use flutter_rust_bridge::for_generated::byteorder::{
         NativeEndian, ReadBytesExt, WriteBytesExt,
     };
@@ -1134,20 +970,6 @@ mod io {
     // Section: boilerplate
 
     flutter_rust_bridge::frb_generated_boilerplate_io!();
-
-    #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_hmmtax_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHashMapi64Node(
-        ptr: *const std::ffi::c_void,
-    ) {
-        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<HashMap < i64 , Node >>>::increment_strong_count(ptr as _);
-    }
-
-    #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_hmmtax_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHashMapi64Node(
-        ptr: *const std::ffi::c_void,
-    ) {
-        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<HashMap < i64 , Node >>>::decrement_strong_count(ptr as _);
-    }
 }
 #[cfg(not(target_family = "wasm"))]
 pub use io::*;
@@ -1161,7 +983,6 @@ mod web {
     // Section: imports
 
     use super::*;
-    use crate::api::graph::*;
     use flutter_rust_bridge::for_generated::byteorder::{
         NativeEndian, ReadBytesExt, WriteBytesExt,
     };
@@ -1173,20 +994,6 @@ mod web {
     // Section: boilerplate
 
     flutter_rust_bridge::frb_generated_boilerplate_web!();
-
-    #[wasm_bindgen]
-    pub fn rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHashMapi64Node(
-        ptr: *const std::ffi::c_void,
-    ) {
-        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<HashMap < i64 , Node >>>::increment_strong_count(ptr as _);
-    }
-
-    #[wasm_bindgen]
-    pub fn rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHashMapi64Node(
-        ptr: *const std::ffi::c_void,
-    ) {
-        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<HashMap < i64 , Node >>>::decrement_strong_count(ptr as _);
-    }
 }
 #[cfg(target_family = "wasm")]
 pub use web::*;
