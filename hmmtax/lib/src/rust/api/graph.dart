@@ -6,9 +6,9 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `build_graph_from_hits`, `count_hits`, `create_domain_id_map`, `get_hits_from_tree`, `read_hits_from_domtblout`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AnnotatedSequence`, `DbDomain`, `Dmap`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These functions are ignored because they are not marked as `pub`: `build_graph_from_hits`, `compute_signatures`, `count_hits`, `create_domain_id_map`, `create_domain_list`, `domains_to_structure`, `read_hits_from_domtblout`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AnnotatedSequence`, `DbDomain`, `Dmap`, `ResultsOverview`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 Future<SearchResults> fetchGraph({
   required String annfile,
@@ -22,10 +22,28 @@ Future<SearchResults> fetchGraph({
   domEvalMax: domEvalMax,
 );
 
-HitList fetchHits({
-  required Map<PlatformInt64, Node> graph,
+List<SigCategory> findHitsBelowNode({
   required PlatformInt64 root,
-}) => RustLib.instance.api.crateApiGraphFetchHits(graph: graph, root: root);
+  required Map<PlatformInt64, Node> graph,
+  required List<int> hitStructures,
+}) => RustLib.instance.api.crateApiGraphFindHitsBelowNode(
+  root: root,
+  graph: graph,
+  hitStructures: hitStructures,
+);
+
+Future<void> collectHits({
+  required PlatformInt64 root,
+  required Map<PlatformInt64, Node> graph,
+  required VecI64 hits,
+}) => RustLib.instance.api.crateApiGraphCollectHits(
+  root: root,
+  graph: graph,
+  hits: hits,
+);
+
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Vec < i64 >>>
+abstract class VecI64 implements RustOpaqueInterface {}
 
 class Domain {
   final String name;
@@ -133,30 +151,6 @@ class Hit {
           queries == other.queries;
 }
 
-class HitList {
-  final int numHits;
-  final String signature;
-  final Int64List hits;
-
-  const HitList({
-    required this.numHits,
-    required this.signature,
-    required this.hits,
-  });
-
-  @override
-  int get hashCode => numHits.hashCode ^ signature.hashCode ^ hits.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is HitList &&
-          runtimeType == other.runtimeType &&
-          numHits == other.numHits &&
-          signature == other.signature &&
-          hits == other.hits;
-}
-
 class Node {
   final PlatformInt64 taxid;
   final PlatformInt64 parent;
@@ -212,46 +206,17 @@ class Node {
           myArcEnd == other.myArcEnd;
 }
 
-class ResultsOverview {
-  final int numHits;
-  final int numCategories;
-  final List<SigCategory> categories;
-  final List<String> domainsContained;
-
-  const ResultsOverview({
-    required this.numHits,
-    required this.numCategories,
-    required this.categories,
-    required this.domainsContained,
-  });
-
-  @override
-  int get hashCode =>
-      numHits.hashCode ^
-      numCategories.hashCode ^
-      categories.hashCode ^
-      domainsContained.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is ResultsOverview &&
-          runtimeType == other.runtimeType &&
-          numHits == other.numHits &&
-          numCategories == other.numCategories &&
-          categories == other.categories &&
-          domainsContained == other.domainsContained;
-}
-
 class SearchResults {
   final bool succeeded;
   final String message;
   final int depth;
   final PlatformInt64 root;
   final Map<PlatformInt64, Node> graph;
-  final ResultsOverview resultsOverview;
   final List<Hit> hits;
-  final List<HitList> hitLists;
+  final Uint32List hitStructures;
+  final List<String> structures;
+  final List<String> domainsContained;
+  final List<SigCategory> rootHits;
 
   const SearchResults({
     required this.succeeded,
@@ -259,9 +224,11 @@ class SearchResults {
     required this.depth,
     required this.root,
     required this.graph,
-    required this.resultsOverview,
     required this.hits,
-    required this.hitLists,
+    required this.hitStructures,
+    required this.structures,
+    required this.domainsContained,
+    required this.rootHits,
   });
 
   @override
@@ -271,9 +238,11 @@ class SearchResults {
       depth.hashCode ^
       root.hashCode ^
       graph.hashCode ^
-      resultsOverview.hashCode ^
       hits.hashCode ^
-      hitLists.hashCode;
+      hitStructures.hashCode ^
+      structures.hashCode ^
+      domainsContained.hashCode ^
+      rootHits.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -285,31 +254,27 @@ class SearchResults {
           depth == other.depth &&
           root == other.root &&
           graph == other.graph &&
-          resultsOverview == other.resultsOverview &&
           hits == other.hits &&
-          hitLists == other.hitLists;
+          hitStructures == other.hitStructures &&
+          structures == other.structures &&
+          domainsContained == other.domainsContained &&
+          rootHits == other.rootHits;
 }
 
 class SigCategory {
-  final int numHits;
-  final String signature;
-  final Hit example;
+  final int signature;
+  final Int64List hits;
 
-  const SigCategory({
-    required this.numHits,
-    required this.signature,
-    required this.example,
-  });
+  const SigCategory({required this.signature, required this.hits});
 
   @override
-  int get hashCode => numHits.hashCode ^ signature.hashCode ^ example.hashCode;
+  int get hashCode => signature.hashCode ^ hits.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is SigCategory &&
           runtimeType == other.runtimeType &&
-          numHits == other.numHits &&
           signature == other.signature &&
-          example == other.example;
+          hits == other.hits;
 }

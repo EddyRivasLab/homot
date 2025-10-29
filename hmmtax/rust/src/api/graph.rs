@@ -8,7 +8,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use dashmap::DashMap;
 use std::time::{Instant};
-
+use std::cmp::Reverse;
 
 #[derive(Clone, Serialize, Deserialize)]
 struct Dmap{
@@ -114,9 +114,8 @@ impl From<&UserValue> for Hit{
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SigCategory{
-    pub num_hits: i32,
-    pub signature: String,
-    pub example: Hit, 
+    pub signature: u32,  // index into structures vector in SearchResults 
+    pub hits: Vec<i64>,  // Must be sorted in ascending order by e-value so that the first item in the vector is the example hit
   }
 
 
@@ -141,34 +140,17 @@ pub struct ResultsOverview{
   }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct HitList{
-    pub num_hits: i32,
-    pub signature: String,
-    pub hits: Vec<i64>,
-}
-impl From<&HitList> for Slice{
-    fn from(val: &HitList) ->Self{
-        rmp_serde::to_vec(&val).expect("Serialization error for SearchResults").into()
-    }
-}
-impl From<&UserValue> for HitList{
-    fn from(value: &UserValue) -> Self{
-        let item: HitList = rmp_serde::from_slice(&value).expect("Deserialization error for SearchResults");
-        item
-    }
-}
-
-
-#[derive(Serialize, Deserialize, Clone)]
 pub struct SearchResults{
     pub succeeded: bool,
     pub message: String,
     pub depth: u32,
     pub root: i64,
     pub graph: HashMap<i64, Node>,
-    pub results_overview: ResultsOverview,
     pub hits: Vec<Hit>,
-    pub hit_lists: Vec<HitList>,
+    pub hit_structures: Vec<u32>, // Which structure does each hit have
+    pub structures: Vec<String>, // list of strings describing the domain structures of the hits
+    pub domains_contained: Vec<String>,
+    pub root_hits: Vec<SigCategory>
 }
 impl From<&SearchResults> for Slice{
     fn from(val: &SearchResults) ->Self{
@@ -234,7 +216,7 @@ impl From<&UserValue> for AnnotatedSequence{
 fn count_hits(graph: &mut HashMap<i64, Node>, id: i64) -> i64 {
     let mut total: i64=0;   
     let children: Vec<i64>;
-    if let Some(mut node) = graph.get_mut(&id) {
+    if let Some(node) = graph.get(&id) {
         total += node.hits.len() as i64;
         children = node.children.clone();
 
@@ -259,12 +241,6 @@ fn count_hits(graph: &mut HashMap<i64, Node>, id: i64) -> i64 {
 pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32, dom_eval_max:f32) -> SearchResults{
    // println!("Starting fetch_graph");
 
-    let overview = ResultsOverview{
-        num_hits: 0,
-        num_categories: 0,
-        categories: Vec::new(),
-        domains_contained: Vec::new(),
-    };
     let mut results = SearchResults{
         succeeded: false,
         message: String::from(""),
@@ -272,8 +248,10 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
         root: -1,
         graph: HashMap::new(),
         hits: Vec::new(),
-        results_overview: overview,
-        hit_lists: Vec::new(),
+        hit_structures: Vec::new(),
+        structures: Vec::new(),
+        domains_contained: Vec::new(),
+        root_hits: Vec::new(),
     };
 
     // open the database
@@ -316,7 +294,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
     };
 
 
-    let (domain_map, _domain_info): (HashMap<u16, Dmap>, HashMap<String, Dmap>) = match create_domain_id_map(&domain_db){
+    let (domain_map) = match create_domain_id_map(&domain_db){
         Ok(v) => v,
         Err(msg) => {
             results.message = "Couldn't create domain ID to name map from annotations database.  Error was: ".to_string() + &msg.to_string();
@@ -363,7 +341,11 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
 
     print!("{}ms to create sorted vector of hits", now.elapsed().as_millis());
 
-    match build_graph_from_hits(hits, &graph_db){
+    // create the list of domains hit so that we can assign colors
+    results.domains_contained = create_domain_list(&hits);
+
+    let now:Instant = Instant::now();
+    match build_graph_from_hits(&hits, &graph_db){
         Ok(v) =>{
             graph = v.0;
             depth = v.1;
@@ -375,16 +357,19 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
             },
         
     }
+    println!("{}ms to build graph from hits", now.elapsed().as_millis());
     print!("root = {}, depth= {}", root, depth);
     let total_hits = count_hits(&mut graph, root);
 
     println!("Hits in domtbl(s): {}, in graph: {}",num_domtbl_hits, total_hits);
+
+    (results.structures, results.hit_structures) = compute_signatures(&hits);
     results.succeeded = true;
     results.message = "Successfully read database".to_string();
     results.depth = depth;
     results.root = root;
     results.graph = graph.into_iter().collect::<HashMap<i64, Node>>(); // Convert the DashMap into a HashMap that Dart understands.
-    results.hit_lists = Vec::new();
+    results.hits = hits;
     results
 }
 
@@ -621,7 +606,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
 
 // Assumes the hits vector is sorted in ascending order by e-value
 // builds a graph from the list of hits
-fn build_graph_from_hits(hits: Vec<Hit>, graph_db: &PartitionHandle)-> Result<(HashMap<i64, Node>, u32, i64), String> {
+fn build_graph_from_hits(hits: &Vec<Hit>, graph_db: &PartitionHandle)-> Result<(HashMap<i64, Node>, u32, i64), String> {
     let mut root:i64 = MAX;
     let mut depth: u32 = 0;
     let mut ret_graph:HashMap<i64, Node> = HashMap::new();
@@ -693,303 +678,147 @@ fn build_graph_from_hits(hits: Vec<Hit>, graph_db: &PartitionHandle)-> Result<(H
 }
 
 
-
-/* 
-// Function that reads a domtblout file and adds the hits to the graph
-fn read_domtblout(filename: &str, old_root: i64,  graph: &mut DashMap<i64, Node>,  hits: &mut Vec<Hit>, max_seq_evalue: f32, max_dom_evalue: f32, db: &PartitionHandle,
-    graph_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap>) -> Result<(i64, u32, i64), String> {
-
-    let mut depth = 0;
-    let mut root: i64 = old_root;
-   // println!("starting read_domtblout, max_seq_evalue is {}, max_dom_evalue is {}", max_seq_evalue, max_dom_evalue);
-    let file = match File::open(filename){
-        Ok(f) => f,
-        Err(e) => {
-            return Err(format!("Error opening domtblout file {}: {}", filename, e));
-        }
-    };
-    
-    let reader = BufReader::with_capacity(1024*1024, file);
-    let mut hit_count: i64 = 0;
-    for l in reader.lines() {
-        let line = match l{
-            Err(e) => return Err(format!("Error reading line in file {}: {}", filename, e)),
-            Ok(l) => l,
-        };
-        if line.starts_with('#') {
-            continue; // Skip comment lines
-        }
-     //   println!("Examining line {}", line);
-        let fields: Vec<&str> = line.split_whitespace().collect();
-        if fields.len() < 23 {
-            return Err(format!("Malformed line in file {}: {}", filename, line));
-        }
-
-        let target_name = fields[0].to_string();
-        let query_name = fields[3].to_string();
-        let hmm_length:u32 = match fields[5].parse(){
-                Err(_) => {
-                    return Err(format!("Error converting hmmlength field of {}  to number.", fields[5]));
-
-                }
-                Ok(v) => v,
-            };
-        let seq_evalue: f32 = match fields[6].parse(){
-            Ok(v) => v,
-            Err(e) => return Err(format!("Error parsing seq_evalue in file {}: {}", filename, e)),
-        };
-
-        let seq_start: u32 = match fields[17].parse(){
-            Ok(v) => v,
-            Err(e) => return Err(format!("Error parsing seq_start in file {}: {}", filename, e)),
-        };
-        
-        let seq_end: u32 = match fields[18].parse(){
-            Ok(v) => v,
-            Err(e) => return Err(format!("Error parsing seq_end in file {}: {}", filename, e)),
-        }; 
-
-        let hmm_start: u32 = match fields[15].parse(){
-            Ok(v) => v,
-            Err(e) => return Err(format!("Error parsing hmm_start in file {}: {}", filename, e)),
-        };
-
-        let hmm_end: u32 = match fields[16].parse(){
-            Ok(v) => v,
-            Err(e) => return Err(format!("Error parsing hmm_end in file {}: {}", filename, e)),
-        };
-
-        let dom_evalue: f32= match fields[12].parse(){
-            Ok(v) => v,
-            Err(e) => return Err(format!("Error parsing dom_evalue in file {}: {}", filename, e)),
-        };
-     //   println!("seq_evalue = {}, dom_evalue = {}", seq_evalue, dom_evalue);
-        if seq_evalue <= max_seq_evalue && dom_evalue <= max_dom_evalue{ // This is a reportable hit
-            // get the annotated sequence from the db that corresponds to the target
-          //  println!("Found hit in domtblout");
-            let res1 = match db.get(&target_name){
-                Err(why) => {
-                    return Err(format!("Error fetching sequence {} from annotation database, reason was: {}", target_name, why));
-                }
-                Ok(d) => d,
-            };
-            let seq_ann: AnnotatedSequence = match res1{
-                Some(d) => match rmp_serde::from_slice(&d){
-                    Ok(d) => d,
-                    Err(msg) => {
-                     return Err(format!("Deserialization error for Annotated Sequence, reason was: {}" , &msg.to_string()));
-                    },
-                },
-                None => {let mut fake_sequence = AnnotatedSequence{
-                        name: target_name.clone(),
-                        sequence: "No annotation data found".to_string(),
-                        length: 0, // This is a fake sequence, not in the database
-                        taxid: 1,  // root node if using NCBI taxonomy, figure out a better plan later
-                        domains: Vec::new(),
-                        structure_domains: Vec::new(),
-                        real: false, // This is a fake sequence, not in the database
-                        };
-                    
-                        let struct_domain = DbDomain{
-                            domain: 0xffff,
-                            clan: 0xffff,
-                            alifrom: 1,
-                            alito: 1,
-                            hmmfrom: 1,
-                            hmmto: 1,
-                            eval: 0.0,
-                            full_match_start: true,
-                            full_match_end: true,
-                        };
-                        let all_domain = struct_domain.clone();
-                        fake_sequence.domains.push(all_domain);
-                        fake_sequence.structure_domains.push(struct_domain);
-                        fake_sequence
-                
-                    },
-            };
-            if seq_ann.taxid < root{
-                root = seq_ann.taxid;
-            }
-       //     println!("Hit had taxid {}", seq_ann.taxid);
-            // Create a new Hit and Domain for the hit
-            let domain = Domain {
-                name: query_name.clone(),
-                clan: String::new(), // Clan information not available in domtblout
-                description: String::new(), // Description information not available in domtblout
-                hmm_length: hmm_length,  // HMM length not available in domtblout
-                seq_start: seq_start,
-                seq_end: seq_end,
-                hmm_start: hmm_start,
-                hmm_end: hmm_end, 
-                dom_evalue: dom_evalue as f64,
-                full_match_start: hmm_start == 1,
-                full_match_end: hmm_end==hmm_length,
-            };
-
-            let mut our_domains = Vec::new();
-                for db_domain in seq_ann.domains{
-                    let ddata =match domain_map.get(&db_domain.domain) {
-                        None => Dmap{
-                            domain: 0xffff,
-                            name: "No annotation data available".to_string(),
-                            description: "No annotation data available".to_string(),
-                            clan_name: "No annotation data available".to_string(),
-                            hmm_length: 0,
-                        },
-                        Some(v) => v.clone(),
-                    };
-                    let the_domain = Domain{
-                        name: ddata.name,
-                        hmm_length: ddata.hmm_length,
-                        clan: ddata.clan_name,
-                        description: ddata.description,
-                        seq_start: db_domain.alifrom,
-                        seq_end: db_domain.alito,
-                        hmm_start: db_domain.hmmfrom,
-                        hmm_end: db_domain.hmmto,
-                        dom_evalue: f64::from(db_domain.eval),
-                        full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
-                        full_match_end: db_domain.full_match_end,
-                    };
-                    our_domains.push(the_domain);
-                }
-
-                let mut structure_domains = Vec::new();
-                for db_domain in seq_ann.structure_domains{
-                    let ddata =match domain_map.get(&db_domain.domain) {
-                        None => Dmap{
-                            domain: 0xffff,
-                            name: "No annotation data available".to_string(),
-                            description: "No annotation data available".to_string(),
-                            clan_name: "No annotation data available".to_string(),
-                            hmm_length: 0,
-                        },
-                        Some(v) => v.clone(),
-                    };
-                    let the_domain = Domain{
-                        name: ddata.name,
-                        seq_start: db_domain.alifrom,
-                        seq_end: db_domain.alito,
-                        hmm_start: db_domain.hmmfrom,
-                        hmm_end: db_domain.hmmto,
-                        clan: ddata.clan_name,
-                        description: ddata.description,
-                        hmm_length: ddata.hmm_length,
-                        dom_evalue: f64::from(db_domain.eval),
-                        full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
-                        full_match_end: db_domain.full_match_end,
-                    };
-                    structure_domains.push(the_domain);
-                }
-            let hit = Hit {
-                name: target_name.clone(),
-                sequence: String::new(), // Sequence information not available in domtblout
-                seq_length: seq_ann.sequence.len() as u32,  // Sequence length not available in domtblout
-                seq_evalue: seq_evalue as f64,
-                structure_domains: structure_domains,
-                domains: our_domains, // For simplicity, just include the one domain
-                queries: vec![domain.clone()],
-            };
-
-            if graph.contains_key(&seq_ann.taxid){ // simple case, just add this hit to the node in the graph
-                let mut node = graph.get_mut(&seq_ann.taxid).unwrap();
-                node.hits.push(hit);
-                if node.ranknum >= depth{ // assume ranknum zero-indexed
-                    depth = node.ranknum+1;
+// Given a list of the sequences one or more searches hit, creates a list of the domains that the search hit, sorted by
+// descending order of number of hits to the domain
+fn create_domain_list(hits: &Vec<Hit>) -> Vec<String>{
+    let mut domain_map:HashMap<String, u64> = HashMap::new();
+    for hit in hits{
+        for domain in &hit.queries{ // Count all the queries that hit the sequence
+            match domain_map.get_mut(&domain.name){
+                Some(v) => *v += 1,
+                None => {
+                    domain_map.insert(domain.name.clone(), 1);
                 }
             }
-            else{ // Need to fetch the appropriate node and possibly all its parents from the graph db
-                let res1 = match graph_db.get(&seq_ann.taxid.to_string()){
-                    Err(why) => return Err(format!("Error looking up taxid {} in graph DB, reason was: {}", seq_ann.taxid, why)),
-                    Ok(d) => d,
-                };
-                let mut node: Node = match res1{
-                    Some(d) => match rmp_serde::from_slice(&d){
-                            Ok(d) => d,
-                            Err(msg) => return Err(format!("Error deserializing graph node, message was {}.", msg)),
-                        },
-                    None => return Err(format!("Couldn't find taxid {} in node DB", seq_ann.taxid)),
-                };
-                if node.ranknum >= depth {
-                    depth = node.ranknum+1;
+        }
+        for domain in &hit.domains{ // Count all the domains that hit the sequence
+            match domain_map.get_mut(&domain.name){
+                Some(v) => *v += 1,
+                None => {
+                    domain_map.insert(domain.name.clone(), 1);
                 }
-                node.children = Vec::new(); // we'll build new children list as we go for the pruned DB
-                node.hits = vec![hit];
-                graph.insert(seq_ann.taxid, node.clone());
-    //            println!("Adding taxid {} to graph in main step", seq_ann.taxid);
-
-                // Now, make sure all of the node's parents are in the graph
-                while !graph.contains_key(&node.parent){
-                    let res1 = match graph_db.get(node.parent.to_string()){
-                    Err(why) => return Err(format!("Error looking up taxid {} in graph DB, reason was: {}", seq_ann.taxid, why)),
-                    Ok(d) => d,
-                    };
-                    let mut parent: Node = match res1{
-                        Some(d) => match rmp_serde::from_slice(&d){
-                                Ok(d) => d,
-                                Err(msg) => return Err(format!("Error deserializing graph node, message was {}.", msg)),
-                        },
-                        None => return Err(format!("Couldn't find taxid {} in node DB", seq_ann.taxid)),
-                    };
-                    if parent.taxid < root{
-                        root = parent.taxid;
-                    }
-                    parent.children = vec!(node.taxid); // we'll build the pruned tree as we go
-                    parent.hits = Vec::new(); // Make sure this is empty to start with
-                    graph.insert(parent.taxid, parent.clone());
-     //               println!("Adding taxid {} to graph in parent chain", parent.taxid);
-                    node = parent;  // on to the next level up
-                }
-
-                //When we get here, either we've found some ancestor of the node or we've hit the root.
-                if node.parent != node.taxid{ // we aren't at the root, but we know that the parent node is in the graph 
-                    let mut parent = graph.get_mut(&node.parent).unwrap();
-                    parent.children.push(node.taxid); // add the node to the parent's child list 
-                }   
             }
-
-            hit_count += 1;
         }
     }
-    Ok((hit_count, depth, root))
+
+
+    let mut domains:Vec<(String, u64)> = domain_map.into_iter().collect();
+    domains.sort_by_key(|x| Reverse(x.1));
+    let mut result = Vec::new();
+    for (name, _) in domains{
+        result.push(name);
+    }
+    result
 }
-*/
+
+
+// Generates a string representing the domain structure of a sequence
+// Requires that the domains in its input vector are sorted in ascending 
+// order by start position within the sequence
+fn domains_to_structure(domains: &Vec<Domain>)->String{
+    if domains.len() == 0{
+        // sequence contained no standard domains
+        return "None".to_string();
+       //println!("Warning: sequence contained no standard domains, returning 'None' as structure");
+    }
+
+    let mut structure = "".to_string();
+    for domain in domains{
+        if structure != ""{
+            // There's already at least one domain in it
+            structure.push_str(", ");
+        }
+        structure.push_str(&domain.name);
+    }
+    structure    
+}
+
+// Given a list of hits, finds the set of domain signatures for those hits and creates a string 
+// describing each domain signature.  Returns those signatures.
+// Assigns each hit to a signature, represented as an index into the array of signatures and returns that. 
+fn compute_signatures(hits: &Vec<Hit>) -> (Vec<String>, Vec<u32>){
+    let mut hit_map:HashMap<String, u32> = HashMap::new();
+    let mut structures:Vec<String> = Vec::new();
+    let mut hit_structures:Vec<u32> = Vec::new();
+    let mut current_signature:u32= 0;
+
+    for hit in hits{
+        let structure = domains_to_structure(&hit.structure_domains);
+        match hit_map.get(&structure){
+            Some(sig_number) => { // We already have a category for this signature, so assign the hit to that category
+                hit_structures.push(*sig_number);
+            },
+            None=> { // need to create a now category
+                hit_map.insert(structure.clone(), current_signature); // use hash_map for fast searching
+                structures.push(structure); // keep ordered list of structure strings
+                hit_structures.push(current_signature); // assign the hit to the new category
+                current_signature +=1;
+            }
+        }
+    }
+
+    // sanity check
+    assert!(hits.len() == hit_structures.len());  // should be one hit_structure for every hit
+    assert!(hit_map.len() == current_signature as usize);  // number of structures should equal the number of the next structure we'd create
+    // even if there are no hits in the list
+    // This should work even if none of the hits have domain structures    
+
+
+(structures, hit_structures)
+}
+
+
+// Given a graph, the root of the sub-tree to examine, and a list of the structure numbers for each hit, 
+// finds all of the hits to nodes at or below the root and organizes them into categories by domain structure.
+// The resulting Vec<SigCategory> is sorted in descending order by number of hits to each category, while
+// the hits in each category are sorted by hit number, causing them to be sorted by e-value
 #[frb(sync)]
-pub fn fetch_hits(graph: HashMap<i64, Node>, root:i64) -> HitList{
+pub fn find_hits_below_node(root: i64, graph: &HashMap<i64, Node>, hit_structures: Vec<u32>) -> Vec<SigCategory>{
+    let mut hits: Vec<i64> = Vec::new(); 
+    collect_hits(&root, graph, &mut hits);
+    hits.sort(); // sorting the list of hits by # has the effect of sorting the hits by e-value
 
+    // build the set of categories as a HashMap for fast lookup, turn into vector later
+    let mut category_map: HashMap<u32, SigCategory> = HashMap::new();
+    for hit in hits{
+        if category_map.contains_key(& hit_structures[hit as usize]){
+            // We already have an appropriate category for this hit, so just add this hit to the list
+            if let Some(cat) = category_map.get_mut(&hit_structures[hit as usize]){
+                cat.hits.push(hit);
+            }
+        }
+        else{
+            // need to create a new category
+            let mut category = SigCategory{signature: hit_structures[hit as usize],
+                hits: vec![hit],
+            };
+            category_map.insert(hit_structures[hit as usize],category);
+        }
+    }
 
-    // Get all the hits under this node
-    let mut hits: Vec<i64> = get_hits_from_tree(&graph, root);
-    hits.sort(); 
-    let hitlist = HitList{
-        num_hits: hits.len() as i32,
-        signature: graph[&root].name.clone(),
-        hits: hits,
-    };
+    // now, convert the HashMap into a vector and sort by #hits
+    let mut categories: Vec<SigCategory> = Vec::new();
+    for (_id, category) in category_map{
+        categories.push(category);
+    }
+    categories.sort_by_key(|x| Reverse(x.hits.len()));
 
-  /*   let overview = ResultsOverview{
-        num_hits: 0,
-        num_categories: 0,
-        categories: Vec::new(),
-        domains_contained: Vec::new(),
-    }; */
-    hitlist
+    categories
 }
 
-fn get_hits_from_tree(graph: &HashMap<i64, Node>, root: i64) -> Vec<i64>{
-    let node = &graph[&root];  // assume a correct graph at this point
-    let mut hits: Vec<i64> = node.hits.clone();
-    let kids = node.children.clone();
-    for child in kids{
-        hits.append(&mut get_hits_from_tree(graph, child));
-    };
-    hits
+// traverses the graph starting at root and gathers all of the hits at root or below into a single list
+pub fn collect_hits(root: &i64, graph: &HashMap<i64, Node>, hits: &mut Vec<i64>){
+    let node = &graph[&root];
+    for hit in &node.hits{
+        hits.push(*hit);
+    }
+    for child in &node.children{
+        collect_hits(child, graph, hits);
+    }
 }
 
-fn create_domain_id_map(db: &fjall::PartitionHandle) -> Result<(HashMap<u16, Dmap>, HashMap<String, Dmap>), String>{
+fn create_domain_id_map(db: &fjall::PartitionHandle) -> Result<HashMap<u16, Dmap>, String>{
     let mut map:HashMap<u16, Dmap> = HashMap::new();
-    let mut domain_info:HashMap<String, Dmap> = HashMap::new();
     for key in db.keys(){ // This would be dangerous if we didn't know that the domainidtoname partition didn't 
     // have a limited number of entries
         let keybody = match key{
@@ -1010,7 +839,7 @@ fn create_domain_id_map(db: &fjall::PartitionHandle) -> Result<(HashMap<u16, Dma
         };
 
         map.insert(ddata.domain.clone(), ddata.clone());
-        domain_info.insert(ddata.name.clone(), ddata);
+
     }
-   Ok((map, domain_info))
+   Ok(map)
 } 

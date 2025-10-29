@@ -21,8 +21,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     required super.portManager,
   });
 
+  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_VecI64Ptr =>
+      wire.rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64;
+
+  @protected
+  VecI64
+  dco_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64(
+    dynamic raw,
+  );
+
   @protected
   Map<PlatformInt64, Node> dco_decode_Map_i_64_node_None(dynamic raw);
+
+  @protected
+  VecI64
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64(
+    dynamic raw,
+  );
 
   @protected
   String dco_decode_String(dynamic raw);
@@ -43,12 +58,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Hit dco_decode_hit(dynamic raw);
 
   @protected
-  HitList dco_decode_hit_list(dynamic raw);
-
-  @protected
-  int dco_decode_i_32(dynamic raw);
-
-  @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
@@ -61,10 +70,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Hit> dco_decode_list_hit(dynamic raw);
 
   @protected
-  List<HitList> dco_decode_list_hit_list(dynamic raw);
+  Int64List dco_decode_list_prim_i_64_strict(dynamic raw);
 
   @protected
-  Int64List dco_decode_list_prim_i_64_strict(dynamic raw);
+  List<int> dco_decode_list_prim_u_32_loose(dynamic raw);
+
+  @protected
+  Uint32List dco_decode_list_prim_u_32_strict(dynamic raw);
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
@@ -82,9 +94,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   (PlatformInt64, Node) dco_decode_record_i_64_node(dynamic raw);
 
   @protected
-  ResultsOverview dco_decode_results_overview(dynamic raw);
-
-  @protected
   SearchResults dco_decode_search_results(dynamic raw);
 
   @protected
@@ -100,7 +109,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void dco_decode_unit(dynamic raw);
 
   @protected
+  BigInt dco_decode_usize(dynamic raw);
+
+  @protected
+  VecI64
+  sse_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   Map<PlatformInt64, Node> sse_decode_Map_i_64_node_None(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  VecI64
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64(
     SseDeserializer deserializer,
   );
 
@@ -123,12 +147,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Hit sse_decode_hit(SseDeserializer deserializer);
 
   @protected
-  HitList sse_decode_hit_list(SseDeserializer deserializer);
-
-  @protected
-  int sse_decode_i_32(SseDeserializer deserializer);
-
-  @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
   @protected
@@ -141,10 +159,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Hit> sse_decode_list_hit(SseDeserializer deserializer);
 
   @protected
-  List<HitList> sse_decode_list_hit_list(SseDeserializer deserializer);
+  Int64List sse_decode_list_prim_i_64_strict(SseDeserializer deserializer);
 
   @protected
-  Int64List sse_decode_list_prim_i_64_strict(SseDeserializer deserializer);
+  List<int> sse_decode_list_prim_u_32_loose(SseDeserializer deserializer);
+
+  @protected
+  Uint32List sse_decode_list_prim_u_32_strict(SseDeserializer deserializer);
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
@@ -166,9 +187,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  ResultsOverview sse_decode_results_overview(SseDeserializer deserializer);
-
-  @protected
   SearchResults sse_decode_search_results(SseDeserializer deserializer);
 
   @protected
@@ -184,8 +202,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_decode_unit(SseDeserializer deserializer);
 
   @protected
+  BigInt sse_decode_usize(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_i_32(SseDeserializer deserializer);
+
+  @protected
+  void
+  sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64(
+    VecI64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_Map_i_64_node_None(
     Map<PlatformInt64, Node> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64(
+    VecI64 self,
     SseSerializer serializer,
   );
 
@@ -208,12 +246,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_hit(Hit self, SseSerializer serializer);
 
   @protected
-  void sse_encode_hit_list(HitList self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_i_32(int self, SseSerializer serializer);
-
-  @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
@@ -226,11 +258,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_hit(List<Hit> self, SseSerializer serializer);
 
   @protected
-  void sse_encode_list_hit_list(List<HitList> self, SseSerializer serializer);
-
-  @protected
   void sse_encode_list_prim_i_64_strict(
     Int64List self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_prim_u_32_loose(
+    List<int> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_prim_u_32_strict(
+    Uint32List self,
     SseSerializer serializer,
   );
 
@@ -262,12 +303,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_results_overview(
-    ResultsOverview self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_search_results(SearchResults self, SseSerializer serializer);
 
   @protected
@@ -281,12 +316,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_usize(BigInt self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_i_32(int self, SseSerializer serializer);
 }
 
 // Section: wire_class
 
 class RustLibWire implements BaseWire {
   RustLibWire.fromExternalLibrary(ExternalLibrary lib);
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64(
+        ptr,
+      );
 }
 
 @JS('wasm_bindgen')
@@ -294,4 +351,14 @@ external RustLibWasmModule get wasmModule;
 
 @JS()
 @anonymous
-extension type RustLibWasmModule._(JSObject _) implements JSObject {}
+extension type RustLibWasmModule._(JSObject _) implements JSObject {
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64(
+    int ptr,
+  );
+}
