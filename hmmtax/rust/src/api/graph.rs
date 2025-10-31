@@ -314,10 +314,11 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
         }
     };
 
-    let mut num_domtbl_hits:i64 = 0;
     let mut hits:Vec<Hit> = Vec::new();
     let mut hit_map:DashMap<String, Hit> = DashMap::new();
     let root: i64;
+    let mut num_domtbl_hits: i64 = 0;
+    let now = Instant::now();
     // load hits from the domtblout files
     for domtbloutfile in domtblout_files{
        // println!("searching {}", domtbloutfile);
@@ -331,7 +332,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
             },
         }
     }
-
+    println!{"{}ms to read domtblout files", now.elapsed().as_millis()};
     let now = Instant::now();
     // turn the hits into a sorted vector
     for item in hit_map.iter(){
@@ -339,7 +340,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
     }
     hits.sort_by(|a, b| a.seq_evalue.total_cmp(&(b.seq_evalue)));
 
-    print!("{}ms to create sorted vector of hits", now.elapsed().as_millis());
+    println!("{}ms to create sorted vector of hits", now.elapsed().as_millis());
 
     // create the list of domains hit so that we can assign colors
     results.domains_contained = create_domain_list(&hits);
@@ -358,18 +359,22 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
         
     }
     println!("{}ms to build graph from hits", now.elapsed().as_millis());
-    print!("root = {}, depth= {}", root, depth);
     let total_hits = count_hits(&mut graph, root);
 
-    println!("Hits in domtbl(s): {}, in graph: {}",num_domtbl_hits, total_hits);
-
+    println!("Hits in domtbl(s): {}, in graph: {}, in list of hits {} ",num_domtbl_hits, total_hits, hits.len());
+    
+    // check that everyone agrees on how many hits there are
+    assert!(num_domtbl_hits == total_hits);
+    assert!(total_hits as usize == hits.len());
     (results.structures, results.hit_structures) = compute_signatures(&hits);
+    assert!(results.hit_structures.len() == hits.len());
     results.succeeded = true;
     results.message = "Successfully read database".to_string();
     results.depth = depth;
     results.root = root;
+    results.root_hits = find_hits_below_node(root, &graph, &results.hit_structures);
     results.graph = graph.into_iter().collect::<HashMap<i64, Node>>(); // Convert the DashMap into a HashMap that Dart understands.
-    results.hits = hits;
+    results.hits = hits; // must be after call to find_hits_below_node because of borrow rules
     results
 }
 
@@ -386,10 +391,9 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
     };
     
     let reader = BufReader::with_capacity(1024*1024, file);
-    let hit_count: i64 = 0;
+    let mut hit_count: i64 = 0;
 
     // Parse the lines in the domtblout file
-    let now = Instant::now(); // start a timer
 
     for l in reader.lines() {
         let line = match l{
@@ -446,7 +450,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
         
         if seq_evalue >= min_seq_evalue && seq_evalue <= max_seq_evalue && dom_evalue >= min_dom_evalue && dom_evalue <= max_dom_evalue{
             // This is a reportable hit
-
+            hit_count +=1;
             // build the domain for this hit
             let domain = Domain {
                 name: query_name.clone(),
@@ -585,6 +589,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                 match entry{
                     dashmap::mapref::entry::Entry::Occupied(mut h)=>{
                         let existing_hit = h.get_mut();
+                        hit_count -=1; // we aren't adding a new hit after all
                         existing_hit.queries.push(domain.clone());
                         if hit.seq_evalue < existing_hit.seq_evalue{
                             existing_hit.seq_evalue = hit.seq_evalue
@@ -599,7 +604,6 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
 
         } // closes if that decides if reportable hit
     } // closes loop over lines in domtblout file
-    print!("{}ms to parse domtblout file into hits", now.elapsed().as_millis());
     return Ok(hit_count);
 }
 
@@ -610,9 +614,8 @@ fn build_graph_from_hits(hits: &Vec<Hit>, graph_db: &PartitionHandle)-> Result<(
     let mut root:i64 = MAX;
     let mut depth: u32 = 0;
     let mut ret_graph:HashMap<i64, Node> = HashMap::new();
-    let now = Instant::now();
 
-    let hit_num: i64 = 0;  //Index into hit vector for each hit
+    let mut hit_num: i64 = 0;  //Index into hit vector for each hit
     for hit in hits{
         if ret_graph.contains_key(&hit.taxid){ // simple case, just add this hit to the node in the graph
                 let node = ret_graph.get_mut(&hit.taxid).unwrap();
@@ -670,10 +673,9 @@ fn build_graph_from_hits(hits: &Vec<Hit>, graph_db: &PartitionHandle)-> Result<(
                     parent.children.push(node.taxid); // add the node to the parent's child list 
                 }   
             }
+        hit_num +=1;
     }
 
-
-    print!("{}ms to build graph from hits", now.elapsed().as_millis());
     Ok((ret_graph, depth, root))
 }
 
@@ -773,7 +775,7 @@ fn compute_signatures(hits: &Vec<Hit>) -> (Vec<String>, Vec<u32>){
 // The resulting Vec<SigCategory> is sorted in descending order by number of hits to each category, while
 // the hits in each category are sorted by hit number, causing them to be sorted by e-value
 #[frb(sync)]
-pub fn find_hits_below_node(root: i64, graph: &HashMap<i64, Node>, hit_structures: Vec<u32>) -> Vec<SigCategory>{
+pub fn find_hits_below_node(root: i64, graph: &HashMap<i64, Node>, hit_structures: &Vec<u32>) -> Vec<SigCategory>{
     let mut hits: Vec<i64> = Vec::new(); 
     collect_hits(&root, graph, &mut hits);
     hits.sort(); // sorting the list of hits by # has the effect of sorting the hits by e-value
@@ -781,6 +783,7 @@ pub fn find_hits_below_node(root: i64, graph: &HashMap<i64, Node>, hit_structure
     // build the set of categories as a HashMap for fast lookup, turn into vector later
     let mut category_map: HashMap<u32, SigCategory> = HashMap::new();
     for hit in hits{
+     //   println!("Processing hit {} with structure {}", hit, hit_structures[hit as usize]);
         if category_map.contains_key(& hit_structures[hit as usize]){
             // We already have an appropriate category for this hit, so just add this hit to the list
             if let Some(cat) = category_map.get_mut(&hit_structures[hit as usize]){
@@ -789,7 +792,8 @@ pub fn find_hits_below_node(root: i64, graph: &HashMap<i64, Node>, hit_structure
         }
         else{
             // need to create a new category
-            let mut category = SigCategory{signature: hit_structures[hit as usize],
+       //     println!("Creating new category for signature {}", hit_structures[hit as usize]);
+            let category = SigCategory{signature: hit_structures[hit as usize],
                 hits: vec![hit],
             };
             category_map.insert(hit_structures[hit as usize],category);
@@ -810,6 +814,8 @@ pub fn find_hits_below_node(root: i64, graph: &HashMap<i64, Node>, hit_structure
 pub fn collect_hits(root: &i64, graph: &HashMap<i64, Node>, hits: &mut Vec<i64>){
     let node = &graph[&root];
     for hit in &node.hits{
+  //  println!("Found hit {} as child of node{}", hit, root);
+
         hits.push(*hit);
     }
     for child in &node.children{

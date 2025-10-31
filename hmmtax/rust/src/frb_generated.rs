@@ -177,7 +177,7 @@ fn wire__crate__api__graph__find_hits_below_node_impl(
                 let output_ok = Result::<_, ()>::Ok(crate::api::graph::find_hits_below_node(
                     api_root,
                     &api_graph,
-                    api_hit_structures,
+                    &api_hit_structures,
                 ))?;
                 Ok(output_ok)
             })())

@@ -241,7 +241,7 @@ class GraphPainter extends CustomPainter {
 
     final Canvas logicalCanvas = canvas;
 
-    var drawnLevels = min((graphData.depth - graphData.graph[graphData.root]!.ranknum), graphData.maxLevels);
+    var drawnLevels = min((graphData.depth - graphData.graph[graphData.currentRoot]!.ranknum), graphData.maxLevels);
     double radPerLevel;
 
     if(drawnLevels != 0) {
@@ -254,15 +254,15 @@ class GraphPainter extends CustomPainter {
       graphData.radPerLevel = 0.0;
     }
     var center = Offset(logicalSize.width / 2, logicalSize.height / 2);
-    var maxLevel = (graphData.graph[graphData.root]!.ranknum + drawnLevels)-1;
+    var maxLevel = (graphData.graph[graphData.currentRoot]!.ranknum + drawnLevels)-1;
 
-    var root = graphData.graph[graphData.root]!;
+    var root = graphData.graph[graphData.currentRoot]!;
     graphData.rootRadius = rootFrac * logicalRadius;
     root.myArcStart = 0.0;
     root.myArcEnd = 2 * pi;
     logicalCanvas.drawCircle(center, logicalRadius, paint..style = PaintingStyle.fill..color = Theme.of(context).colorScheme.surface);
     paint.style = PaintingStyle.stroke;
-    drawNode(graphData.graph, graphData.root, graphData.root, center, 0.025*logicalRadius, radPerLevel, root.ranknum, maxLevel, logicalCanvas,  
+    drawNode(graphData.graph, graphData.currentRoot, graphData.currentRoot, center, 0.025*logicalRadius, radPerLevel, root.ranknum, maxLevel, logicalCanvas,  
     0, 0, paint);
   }
 

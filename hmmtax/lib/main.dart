@@ -182,9 +182,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => FileData()),
         ChangeNotifierProvider(create: (_) => GraphData()),
         ChangeNotifierProvider(create: (_) => HSettings(prefs, mode, font, scale, evalMax, domEvalMax, lineWidth)),
-        ChangeNotifierProvider(create: (_) => OverviewData()),
-        ChangeNotifierProvider(create: (_) => HitLists()),
-
+        ChangeNotifierProvider(create: (_) => SearchData()),
       ],
       child: TopLevel(),
     ),
@@ -393,8 +391,9 @@ class HSettings with ChangeNotifier {
 
 // ChangeNotifier for graph data
 class GraphData with ChangeNotifier {
-  Map<PlatformInt64, Node> _graph = {};
-  PlatformInt64 _root = 0; // root of the subgraph we're showing
+  PlatformInt64 _graphRoot = -1;  // This is the root node of the entire graph, not the root of the part that's displayed
+  Map<PlatformInt64, Node> _graph ={};
+  PlatformInt64 _currentRoot = -1; // root of the subgraph we're showing
   List<PlatformInt64> _history = [];
   List<String> _historyNames = [];
   int _historyIndex = 0;
@@ -499,7 +498,9 @@ class GraphData with ChangeNotifier {
   Map<PlatformInt64, Node> get graph => _graph;
   
   bool get graphSet => _graphSet; 
-  PlatformInt64 get root => _root;
+  PlatformInt64 get graphRoot => _graphRoot;
+  PlatformInt64 get currentRoot => _currentRoot;
+
   int get maxLevels => _maxLevels;
   int get depth => _depth;
   double get rotation => _rotation;
@@ -509,7 +510,6 @@ class GraphData with ChangeNotifier {
     notifyListeners();
   }
   void clearGraph() {
-    _graph = {};
     _history = [];
     _historyNames = [];
     _historyIndex = -1;
@@ -521,7 +521,8 @@ class GraphData with ChangeNotifier {
     _transform = Matrix4.identity();
     _tController.value = Matrix4.identity();
     _trackRegions = TrackRegions(0);
-    _root = 0;
+    _graphRoot = 0;
+    _currentRoot = 0;
     _depth = 0;
     _maxLevels = 0;
     notifyListeners();
@@ -531,7 +532,7 @@ class GraphData with ChangeNotifier {
   }
   void addRoot(PlatformInt64 newRoot) {
     if (_graph.containsKey(newRoot)) {
-      _root = newRoot;
+      _currentRoot = newRoot;
       _history.add(newRoot);
       _historyNames.add(_graph[newRoot]!.name);
       _historyIndex +=1; 
@@ -541,11 +542,16 @@ class GraphData with ChangeNotifier {
   }
   void setRoot(PlatformInt64 newRoot) {
     if (_graph.containsKey(newRoot)) {
-      _root = newRoot;
+      _currentRoot = newRoot;
       notifyListeners();
     }
   }
-
+ void set graphRoot(PlatformInt64 newRoot) {
+    if (_graph.containsKey(newRoot)) {
+      _graphRoot = newRoot;
+      notifyListeners();
+    }
+  }
   void incrementIndex(){
     if (_historyIndex < _history.length -1){
       // There's history to go forward through
@@ -605,7 +611,7 @@ class GraphData with ChangeNotifier {
       notifyListeners();
       return last;
     } else {
-      return _root;
+      return _graphRoot;
     }
   }
 }
@@ -745,8 +751,14 @@ class _MacMenuBarState extends State<MacMenu> {
     builder: (context, state) => const SettingsPage(),),
     GoRoute(path: '/graph',
     builder: (context, state) => const GraphPage(),),
-    GoRoute(path: '/category',
-    builder: (context, state) => const CategoryPage(),),
+    GoRoute(path: '/allstructure',
+    builder: (context, state) => const AllStructurePage(),),
+    GoRoute(path: '/subtreestructure',
+    builder: (context, state) => const SubtreeStructurePage(),),
+    GoRoute(path: '/subtreeevalue',
+    builder: (context, state) => const SubtreeEvaluePage(),),
+    GoRoute(path: '/allevalue',
+    builder: (context, state) => const AllEvaluePage(),),
     GoRoute(path: '/sequence',
     builder: (context, state) => const SequencePage(),),
   ]);
@@ -969,24 +981,77 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
   }
 }
  
-
-// ChangeNotifier for the search results
-class OverviewData with ChangeNotifier {
-  ResultsOverview _overview = ResultsOverview(
-    numHits: 0,
-    numCategories: 0,
-    categories: [],
-    domainsContained: [],
-  );
-  bool _overviewLoaded = false;
-  bool _categoryLoaded = false;
-
+// class that holds the results of a search
+class SearchData with ChangeNotifier{
+  List<Hit> _hits = [];
+  Uint32List _hitStructures = Uint32List(0);
+  List<String> _structures = [];
+  List<String> _domainsContained = [];
+  List<SigCategory> _rootHits = [];
+  List<SigCategory> _currentHits = [];
+  bool _resultsLoaded = false;
+  bool _currentLoaded = false;
+  int _selectedStructure = -1;
   HashMap<String, (Color, Color)> _domainColors = HashMap();
-  int get numHits => _overview.numHits;
-  int get numCategories => _overview.numCategories;
-  List<SigCategory> get categories => _overview.categories;
-  bool get overviewLoaded => _overviewLoaded;
-  bool get categoryLoaded => _categoryLoaded;
+  PlatformInt64 _selectedHit = -1;
+
+  PlatformInt64 get selectedHit => _selectedHit;
+  List<Hit> get hits => _hits;
+  Uint32List get hitStructures => _hitStructures;
+  List<String> get structures => _structures;
+  List<String> get domainsContained => _domainsContained;
+  List<SigCategory> get rootHits => _rootHits;
+  List<SigCategory> get currentHits => _currentHits;
+  bool get resultsLoaded => _resultsLoaded;
+  bool get currentLoaded => _currentLoaded;
+  int get selectedStructure => _selectedStructure;
+  void set selectedHit(PlatformInt64 theHit){
+    if (0<= theHit &&  theHit < _hits.length){
+      _selectedHit = theHit;
+      notifyListeners();
+    }
+  }
+
+  void setSearchResults(SearchResults results){
+    _hits = results.hits;
+    _hitStructures = results.hitStructures;
+    _structures = results.structures;
+    _domainsContained = results.domainsContained;
+    _rootHits = results.rootHits;
+    _resultsLoaded = true;
+    _selectedStructure = -1;
+    var i = 0;
+    _domainColors = HashMap();
+    for (String domain in _domainsContained) {
+      if (_domainColors.containsKey(domain)) {
+        // should never happen
+        continue;
+      }
+      // Get the next color from the list
+      final color = domainColors[i % domainColors.length];
+      _domainColors[domain] = color;
+      i++;
+    }
+    notifyListeners();
+  }
+
+  void set currentHits(List<SigCategory> hits){
+    _currentHits = hits;
+    _currentLoaded = true;
+    notifyListeners();
+  }
+
+  void clearCurrentLoaded(){
+    _currentLoaded = false;
+    notifyListeners();
+  }
+
+  void set selectedStructure(int newCat){
+    if(newCat >= 0 && newCat < _structures.length){
+      _selectedStructure = newCat;
+      notifyListeners();
+    }
+  }
 
   (Color, Color) get_colors(String domain) {
     if (_domainColors.containsKey(domain)) {
@@ -997,74 +1062,5 @@ class OverviewData with ChangeNotifier {
       final color = (Color(0xff000000), Color(0xffffffff));
       return color;
     }
-  }
-
-  void set(ResultsOverview newOverview) {
-    _overview = newOverview;
-    _domainColors = HashMap();
-    var i = 0;
-    for (String domain in _overview.domainsContained) {
-      if (_domainColors.containsKey(domain)) {
-        // should never happen
-        continue;
-      }
-      // Get the next color from the list
-      final color = domainColors[i % domainColors.length];
-      _domainColors[domain] = color;
-      i++;
-    }
-    _overviewLoaded = true;
-    _categoryLoaded = false;
-    notifyListeners();
-  }
-
-  void clear() {
-    _overview = ResultsOverview(
-      numHits: 0,
-      numCategories: 0,
-      categories: [],
-      domainsContained: [],
-    );
-    notifyListeners();
-  }
-
-  void setCategoryLoaded(bool loaded){
-    _categoryLoaded = loaded;
-  }
-}
-
-//ChangeNotifier for hit lists
-class HitLists with ChangeNotifier {
-  List<HitList> _hitLists = [];
-  int _selected = -1;
-  int _sequence = -1;
-
-  int get sequence => _sequence;
-
-  void setSequence(int seq) {
-    _sequence = seq;
-  }
-  List<HitList> get hitLists => _hitLists;
-  int get selected => _selected;
-  void clear() {
-    _hitLists = [];
-    notifyListeners();
-  }
-  void setSelected(int which){
-    _selected = which;
-  }
-
-  void set(int which, HitList newHitList) {
-    assert(which < _hitLists.length);
-    _hitLists[which] = newHitList;
-    notifyListeners();
-  }
-
-  void init(int numHitLists) {
-    for (var q = 0; q < numHitLists; q++) {
-      HitList newHit = HitList(numHits: 0, signature: "", hits: []);
-      _hitLists.add(newHit);
-    }
-    notifyListeners();
   }
 }

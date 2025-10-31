@@ -47,7 +47,7 @@ class DrawDomains extends StatelessWidget {
     required this.domains,
     required this.width,
     required this.queries,
-    required this.overview,
+    required this.searchdata,
     required this.seqLength,
     required this.seqEvalue,
     required this.allDomains,
@@ -59,7 +59,7 @@ class DrawDomains extends StatelessWidget {
   final List<Domain> domains;
   final double width;
   final List<Domain> queries;
-  final OverviewData overview;
+  final SearchData searchdata;
   final int seqLength;
   final double seqEvalue;
   final bool allDomains;
@@ -164,7 +164,7 @@ class DrawDomains extends StatelessWidget {
     // because they aren't pre-sorted
     var queryStartRow = domainRows.isNotEmpty ? domainRows.length :1;
     var numLines = queryRows.isNotEmpty ? queryStartRow + queryRows.length: 1;
-  print("width = $width textWidth = $textWidth length = $length");
+  //print("width = $width textWidth = $textWidth length = $length");
     List<Widget> buttons = CreateButtons(newDomains, domainRows, width, (width - textWidth) /length, textWidth, textHeight, queryStartRow, 
     queries, queryRows, seqLength, seqEvalue, context);
     var _myPainter = DomainPainter(
@@ -180,7 +180,7 @@ class DrawDomains extends StatelessWidget {
           queryStartRow: queryStartRow,
           queries: queries,
           queryRows: queryRows, 
-          overview: overview,
+          searchdata: searchdata,
           textTheme: Theme.of(context).textTheme,
           colorScheme: Theme.of(context).colorScheme,
           buttons: buttons,
@@ -259,7 +259,7 @@ class DomainPainter extends CustomPainter {
   final int queryStartRow;
   final List<Domain> queries;
   final List<List<int>> queryRows;
-  final OverviewData overview;
+  final SearchData searchdata;
   final TextTheme textTheme;
   final ColorScheme colorScheme;
   List<Widget> buttons;
@@ -276,7 +276,7 @@ class DomainPainter extends CustomPainter {
     required this.queryStartRow,
     required this.queries,
     required this.queryRows,
-    required this.overview,
+    required this.searchdata,
     required this.textTheme,
     required this.colorScheme,
     required this.buttons,
@@ -301,8 +301,7 @@ class DomainPainter extends CustomPainter {
         final double start = domain.seqStart * widthPerChar + widthOffset;
         final double end = domain.seqEnd * widthPerChar + widthOffset;
         final double domainWidth = end - start;
-        print(domain.name + "witdPerChar= $widthPerChar, widthOffset = $widthOffset start = $start, end = $end, domainWidth = $domainWidth");
-
+//
         _draw_domain(
           canvas,
           myCanvas,
@@ -351,7 +350,7 @@ class DomainPainter extends CustomPainter {
       // domain too small to draw pretty edges
       canvas.drawRect(
         Rect.fromLTWH(position.dx, startY, width, height),
-        paint..color = overview.get_colors(domain.name).$1..style=PaintingStyle.fill,
+        paint..color = searchdata.get_colors(domain.name).$1..style=PaintingStyle.fill,
       );
       canvas.drawRect(
         Rect.fromLTWH(position.dx, startY, width, height),
@@ -404,7 +403,7 @@ class DomainPainter extends CustomPainter {
         path.lineTo(position.dx + (width - height / 2), startY + height);
       }
       path.lineTo(position.dx + height / 2, startY + height);
-      canvas.drawPath(path, paint..color = overview.get_colors(domain.name).$1..style=PaintingStyle.fill);
+      canvas.drawPath(path, paint..color = searchdata.get_colors(domain.name).$1..style=PaintingStyle.fill);
     
       canvas.drawPath(path, paint..color = Theme.of(context).colorScheme.onSurface..style=PaintingStyle.stroke..strokeWidth = 2.0);
     }
@@ -424,7 +423,7 @@ class DomainPainter extends CustomPainter {
         painter.text = TextSpan(
           text: name,
           style: textTheme.bodyMedium!.copyWith(
-            color: overview.get_colors(domain.name).$2,
+            color: searchdata.get_colors(domain.name).$2,
           ),
         );
     painter.layout();
@@ -438,7 +437,7 @@ class DomainPainter extends CustomPainter {
       painter.text = TextSpan(
         text: name,
         style: textTheme.bodyMedium!.copyWith(
-          color: overview.get_colors(domain.name).$2,
+          color: searchdata.get_colors(domain.name).$2,
         ),
       );
       painter.layout();
@@ -458,7 +457,7 @@ class DomainPainter extends CustomPainter {
           painter.text = TextSpan(
             text: name,
             style: textTheme.bodyMedium!.copyWith(
-              color: overview.get_colors(domain.name).$2,
+              color: searchdata.get_colors(domain.name).$2,
             ),
           );
           painter.layout();
@@ -518,10 +517,10 @@ class DomainPainter extends CustomPainter {
 
 //Widget to draw the data for a hit
 class DrawHit extends StatefulWidget {
-  const DrawHit({super.key, required this.hit, required this.overview, this.allDomains = false});
+  const DrawHit({super.key, required this.hit, required this.searchdata, this.allDomains = false});
   final Hit hit;
   final bool allDomains;
-  final OverviewData overview;
+  final SearchData searchdata;
   State<DrawHit> createState() => _DrawHitState();
 }
 
@@ -558,7 +557,7 @@ class _DrawHitState extends State<DrawHit> {
       domains: widget.hit.domains,
       width: width,
       queries: widget.hit.queries,
-      overview: widget.overview,
+      searchdata: widget.searchdata,
       seqLength: widget.hit.seqLength,
       seqEvalue: widget.hit.seqEvalue,
       allDomains: widget.allDomains,
@@ -570,7 +569,7 @@ class _DrawHitState extends State<DrawHit> {
       domains: widget.hit.structureDomains,
       width: width,
       queries: widget.hit.queries,
-      overview: widget.overview,
+      searchdata: widget.searchdata,
       seqLength: widget.hit.seqLength,
       seqEvalue: widget.hit.seqEvalue,
       allDomains: widget.allDomains,
@@ -584,18 +583,15 @@ class DrawCategory extends StatelessWidget {
   const DrawCategory({
     super.key,
     required this.which,
-    required this.category,
-    required this.overview,
   });
 
-  final SigCategory category;
   final int which;
-  final OverviewData overview;
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<HitLists>(
-      builder: (context, hitLists, child) {
+    return Consumer2<SearchData, GraphData>(
+      builder: (context, searchdata, graphdata, child) {
+        final SigCategory category = (graphdata.graphRoot == graphdata.currentRoot) ? searchdata.rootHits[which] : searchdata.currentHits[which]; 
         return  Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -603,14 +599,14 @@ class DrawCategory extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
-                    "${category.numHits} sequences with domain structure ${category.signature}",
+                    "${category.hits.length} sequences with domain structure ${searchdata.structures[category.signature]}",
                   ),
-                  Text("Example: " + category.example.name),
-                  DrawHit(hit: category.example, overview: overview),
+                  Text("Example: " + searchdata.hits[category.hits[0].toInt()].name),
+                  DrawHit(hit: searchdata.hits[category.hits[0].toInt()], searchdata: searchdata),
                Align( alignment: Alignment(1.0,0.0), child: IconButton(
                           style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
                           onPressed: () {
-                            hitLists.setSelected(which);
+                            searchdata.selectedStructure = which;
                             context.go("/category");
                           },
                           icon: Icon(Icons.search, color: Theme.of(context).colorScheme.onPrimary),
