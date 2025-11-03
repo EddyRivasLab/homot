@@ -15,6 +15,8 @@ import 'package:hmmtax/src/rust/api/graph.dart';
 import 'package:hmmtax/src/rust/frb_generated.dart';
 import 'package:hmmtax/main.dart';
 import 'package:hmmtax/utility.dart';
+import 'package:hmmtax/printing.dart';
+
 import 'package:provider/provider.dart';
 import "package:go_router/go_router.dart";
 import 'package:touchable/touchable.dart';
@@ -583,15 +585,17 @@ class DrawCategory extends StatelessWidget {
   const DrawCategory({
     super.key,
     required this.which,
+    required this.from,
   });
 
   final int which;
+  final selectedby from;
 
   @override
   Widget build(BuildContext context) {
     return Consumer2<SearchData, GraphData>(
       builder: (context, searchdata, graphdata, child) {
-        final SigCategory category = (graphdata.graphRoot == graphdata.currentRoot) ? searchdata.rootHits[which] : searchdata.currentHits[which]; 
+        final SigCategory category = from == selectedby.structure ? searchdata.rootHits[which] : searchdata.currentHits[which]; 
         return  Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -607,7 +611,8 @@ class DrawCategory extends StatelessWidget {
                           style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
                           onPressed: () {
                             searchdata.selectedStructure = which;
-                            context.go("/category");
+                            searchdata.selectedBy = from;
+                            context.go("/subtreeevalue");
                           },
                           icon: Icon(Icons.search, color: Theme.of(context).colorScheme.onPrimary),
                         ),), ],

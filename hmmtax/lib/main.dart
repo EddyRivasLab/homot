@@ -4,6 +4,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:hmmtax/src/rust/api/simple.dart';
 import 'package:hmmtax/src/rust/frb_generated.dart';
 import 'package:hmmtax/src/rust/api/graph.dart';
+import 'package:hmmtax/printing.dart';
+
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import"dart:math";
 import 'package:touchable/touchable.dart';
@@ -980,7 +982,13 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
     ];
   }
 }
- 
+ enum selectedby{
+  none,
+  structure,
+  subtree,
+  subtree_structure,
+ }
+
 // class that holds the results of a search
 class SearchData with ChangeNotifier{
   List<Hit> _hits = [];
@@ -992,9 +1000,14 @@ class SearchData with ChangeNotifier{
   bool _resultsLoaded = false;
   bool _currentLoaded = false;
   int _selectedStructure = -1;
+  selectedby _selectedBy = selectedby.none;
   HashMap<String, (Color, Color)> _domainColors = HashMap();
   PlatformInt64 _selectedHit = -1;
-
+  selectedby get selectedBy => _selectedBy;
+  void set selectedBy(selectedby method){
+    _selectedBy = method;
+    notifyListeners();
+  }
   PlatformInt64 get selectedHit => _selectedHit;
   List<Hit> get hits => _hits;
   Uint32List get hitStructures => _hitStructures;
