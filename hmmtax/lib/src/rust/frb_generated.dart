@@ -91,7 +91,7 @@ abstract class RustLibApi extends BaseApi {
     required double domEvalMax,
   });
 
-  List<SigCategory> crateApiGraphFindHitsBelowNode({
+  HitResults crateApiGraphFindHitsBelowNode({
     required PlatformInt64 root,
     required Map<PlatformInt64, Node> graph,
     required List<int> hitStructures,
@@ -194,7 +194,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
-  List<SigCategory> crateApiGraphFindHitsBelowNode({
+  HitResults crateApiGraphFindHitsBelowNode({
     required PlatformInt64 root,
     required Map<PlatformInt64, Node> graph,
     required List<int> hitStructures,
@@ -209,7 +209,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3)!;
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_list_sig_category,
+          decodeSuccessData: sse_decode_hit_results,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGraphFindHitsBelowNodeConstMeta,
@@ -369,6 +369,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       structureDomains: dco_decode_list_domain(arr[5]),
       domains: dco_decode_list_domain(arr[6]),
       queries: dco_decode_list_domain(arr[7]),
+    );
+  }
+
+  @protected
+  HitResults dco_decode_hit_results(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return HitResults(
+      categories: dco_decode_list_sig_category(arr[0]),
+      hits: dco_decode_list_prim_i_64_strict(arr[1]),
     );
   }
 
@@ -626,6 +638,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       domains: var_domains,
       queries: var_queries,
     );
+  }
+
+  @protected
+  HitResults sse_decode_hit_results(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_categories = sse_decode_list_sig_category(deserializer);
+    var var_hits = sse_decode_list_prim_i_64_strict(deserializer);
+    return HitResults(categories: var_categories, hits: var_hits);
   }
 
   @protected
@@ -914,6 +934,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_list_domain(self.structureDomains, serializer);
     sse_encode_list_domain(self.domains, serializer);
     sse_encode_list_domain(self.queries, serializer);
+  }
+
+  @protected
+  void sse_encode_hit_results(HitResults self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_sig_category(self.categories, serializer);
+    sse_encode_list_prim_i_64_strict(self.hits, serializer);
   }
 
   @protected

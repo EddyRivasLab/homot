@@ -9,6 +9,7 @@ use fjall::{Config, PersistMode, PartitionCreateOptions, UserValue, Slice};
 use bio::io::fasta;
 use std::time::{Instant};
 use clap::{Parser};
+use std::fs::exists;
 
 #[derive(Clone, Serialize, Deserialize)]
 struct DomainInfo{
@@ -292,7 +293,7 @@ fn handle_overlaps(mut sequence:AnnotatedSequence)->AnnotatedSequence{
 
 // reads a file containing mappings from old->new taxids for 
 // nodes that have been compressed out of the taxonomy.
-fn read_substitutions(subfile: PathBuf) -> HashMap<i64, i64>{
+fn read_deleted(subfile: PathBuf) -> HashMap<i64, i64>{
     let fp = match File::open(&subfile){
         Err(why) => panic!("Couldn't open {} for reading: {}", subfile.display(), why),
         Ok(file) => file,
@@ -308,13 +309,13 @@ fn read_substitutions(subfile: PathBuf) -> HashMap<i64, i64>{
         if fields.len() < 2{
             continue; // skip malformed lines
         }
-        let old:i64 = fields[0].parse().expect("Error converting old taxid to number");
-        let new:i64 = fields[1].parse().expect("Error converting new taxid to number");
-        sub_map.insert(old, new);
+        let old:i64 = fields[0].parse().expect("Error converting deleted taxid to number");
+        sub_map.insert(old, old);
     }
 
     sub_map
 }
+
 
 fn parse_clanfile(clanfile: PathBuf) -> HashMap<String, (u16, u16, String)>{
     let fp = match File::open(&clanfile){
@@ -401,33 +402,11 @@ fn parse_hmmfile(hmmfile: PathBuf) -> HashMap<String, DomainInfo>{
     domain_map
 }
 
-fn parse_taxfile(taxfile: PathBuf) -> HashMap<String, u32>{
-    let fp = match File::open(&taxfile){
-        Err(why) => panic!("Couldn't open {} for reading: {}", taxfile.display(), why),
-        Ok(file) => file,
-    };
-    let freader = BufReader::new(fp);
-    let mut tax_map:HashMap<String, u32> = HashMap::new();
-    for tax_result in freader.lines().skip(1){  
-        let line = match tax_result{
-            Err(why) => panic!("Error reading line from {}: {}", taxfile.display(), why),
-            Ok(h) => h,
-        };
-        let fields: Vec<&str> = line.split('\t').collect();
-        if fields.len() < 3{
-            continue; // skip malformed lines
-        }
-        let accession = fields[0].to_string();
-        let taxid:u32 = fields[2].parse().expect("Error converting taxid {} to number");
-        tax_map.insert(accession, taxid);
-    }
-    tax_map
-}
 
 // Read an NCBI nodes.dmp file and create a graph from it.  
 // The graph is implemented as a HashMap from taxid to Node struct,
 // where node 1 is the root of the tree.
-fn read_nodes_dmp(nodesfile: PathBuf, name_map: &HashMap<i64, String>, compressed: bool) -> HashMap<i64, Node>{
+fn read_nodes_dmp(nodesfile: PathBuf, name_map: &HashMap<i64, String>) -> HashMap<i64, Node>{
     // First, read through the file and create a node object for each taxid
     let fp = match File::open(&nodesfile){
         Err(why) => panic!("Couldn't open {} for reading: {}", nodesfile.display(), why),
@@ -445,30 +424,7 @@ fn read_nodes_dmp(nodesfile: PathBuf, name_map: &HashMap<i64, String>, compresse
         let parent:i64 = fields[1].parse().expect("Error converting parent taxid to number");
         let rank = fields[2].to_string();
         let ranknum:u32;
-        if compressed{ // "+" refers to ranks whose level has been boosted by non-compression of the virus domain
-            ranknum =  match rank.as_str(){
-            "no rank" => 0,
-            "domain" => 1,
-            "domain+" =>2,
-            "kingdom" => 2,
-            "kingdom+" =>3,
-            "phylum" => 3,
-            "phylum+" =>4,
-            "class" => 4,
-            "class+" => 5,
-            "order" => 5,
-            "order+" =>6,
-            "family" => 6,
-            "family+" => 7,   
-            "genus" => 7,
-            "genus+" => 8,
-            "species" => 8,
-            "species+" => 9,
-            _ => 100, // other ranks
-            }; 
-        }
-        else{
-            ranknum = match rank.as_str(){
+        ranknum = match rank.as_str(){
             "no rank" => 0,
             "domain" => 1,
             "cellular root" => 1,
@@ -519,8 +475,8 @@ fn read_nodes_dmp(nodesfile: PathBuf, name_map: &HashMap<i64, String>, compresse
             "clade" => 34,
             "genotype" => 34,
             _ => 100, // other ranks
-            };
-        }
+        };
+    
         if ranknum == 100{
             eprintln!("Warning: Unrecognized rank {} for taxid {}", rank, taxid);
         }
@@ -564,7 +520,7 @@ fn read_nodes_dmp(nodesfile: PathBuf, name_map: &HashMap<i64, String>, compresse
     node_map
 }
 fn write_annotated_db(domains: HashMap<String, Vec<Domain>>, clan_map: &HashMap<String, (u16, u16, String)>, 
-    domain_info: &HashMap<String, DomainInfo>, seqfile: PathBuf, merged_map: &HashMap<i64, i64>, 
+    domain_info: &HashMap<String, DomainInfo>, seqfile: PathBuf, merged_map: &HashMap<i64, i64>, deleted_map: &HashMap<i64, i64>,
     node_graph: &HashMap<i64, Node>, substitutions: &HashMap<i64, i64>, ofile: String){
     let fp = match File::open(&seqfile){
         Err(why) => panic!("Couldn't open {} for reading: {}", seqfile.display(), why),
@@ -670,7 +626,13 @@ fn write_annotated_db(domains: HashMap<String, Vec<Domain>>, clan_map: &HashMap<
             taxid = *newid; // remap to new taxid if needed
         }
         if !node_graph.contains_key(&taxid){
-            println!("Failed to find taxid {} in graph", taxid);
+            if deleted_map.contains_key(&taxid){
+                eprintln!("Warning: taxid {} for accession {} has been deleted from taxonomy, setting it to root", taxid, accession);
+            }
+            else{
+                println!("Failed to find taxid {} in graph, setting it to root", taxid);
+            }
+            taxid = 1; // set to root if not found
         }
         let mut annotated = AnnotatedSequence{
             name: sequence.id().to_string(),
@@ -755,42 +717,96 @@ fn read_merged_dmp(mergefile: PathBuf) -> HashMap<i64, i64>{
 struct Cli {
     /// Input FASTA sequence file
     seqfile: String,
-    /// Input HMM file
-    hmmfile: String,
     /// Directory containing HMMER domtblout files
     domtbldir: String,
-    /// Clan file mapping domains to clans
-    clanfile: String,
-    /// Accession to taxid mapping file
-    merge_dmp: String,
-    /// NCBI names.dmp file
-    names_dmp: String,
-    /// NCBI nodes.dmp file
-    nodes_dmp: String,
+    /// Directory holding Pfam data
+    pfamdir: String,
+    /// Directory holding NCBI taxonomy files
+    ncbidir: String,
     /// Output database file
     outfile: String,
 
     /// Optional: File containing old->new taxid mappings for use when non-canonical ranks have been compressed out of the taxonomy
-    #[arg(short='c', long="compress")]
-    renamefile: Option<String>,
+    #[arg(short='n', long="no-compress")]
+    no_compress: bool,
 }
 
 
 fn main() {
-
     let cli = Cli::parse();
-    let mut compressed = false;
     let mut substitutions: HashMap<i64, i64> = HashMap::new();
-    if cli.renamefile.is_some(){ // We were passed a file containing mappings from old->new taxids
-        substitutions = read_substitutions(PathBuf::from(cli.renamefile.unwrap()));
-        compressed = true;
+
+    // Define paths to input files in our specified directories
+    let clanfile: PathBuf;
+    let hmmfile: PathBuf;
+    if cli.pfamdir.ends_with('/') == false{
+        clanfile = PathBuf::from(format!("{}/Pfam-A.clans.tsv", cli.pfamdir));
+        hmmfile = PathBuf::from(format!("{}/Pfam-A.hmm", cli.pfamdir));
     }
+    else{
+        clanfile = PathBuf::from(format!("{}Pfam-A.clans.tsv", cli.pfamdir));
+        hmmfile = PathBuf::from(format!("{}Pfam-A.hmm", cli.pfamdir));
+    }
+    match exists(&clanfile){
+        Err(why)=> {eprintln!("Error trying to locate clan file {}.  Error was {}", clanfile.display(), why);
+            std::process::exit(1);
+        },
+        Ok(_) => {},
+    }
+    match exists(&hmmfile){
+        Err(why)=> {eprintln!("Error trying to locate HMM file {}.  Error was {}", hmmfile.display(), why);
+            std::process::exit(1);
+        },
+        Ok(_) => {},
+    }
+
+    let names_dmp: PathBuf;
+    let nodes_dmp: PathBuf;
+    let merge_dmp: PathBuf;
+    let deleted_dmp: PathBuf;
+    if cli.ncbidir.ends_with('/') == false{
+        names_dmp = PathBuf::from(format!("{}/names.dmp", cli.ncbidir));
+        nodes_dmp = PathBuf::from(format!("{}/nodes.dmp", cli.ncbidir));
+        merge_dmp = PathBuf::from(format!("{}/merged.dmp", cli.ncbidir));
+        deleted_dmp = PathBuf::from(format!("{}/delnodes.dmp", cli.ncbidir));
+    }
+    else{
+        names_dmp = PathBuf::from(format!("{}names.dmp", cli.ncbidir));
+        nodes_dmp = PathBuf::from(format!("{}nodes.dmp", cli.ncbidir));
+        merge_dmp = PathBuf::from(format!("{}merged.dmp", cli.ncbidir));
+        deleted_dmp = PathBuf::from(format!("{}delnodes.dmp", cli.ncbidir));
+    }
+    match exists(&names_dmp){
+        Err(why)=> {eprintln!("Error trying to locate names.dmp file {}.  Error was {}", names_dmp.display(), why);
+            std::process::exit(1);
+        },
+        Ok(_) => {},
+    }
+
+    match exists(&nodes_dmp){
+        Err(why)=> {eprintln!("Error trying to locate nodes.dmp file {}.  Error was {}", nodes_dmp.display(), why);
+            std::process::exit(1);
+        },
+        Ok(_) => {},
+    }
+    match exists(&merge_dmp){
+        Err(why)=> {eprintln!("Error trying to locate merged.dmp file {}.  Error was {}", merge_dmp.display(), why);
+            std::process::exit(1);
+        },
+        Ok(_) => {},
+    }   
+    match exists(&deleted_dmp){
+        Err(why)=> {eprintln!("Error trying to locate deleted.dmp file {}.  Error was {}", deleted_dmp.display(), why);
+            std::process::exit(1);
+        },
+        Ok(_) => {},
+    }   
 
     let now = Instant::now();
     // first, create a hashmap mapping domain names to IDs and clans 
-    let clan_map:HashMap<String, (u16, u16, String)> = parse_clanfile(Into::into(cli.clanfile));
+    let clan_map:HashMap<String, (u16, u16, String)> = parse_clanfile(Into::into(clanfile));
     println!("{}ms to parse clan map", now.elapsed().as_millis());
-    let domain_info: HashMap<String, DomainInfo> = parse_hmmfile(Into::into(cli.hmmfile));
+    let domain_info: HashMap<String, DomainInfo> = parse_hmmfile(Into::into(hmmfile));
     let mut dname = cli.domtbldir.clone();
     // Create pattern to match all domtblout files in domtbldir
     if dname.chars().last().unwrap() == '/'{
@@ -801,20 +817,37 @@ fn main() {
     }
     println!("Looking for domtblout files in {}", dname);
     let now:Instant = Instant::now();
-    let merge_map: HashMap<i64, i64> = read_merged_dmp(Into::into(cli.merge_dmp));
+    let merge_map: HashMap<i64, i64> = read_merged_dmp(Into::into(merge_dmp));
    println!("{}ms to create merge map", now.elapsed().as_millis());
+
+    let now:Instant = Instant::now();
+    let deleted_map: HashMap<i64, i64> = read_deleted(Into::into(deleted_dmp));
+    println!("{}ms to create deleted map", now.elapsed().as_millis());
+    
     let mut domains:HashMap<String, Vec<Domain>> = HashMap::new();
     let mut dfiles = Vec::new();
     //println!("{}ms to parse HMM file and taxid map", now.elapsed().as_millis());
 
     let now = Instant::now();
-    let name_map: HashMap<i64, String> = read_names_dmp(Into::into(cli.names_dmp));
+    let name_map: HashMap<i64, String> = read_names_dmp(Into::into(names_dmp));
     println!("{}ms to parse names.dmp", now.elapsed().as_millis());
     
     let mut now = Instant::now();   
-    let node_graph:HashMap<i64, Node> = read_nodes_dmp(Into::into(cli.nodes_dmp), &name_map, compressed);
+    let full_graph:HashMap<i64, Node> = read_nodes_dmp(Into::into(nodes_dmp), &name_map);
     println!("{}ms to parse nodes.dmp", now.elapsed().as_millis());
-    // Gather a vector of all the files in the domtblout directory so we can parse them in parallel
+
+
+    let node_graph: HashMap<i64, Node>;
+    if !cli.no_compress{
+        now = Instant::now();
+        (node_graph, substitutions) = compress_taxonomy(full_graph);
+        println!("{}ms to compress taxonomy", now.elapsed().as_millis());
+    }
+    else{
+        node_graph = full_graph;
+    }
+
+    // Gather a vector of all the files in the domtblout directory
     for dfile in glob(&dname).expect("Couldn't find any domtbloutfiles in domtbldir"){
         match dfile{
             Ok(path) =>  dfiles.push(path),
@@ -833,7 +866,152 @@ fn main() {
     println!("{}ms to parse domtblouts", now.elapsed().as_millis());
     now = Instant::now();
 
-    write_annotated_db(domains, &clan_map, &domain_info, cli.seqfile.into(), &merge_map, &node_graph, &substitutions, cli.outfile);
+    write_annotated_db(domains, &clan_map, &domain_info, cli.seqfile.into(), &merge_map, &deleted_map, &node_graph, &substitutions, cli.outfile);
     //Write the results to a database
     println!("{}ms to write annotated DB", now.elapsed().as_millis());
     }
+
+
+    // Compresses the NCBI taxonomy by removing nodes with non-canonical ranks
+    fn compress_taxonomy(full_tree: HashMap<i64, Node>) -> (HashMap<i64, Node>, HashMap<i64, i64>){
+    let always_compress:Vec<i64> = vec![131567, 2787823, 2787854];  // cellular organisms, unclassified, other
+
+    // create HashMap mapping all ranknums to their canonical ranks (compressing upward)
+    let mut ranknum_to_canonical: HashMap<u32, (u32, String)> = HashMap::new();
+    ranknum_to_canonical.insert(0, (0, "no rank".to_string()));
+    ranknum_to_canonical.insert(1, (1, "domain".to_string()));
+    ranknum_to_canonical.insert(2, (2, "kingdom".to_string()));
+    ranknum_to_canonical.insert(3, (2, "kingdom".to_string()));
+    ranknum_to_canonical.insert(4, (2, "kingdom".to_string()));
+    ranknum_to_canonical.insert(5, (3, "phylum".to_string()));
+    ranknum_to_canonical.insert(6, (3, "phylum".to_string()));
+    ranknum_to_canonical.insert(7, (3, "phylum".to_string()));
+    ranknum_to_canonical.insert(8, (4, "class".to_string()));
+    ranknum_to_canonical.insert(9, (4, "class".to_string()));
+    ranknum_to_canonical.insert(10, (4, "class".to_string()));
+    ranknum_to_canonical.insert(11, (4, "class".to_string()));
+    ranknum_to_canonical.insert(12, (4, "class".to_string()));
+    ranknum_to_canonical.insert(13, (4, "class".to_string()));
+    ranknum_to_canonical.insert(14, (5, "order".to_string()));
+    ranknum_to_canonical.insert(15, (5, "order".to_string()));
+    ranknum_to_canonical.insert(16, (5, "order".to_string()));
+    ranknum_to_canonical.insert(17, (5, "order".to_string()));
+    ranknum_to_canonical.insert(18, (5, "order".to_string()));
+    ranknum_to_canonical.insert(19, (6, "family".to_string()));
+    ranknum_to_canonical.insert(20, (6, "family".to_string()));
+    ranknum_to_canonical.insert(21, (7, "genus".to_string()));
+    ranknum_to_canonical.insert(22, (7, "genus".to_string()));
+    ranknum_to_canonical.insert(23, (7, "genus".to_string()));
+    ranknum_to_canonical.insert(24, (7, "genus".to_string()));
+    ranknum_to_canonical.insert(25, (7, "genus".to_string()));
+    ranknum_to_canonical.insert(26, (8, "species".to_string()));
+    ranknum_to_canonical.insert(27, (8, "species".to_string()));
+    ranknum_to_canonical.insert(28, (8, "species".to_string()));
+    ranknum_to_canonical.insert(29, (8, "species".to_string()));
+    ranknum_to_canonical.insert(30, (8, "species".to_string()));
+    ranknum_to_canonical.insert(31, (8, "species".to_string()));
+    ranknum_to_canonical.insert(32, (8, "species".to_string()));
+    ranknum_to_canonical.insert(33, (8, "species".to_string()));
+    ranknum_to_canonical.insert(34, (8, "species".to_string()));
+
+    
+  
+    let mut compressed_tree: HashMap<i64, Node> = HashMap::new();
+    let canonical_ranks: Vec<u32> = vec![1,2,5,8,14,19,21,26]; // domain, kingdom, phylum, class, order, family, genus, species
+    let mut keep: Vec<(Node, bool)> = Vec::new();
+    let mut compress_out: Vec<(Node, bool)> = vec![];
+    let mut compressed:i64 = 0;
+    let mut old_to_new: HashMap<i64, i64> = HashMap::new(); // map from old taxid to new taxid (if compressed out)
+
+    let mut root = full_tree.get(&1).unwrap().clone();
+    if root.name == "Orthagio p. Whackitude"{ // This is stupid, but should silence compiler warnings about never reading the name field.
+        print!("really wierd taxon name found")
+    }
+    (root.ranknum, root.rank) = ranknum_to_canonical.get(&root.ranknum).unwrap().clone(); // reassign root to canonical rank
+    keep.push((root, false));    
+    let mut max_ranknum = 0;
+    while !keep.is_empty(){
+        let mut parent:Node;
+        let force_compressed: bool;
+        (parent, force_compressed) = keep.pop().unwrap();
+        let parent_children = parent.children;  
+        parent.children = vec![]; // clear out the children so we can add the ones we want to keep.
+       // let parent_rank = parent.ranknum;
+
+        // Figure out which of the parent's children we should keep
+        for child_id in parent_children.iter(){
+            if let Some(child) = full_tree.get(child_id){
+               /*  if always_compress.contains(child_id){
+                    println!("force-compressing ID {}", child_id);
+                }*/
+                if canonical_ranks.contains(&child.ranknum) && !always_compress.contains(child_id){
+                    // This child is a canonical rank, so keep it
+                    let mut new_child = child.clone();
+                    (new_child.ranknum, new_child.rank) = ranknum_to_canonical.get(&child.ranknum).unwrap().clone(); // reassign to canonical rank
+                    if !force_compressed{ // need to adjust ranknum because node has two ancestors with same rank 
+                        new_child.ranknum +=1;
+                        new_child.rank = new_child.rank + "+";
+                     //   println!("Incrementing ranknum of {} to {}", new_child.name, new_child.ranknum);
+                    }
+                    new_child.parent = parent.taxid; // reassign parent to the new parent
+                    parent.children.push(new_child.taxid);
+                    keep.push((new_child, force_compressed));
+                }
+                else{ // Child has rank between parent and next canonical rank, so compress it out
+                    compress_out.push((child.clone(), force_compressed || always_compress.contains(child_id)));
+                    compressed += 1;
+                }
+            }
+            else{
+                eprintln!("Warning: Child taxid {} not found in full tree", child_id);
+            }
+        }
+
+        // compress out all descendant nodes with ranks between parent and next canonical rank
+        //let mut to_process = compress_out.clone();
+        //compress_out.clear();
+        while !compress_out.is_empty(){
+            let (node, force_compressed) = compress_out.pop().unwrap();
+            old_to_new.insert(node.taxid, parent.taxid); // map old taxid to new parent taxid
+            for child_id in node.children.iter(){
+                if let Some(child) = full_tree.get(child_id){
+                    if canonical_ranks.contains(&child.ranknum) && !always_compress.contains(&child.taxid) {
+                        // This child is the next canonical rank, and not a node we always compress out so keep it
+                        let mut child_clone = child.clone();
+                        child_clone.parent = parent.taxid; // reassign parent to the next cannonical parent
+                        (child_clone.ranknum, child_clone.rank) = ranknum_to_canonical.get(&child.ranknum).unwrap().clone(); // reassign to canonical rank
+                    if !force_compressed{ // need to adjust ranknum because node has two ancestors with same rank 
+                        child_clone.ranknum +=1;
+                        child_clone.rank = child_clone.rank+"+";
+                    //    println!("incrementing ranknum of {} to {}", child_clone.name, child_clone.ranknum);
+                    }
+                        parent.children.push(child_clone.taxid);
+                        keep.push((child_clone, force_compressed ));
+                    }
+                    else{
+                        // This child is still between canonical ranks, so keep compressing
+                        compress_out.push((child.clone(), force_compressed || always_compress.contains(&child.taxid))); 
+                        compressed += 1;
+                    }
+                }
+                else{
+                    eprintln!("Warning: Child taxid {} not found in full tree", child_id);
+                }
+            }
+        }
+        if parent.ranknum > max_ranknum{
+            max_ranknum = parent.ranknum;
+        }
+        compressed_tree.insert(parent.taxid, parent);
+    }
+    println!("original graph had {} nodes, compressed out {} nodes, compressed graph has {} nodes", 
+        full_tree.len(), compressed, compressed_tree.len());
+    if compressed_tree.len() + compressed as usize != full_tree.len(){
+        eprintln!("Warning: Node count mismatch after compression");
+    }
+    if old_to_new.len() != compressed as usize{
+        eprintln!("Warning: Old to new mapping size mismatch after compression");
+    }
+    println!("Max ranknum in compressed tree is {}", max_ranknum);
+    (compressed_tree, old_to_new)
+}

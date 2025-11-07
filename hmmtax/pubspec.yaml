@@ -46,6 +46,7 @@ dependencies:
   matrix4_transform: ^4.0.1
   scrollable_positioned_list: ^0.3.8
   pdf: ^3.11.3
+  flutter_svg: ^2.2.2
 
 dev_dependencies:
   flutter_test:

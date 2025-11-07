@@ -8,7 +8,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `build_graph_from_hits`, `compute_signatures`, `count_hits`, `create_domain_id_map`, `create_domain_list`, `domains_to_structure`, `read_hits_from_domtblout`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AnnotatedSequence`, `DbDomain`, `Dmap`, `ResultsOverview`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 Future<SearchResults> fetchGraph({
   required String annfile,
@@ -22,7 +22,7 @@ Future<SearchResults> fetchGraph({
   domEvalMax: domEvalMax,
 );
 
-List<SigCategory> findHitsBelowNode({
+HitResults findHitsBelowNode({
   required PlatformInt64 root,
   required Map<PlatformInt64, Node> graph,
   required List<int> hitStructures,
@@ -149,6 +149,24 @@ class Hit {
           structureDomains == other.structureDomains &&
           domains == other.domains &&
           queries == other.queries;
+}
+
+class HitResults {
+  final List<SigCategory> categories;
+  final Int64List hits;
+
+  const HitResults({required this.categories, required this.hits});
+
+  @override
+  int get hashCode => categories.hashCode ^ hits.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is HitResults &&
+          runtimeType == other.runtimeType &&
+          categories == other.categories &&
+          hits == other.hits;
 }
 
 class Node {

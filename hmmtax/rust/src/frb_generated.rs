@@ -358,6 +358,18 @@ impl SseDecode for crate::api::graph::Hit {
     }
 }
 
+impl SseDecode for crate::api::graph::HitResults {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_categories = <Vec<crate::api::graph::SigCategory>>::sse_decode(deserializer);
+        let mut var_hits = <Vec<i64>>::sse_decode(deserializer);
+        return crate::api::graph::HitResults {
+            categories: var_categories,
+            hits: var_hits,
+        };
+    }
+}
+
 impl SseDecode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -652,6 +664,24 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::graph::Hit> for crate::api::g
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::graph::HitResults {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.categories.into_into_dart().into_dart(),
+            self.hits.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::graph::HitResults {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::graph::HitResults>
+    for crate::api::graph::HitResults
+{
+    fn into_into_dart(self) -> crate::api::graph::HitResults {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::graph::Node {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -800,6 +830,14 @@ impl SseEncode for crate::api::graph::Hit {
         <Vec<crate::api::graph::Domain>>::sse_encode(self.structure_domains, serializer);
         <Vec<crate::api::graph::Domain>>::sse_encode(self.domains, serializer);
         <Vec<crate::api::graph::Domain>>::sse_encode(self.queries, serializer);
+    }
+}
+
+impl SseEncode for crate::api::graph::HitResults {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<crate::api::graph::SigCategory>>::sse_encode(self.categories, serializer);
+        <Vec<i64>>::sse_encode(self.hits, serializer);
     }
 }
 

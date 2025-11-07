@@ -2,6 +2,7 @@ use flutter_rust_bridge::frb;
 use serde::{Serialize, Deserialize};
 use fjall::{Config, PartitionCreateOptions,UserValue, Slice, PartitionHandle};
 use core::panic;
+use std::sync::atomic::AtomicI64;
 use std::{collections::HashMap};
 use std::i64::MAX;
 use std::fs::File;
@@ -9,7 +10,7 @@ use std::io::{BufRead, BufReader};
 use dashmap::DashMap;
 use std::time::{Instant};
 use std::cmp::Reverse;
-
+use rayon::prelude::*;
 #[derive(Clone, Serialize, Deserialize)]
 struct Dmap{
     domain: u16,
@@ -111,6 +112,28 @@ impl From<&UserValue> for Hit{
     }
 }
 
+
+// structure that only exists for returning results
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct HitResults{
+    pub categories: Vec<SigCategory>,
+    pub hits: Vec<i64>,  // Must be sorted in ascending order by e-value so that the first item in the vector is the example hit
+  }
+
+
+impl From<&HitResults> for Slice{
+    fn from(val: &HitResults) ->Self{
+        rmp_serde::to_vec(&val).expect("Serialization error for SigCategory").into()
+    }
+}
+
+impl From<&UserValue> for HitResults{
+    fn from(value: &UserValue) -> Self{
+        let item: HitResults = rmp_serde::from_slice(&value).expect("Deserialization error for SigCategory");
+        item
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SigCategory{
@@ -315,7 +338,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
     };
 
     let mut hits:Vec<Hit> = Vec::new();
-    let mut hit_map:DashMap<String, Hit> = DashMap::new();
+    let mut hit_map:DashMap<String, Hit> = DashMap::with_shard_amount(1024);
     let root: i64;
     let mut num_domtbl_hits: i64 = 0;
     let now = Instant::now();
@@ -362,17 +385,19 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
     let total_hits = count_hits(&mut graph, root);
 
     println!("Hits in domtbl(s): {}, in graph: {}, in list of hits {} ",num_domtbl_hits, total_hits, hits.len());
-    
+
+
     // check that everyone agrees on how many hits there are
     assert!(num_domtbl_hits == total_hits);
     assert!(total_hits as usize == hits.len());
     (results.structures, results.hit_structures) = compute_signatures(&hits);
     assert!(results.hit_structures.len() == hits.len());
+    let temp:HitResults = find_hits_below_node(root, &graph, &results.hit_structures);
     results.succeeded = true;
     results.message = "Successfully read database".to_string();
     results.depth = depth;
     results.root = root;
-    results.root_hits = find_hits_below_node(root, &graph, &results.hit_structures);
+    results.root_hits= temp.categories;
     results.graph = graph.into_iter().collect::<HashMap<i64, Node>>(); // Convert the DashMap into a HashMap that Dart understands.
     results.hits = hits; // must be after call to find_hits_below_node because of borrow rules
     results
@@ -391,66 +416,74 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
     };
     
     let reader = BufReader::with_capacity(1024*1024, file);
-    let mut hit_count: i64 = 0;
-
+    let hit_count = AtomicI64::new(0);
+    let mut errmsg    = String::new();
     // Parse the lines in the domtblout file
-
-    for l in reader.lines() {
+// old serial iterator
+  /*   for l in reader.lines() {
         let line = match l{
             Err(e) => return Err(format!("Error reading line in file {}: {}", filename, e)),
             Ok(l) => l,
-        };
-        if line.starts_with('#') {
-            continue; // Skip comment lines
-        }
+        }; */
+
+        reader.lines().filter_map(|line_result| line_result.ok()).par_bridge().for_each(|line| {
+        if !line.starts_with('#') { // Skip comment lines
+        
      //   println!("Examining line {}", line);
         let fields: Vec<&str> = line.split_whitespace().collect();
-        if fields.len() < 23 {
-            return Err(format!("Malformed line in file {}: {}", filename, line));
-        }
+         /*if fields.len() < 23 {
+            errmsg = format!("Malformed line in file {}: {}", filename, line);
+        }*/
 
         let target_name = fields[0].to_string();
         let query_name = fields[3].to_string();
         let hmm_length:u32 = match fields[5].parse(){
                 Err(_) => {
-                    return Err(format!("Error converting hmmlength field of {}  to number.", fields[5]));
-
-                }
+                    //errmsg = format!("Error converting hmmlength field of {}  to number.", fields[5]);
+                    0                    
+                },
                 Ok(v) => v,
             };
         let seq_evalue: f32 = match fields[6].parse(){
             Ok(v) => v,
-            Err(e) => return Err(format!("Error parsing seq_evalue in file {}: {}", filename, e)),
+            Err(e) => {//errmsg = format!("Error parsing seq_evalue in file {}: {}", filename, e);
+                0.0
+            }
         };
 
         let seq_start: u32 = match fields[17].parse(){
             Ok(v) => v,
-            Err(e) => return Err(format!("Error parsing seq_start in file {}: {}", filename, e)),
+            Err(e) => {//errmsg = format!("Error parsing seq_start in file {}: {}", filename, e);
+            0},
         };
         
         let seq_end: u32 = match fields[18].parse(){
             Ok(v) => v,
-            Err(e) => return Err(format!("Error parsing seq_end in file {}: {}", filename, e)),
+            Err(e) => {//errmsg = format!("Error parsing seq_end in file {}: {}", filename, e);
+            0}
         }; 
 
         let hmm_start: u32 = match fields[15].parse(){
             Ok(v) => v,
-            Err(e) => return Err(format!("Error parsing hmm_start in file {}: {}", filename, e)),
+            Err(e) => {//errmsg = format!("Error parsing hmm_start in file {}: {}", filename, e);
+            0},
         };
 
         let hmm_end: u32 = match fields[16].parse(){
             Ok(v) => v,
-            Err(e) => return Err(format!("Error parsing hmm_end in file {}: {}", filename, e)),
+            Err(e) => {//errmsg = format!("Error parsing hmm_end in file {}: {}", filename, e);
+            0},
         };
 
         let dom_evalue: f32= match fields[12].parse(){
             Ok(v) => v,
-            Err(e) => return Err(format!("Error parsing dom_evalue in file {}: {}", filename, e)),
+            Err(e) => {//errmsg = format!("Error parsing dom_evalue in file {}: {}", filename, e);
+            0.0}   ,
         };
         
         if seq_evalue >= min_seq_evalue && seq_evalue <= max_seq_evalue && dom_evalue >= min_dom_evalue && dom_evalue <= max_dom_evalue{
             // This is a reportable hit
-            hit_count +=1;
+            hit_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             // build the domain for this hit
             let domain = Domain {
                 name: query_name.clone(),
@@ -473,7 +506,8 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
             // get the annotated sequence from the db that corresponds to the target
             let res1 = match annotation_db.get(&target_name){
                 Err(why) => {
-                    return Err(format!("Error fetching sequence {} from annotation database, reason was: {}", target_name, why));
+                    //errmsg =format!("Error fetching sequence {} from annotation database, reason was: {}", target_name, why);
+                    None
                 }
                 Ok(d) => d,
             };
@@ -481,7 +515,16 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                 Some(d) => match rmp_serde::from_slice(&d){
                     Ok(d) => d,
                     Err(msg) => {
-                     return Err(format!("Deserialization error for Annotated Sequence, reason was: {}" , &msg.to_string()));
+                     //errmsg = format!("Deserialization error for Annotated Sequence, reason was: {}" , &msg.to_string());
+                    AnnotatedSequence{
+                        name: target_name.clone(),
+                        sequence: "No annotation data found".to_string(),
+                        length: 0, // This is a fake sequence, not in the database
+                        taxid: 1,  // root node if using NCBI taxonomy, figure out a better plan later
+                        domains: Vec::new(),
+                        structure_domains: Vec::new(),
+                        real: false, // This is a fake sequence, not in the database
+                    }
                     },
                 },
                 None => {let mut fake_sequence = AnnotatedSequence{
@@ -589,7 +632,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                 match entry{
                     dashmap::mapref::entry::Entry::Occupied(mut h)=>{
                         let existing_hit = h.get_mut();
-                        hit_count -=1; // we aren't adding a new hit after all
+                        hit_count.fetch_add(-1,std::sync::atomic::Ordering::SeqCst); // we aren't adding a new hit after all
                         existing_hit.queries.push(domain.clone());
                         if hit.seq_evalue < existing_hit.seq_evalue{
                             existing_hit.seq_evalue = hit.seq_evalue
@@ -603,8 +646,10 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
             }
 
         } // closes if that decides if reportable hit
-    } // closes loop over lines in domtblout file
-    return Ok(hit_count);
+    } // closes if that skips comment lines
+  }); // closes parallel iterator over lines in file
+  // closes loop over lines in domtblout file
+    return Ok(hit_count.load(std::sync::atomic::Ordering::SeqCst));
 }
 
 
@@ -775,39 +820,46 @@ fn compute_signatures(hits: &Vec<Hit>) -> (Vec<String>, Vec<u32>){
 // The resulting Vec<SigCategory> is sorted in descending order by number of hits to each category, while
 // the hits in each category are sorted by hit number, causing them to be sorted by e-value
 #[frb(sync)]
-pub fn find_hits_below_node(root: i64, graph: &HashMap<i64, Node>, hit_structures: &Vec<u32>) -> Vec<SigCategory>{
+#[frb(serialize)]
+pub fn find_hits_below_node(root: i64, graph: &HashMap<i64, Node>, hit_structures: &Vec<u32>) -> HitResults{
     let mut hits: Vec<i64> = Vec::new(); 
     collect_hits(&root, graph, &mut hits);
     hits.sort(); // sorting the list of hits by # has the effect of sorting the hits by e-value
-
+//println!("1, and we have {} hits, and hit_structures has {} values", hits.len(), hit_structures.len());
     // build the set of categories as a HashMap for fast lookup, turn into vector later
     let mut category_map: HashMap<u32, SigCategory> = HashMap::new();
-    for hit in hits{
-     //   println!("Processing hit {} with structure {}", hit, hit_structures[hit as usize]);
-        if category_map.contains_key(& hit_structures[hit as usize]){
+//println!("about to start iterator over hits");
+    for hit in &hits{
+  //     println!("Processing hit {} with structure {}", hit, hit_structures[*hit as usize]);
+        if category_map.contains_key(& hit_structures[*hit as usize]){
+    //        println!("Adding to existing category for signature {}", hit_structures[*hit as usize]);
             // We already have an appropriate category for this hit, so just add this hit to the list
-            if let Some(cat) = category_map.get_mut(&hit_structures[hit as usize]){
-                cat.hits.push(hit);
+            if let Some(cat) = category_map.get_mut(&hit_structures[*hit as usize]){
+                cat.hits.push(*hit);
             }
         }
         else{
             // need to create a new category
-       //     println!("Creating new category for signature {}", hit_structures[hit as usize]);
-            let category = SigCategory{signature: hit_structures[hit as usize],
-                hits: vec![hit],
+      //     println!("Creating new category for signature {}", hit_structures[*hit as usize]);
+            let category = SigCategory{signature: hit_structures[*hit as usize],
+                hits: vec![*hit],
             };
-            category_map.insert(hit_structures[hit as usize],category);
+            category_map.insert(hit_structures[*hit as usize],category);
         }
     }
-
+//println!("2");
     // now, convert the HashMap into a vector and sort by #hits
     let mut categories: Vec<SigCategory> = Vec::new();
     for (_id, category) in category_map{
         categories.push(category);
     }
+//println!("3");
     categories.sort_by_key(|x| Reverse(x.hits.len()));
-
-    categories
+    let res: HitResults = HitResults{
+        categories: categories,
+        hits: hits,
+    };
+    res
 }
 
 // traverses the graph starting at root and gathers all of the hits at root or below into a single list
@@ -849,3 +901,4 @@ fn create_domain_id_map(db: &fjall::PartitionHandle) -> Result<HashMap<u16, Dmap
     }
    Ok(map)
 } 
+

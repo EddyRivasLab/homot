@@ -763,6 +763,8 @@ class _MacMenuBarState extends State<MacMenu> {
     builder: (context, state) => const AllEvaluePage(),),
     GoRoute(path: '/sequence',
     builder: (context, state) => const SequencePage(),),
+      GoRoute(path: '/svg',
+    builder: (context, state) => const SvgPage(),),
   ]);
   Widget build(BuildContext context) {
     return PlatformMenuBar(
@@ -997,6 +999,7 @@ class SearchData with ChangeNotifier{
   List<String> _domainsContained = [];
   List<SigCategory> _rootHits = [];
   List<SigCategory> _currentHits = [];
+  Int64List _currentHitsByEvalue = Int64List(0);
   bool _resultsLoaded = false;
   bool _currentLoaded = false;
   int _selectedStructure = -1;
@@ -1018,6 +1021,12 @@ class SearchData with ChangeNotifier{
   bool get resultsLoaded => _resultsLoaded;
   bool get currentLoaded => _currentLoaded;
   int get selectedStructure => _selectedStructure;
+  Int64List get currentHitsByEvalue => _currentHitsByEvalue;
+  void set currentHitsByEvalue(Int64List hits){
+    _currentHitsByEvalue = hits;
+    notifyListeners();
+  }
+
   void set selectedHit(PlatformInt64 theHit){
     if (0<= theHit &&  theHit < _hits.length){
       _selectedHit = theHit;
