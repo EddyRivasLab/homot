@@ -518,8 +518,8 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                      //errmsg = format!("Deserialization error for Annotated Sequence, reason was: {}" , &msg.to_string());
                     AnnotatedSequence{
                         name: target_name.clone(),
-                        sequence: "No annotation data found".to_string(),
-                        length: 0, // This is a fake sequence, not in the database
+                        sequence: str::repeat("X", seq_end as usize),
+                        length: seq_end, // This is a fake sequence, not in the database
                         taxid: 1,  // root node if using NCBI taxonomy, figure out a better plan later
                         domains: Vec::new(),
                         structure_domains: Vec::new(),
@@ -529,15 +529,15 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                 },
                 None => {let mut fake_sequence = AnnotatedSequence{
                         name: target_name.clone(),
-                        sequence: "No annotation data found".to_string(),
-                        length: 0, // This is a fake sequence, not in the database
+                        sequence: str::repeat("X", seq_end as usize),
+                        length: seq_end, // This is a fake sequence, not in the database
                         taxid: 1,  // root node if using NCBI taxonomy, figure out a better plan later
                         domains: Vec::new(),
                         structure_domains: Vec::new(),
                         real: false, // This is a fake sequence, not in the database
                         };
                     
-                        let struct_domain = DbDomain{
+                     /*    let struct_domain = DbDomain{
                             domain: 0xffff,
                             clan: 0xffff,
                             alifrom: 1,
@@ -550,7 +550,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                         };
                         let all_domain = struct_domain.clone();
                         fake_sequence.domains.push(all_domain);
-                        fake_sequence.structure_domains.push(struct_domain);
+                        fake_sequence.structure_domains.push(struct_domain);*/
                         fake_sequence
                 
                 },
@@ -634,6 +634,10 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                         let existing_hit = h.get_mut();
                         hit_count.fetch_add(-1,std::sync::atomic::Ordering::SeqCst); // we aren't adding a new hit after all
                         existing_hit.queries.push(domain.clone());
+                        if existing_hit.seq_length < hit.seq_length{
+                            existing_hit.seq_length = hit.seq_length;
+                            existing_hit.sequence = hit.sequence.clone();
+                        }
                         if hit.seq_evalue < existing_hit.seq_evalue{
                             existing_hit.seq_evalue = hit.seq_evalue
                         }

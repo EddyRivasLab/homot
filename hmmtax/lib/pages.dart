@@ -398,64 +398,6 @@ class _GraphPageState extends State<GraphPage> {
     _norootOverlayEntry?.remove();
     _norootOverlayEntry = null;
   }
-
-     void _removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-  }
-
-    void _showOverlay(BuildContext context, Offset tapPosition, PlatformInt64 nodeId, Node theNode) {
-     _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        left: tapPosition.dx,
-        top: tapPosition.dy,
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: Column(
-              children: [
-                Text('${theNode.name}, \nrank=${theNode.rank}, total descendants: ${theNode.hitsBelow} level = ${theNode.ranknum}',
-                  style: TextStyle(color: Colors.white),
-                ),
-                  Consumer2<SearchData, GraphData>(
-                    builder: (context, searchdata, graphdata, child){
-                    
-                      return ElevatedButton( style: ButtonStyle(backgroundColor: WidgetStateProperty.resolveWith((states){
-                                      return Theme.of(context).colorScheme.primary;}),),
-                                  onPressed: (){
-                                    graphdata.addRoot(theNode.taxid);
-                                    if (theNode.taxid != graphdata.graphRoot){
-                                      // We want to see the hits below a non-root node, so need to fetch them
-                                        HitResults hitResults =
-                                          findHitsBelowNode(root: theNode.taxid, graph: graphdata.graph, hitStructures: searchdata.hitStructures);
-                                          searchdata.currentHitsByEvalue = hitResults.hits;
-                                          searchdata.currentHits = hitResults.categories;
-                                    }
-                                    searchdata.selectedBy =selectedby.subtree;
-                                    _removeOverlay();
-                                    context.go("/subtreestructure");
-                                  },
-                                  child: Center(child: Text("show Hits",
-                                  style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onPrimary),),
-                                  ),
-                      );
-                    },
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-    Overlay.of(context)?.insert(_overlayEntry!);
-
-  }     
-  
     return Scaffold(
       backgroundColor: Colors.grey,//Theme.of(context).colorScheme.primary,
       appBar: HmmtaxAppBar(text: "Taxonomic Display"),
@@ -475,8 +417,8 @@ class _GraphPageState extends State<GraphPage> {
               legendWidth += (width - height)/2.0;
             }
 
-        return Consumer2<HSettings, GraphData>(
-            builder: (context, hsettings, graphdata, child) {
+        return Consumer3<HSettings, GraphData, SearchData>(
+            builder: (context, hsettings, graphdata, searchdata, child) {
               graphdata.size = Size(width, height);
               return Stack(
                   children: [
@@ -485,9 +427,8 @@ class _GraphPageState extends State<GraphPage> {
                           final Matrix4 inverseMatrix = Matrix4.inverted(graphdata.transform);
                           final Vector3 untransformed = inverseMatrix.transform3(Vector3(details.localPosition.dx, details.localPosition.dy, 0));
                           var node = graphdata.findNode(untransformed.x, untransformed.y, center.dx, center.dy, );
-                          _removeOverlay();
                           _removeNorootOverlay();
-                          if(node >=0){ // click was in the graph
+                          if(node >=0 && node != graphdata.currentRoot){ // click was in the graph and on a different node than the current root
                             if (graphdata.getNode(node).children.length == 0){
                               _showNorootOverlay(context, details.globalPosition, node, graphdata.getNode(node));
                               Future.delayed(const Duration(seconds: 5), () {
@@ -497,6 +438,11 @@ class _GraphPageState extends State<GraphPage> {
                           else{
                             graphdata.popPastIndex();
                             graphdata.addRoot(node);
+                            HitResults hitResults =
+                            findHitsBelowNode(root: graphdata.getNode(node).taxid, graph: graphdata.graph, hitStructures: searchdata.hitStructures);
+                            searchdata.currentHitsByEvalue = hitResults.hits;
+                            searchdata.currentHits = hitResults.categories;
+                            searchdata.selectedBy =selectedby.subtree;
                           };
                           }
                          },
@@ -505,11 +451,7 @@ class _GraphPageState extends State<GraphPage> {
                           final Matrix4 inverseMatrix = Matrix4.inverted(graphdata.transform);
                           final Vector3 untransformed = inverseMatrix.transform3(Vector3(details.localPosition.dx, details.localPosition.dy, 0));
                           var node = graphdata.findNode(untransformed.x, untransformed.y, center.dx, center.dy, );
-                          _removeOverlay();
                           _removeNorootOverlay();
-                          if (node >=0){
-                            _showOverlay(context, details.globalPosition, node, graphdata.getNode(node));
-                          }
                           },
 
                         child: 
@@ -717,6 +659,8 @@ class SubtreeStructurePage extends StatefulWidget {
 
 class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
   final ScrollController _scrollController2 = ScrollController();
+  List<bool> fullWidth = [];
+  List<bool> showExpand = [];
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -727,23 +671,54 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
           for (var category in theHits){
             numHits += category.hits.length;
           }
+          final hitCount = numHits ==0|| numHits > 1 ? "hits" : "hit";
+          final strucText = theHits.length > 1 ? "different domain structures" : "domain structure"; 
+           if (fullWidth.length != theHits.length){
+            // something has changed, reset the fullwidth list
+            fullWidth = List.filled(theHits.length, false);
+            showExpand = List.filled(theHits.length, false);
+          }
+          final screenWidth = MediaQuery.sizeOf(context).width;
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
-            appBar:  HmmtaxAppBar(text:"${numHits} hits found under ${graphdata.graph[graphdata.currentRoot]?.name}, with ${theHits.length} different domain structures"),
+            appBar:  HmmtaxAppBar(text:"${numHits} ${hitCount} found under ${graphdata.graph[graphdata.currentRoot]?.name}, with ${theHits.length} ${strucText}"),
             body: Scrollbar(
               controller: _scrollController2,
               child: ListView.builder(
                 controller: _scrollController2,
                 itemCount: theHits.length,
                 itemBuilder: (BuildContext context, int index) {
+                showExpand[index] = requiredHitWidth(searchdata.hits[searchdata.rootHits[index].hits[0].toInt()], false, false, context) > screenWidth;
                   return Card(
                     margin: EdgeInsets.only(bottom: 8),
                     color: Theme.of(context).colorScheme.surface,
-                    child: DrawCategory(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [ DrawCategory(
                       which: index,
                       from: selectedby.subtree_structure,
+                      fullWidth: fullWidth[index],
                     ),
-                  );
+                   Row( mainAxisAlignment: MainAxisAlignment.end,
+                        children:[ showExpand[index] ?
+                          RotatedBox( 
+                          quarterTurns: 1,
+                          child: IconButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary), 
+                          onPressed: () {
+                            fullWidth[index] = !fullWidth[index];
+                            setState((){}); 
+                          },
+                          icon: fullWidth[index] ? Icon(Icons.compress, color: Theme.of(context).colorScheme.onPrimary): Icon(Icons.expand, color: Theme.of(context).colorScheme.onPrimary
+                        ),),): SizedBox.shrink(),IconButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
+                          onPressed: () {
+                            searchdata.selectedStructure = index;
+                            searchdata.selectedBy = selectedby.subtree_structure;
+                            context.go("/subtreeevalue");
+                          },
+                          icon: Icon(Icons.search, color: Theme.of(context).colorScheme.onPrimary),
+                        ),],),],),); 
                 },
               ),
             ),
@@ -764,30 +739,64 @@ class AllStructurePage extends StatefulWidget {
 }
 class _AllStructurePageState extends State<AllStructurePage> {
   final ScrollController _scrollController2 = ScrollController();
+  List<bool> fullWidth = [];
+  List<bool> showExpand = [];
   @override
   Widget build(BuildContext context) {
+
     return Material(
       child: Consumer2<SearchData, GraphData>(
         builder: (context, searchdata, graphdata, child) {
           final List<SigCategory> theHits = searchdata.rootHits;
+          if (fullWidth.length != theHits.length){
+            // something has changed, reset the fullwidth list
+            fullWidth = List.filled(theHits.length, false);
+            showExpand = List.filled(theHits.length, false);
+          }
           int numHits = searchdata.hits.length;
+          final hitCount = numHits > 1 ? "hits" : "hit";
+          final strucText = theHits.length > 1 ? "different domain structures" : "domain structure"; 
+          final screenWidth = MediaQuery.sizeOf(context).width;
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
-            appBar:  HmmtaxAppBar(text:"${numHits} hits found, with ${theHits.length} different domain structures"),
+            appBar:  HmmtaxAppBar(text:"${numHits} ${hitCount} found, with ${theHits.length} ${strucText}"),
             body: Scrollbar(
               controller: _scrollController2,
               child: ListView.builder(
                 controller: _scrollController2,
                 itemCount: theHits.length,
                 itemBuilder: (BuildContext context, int index) {
+                  showExpand[index] = requiredHitWidth(searchdata.hits[searchdata.rootHits[index].hits[0].toInt()], false, false, context) > screenWidth;
                   return Card(
                     margin: EdgeInsets.only(bottom: 8),
                     color: Theme.of(context).colorScheme.surface,
-                    child: DrawCategory(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [ DrawCategory(
                       which: index,
                       from: selectedby.structure,
-                    ),
-                  );
+                      fullWidth: fullWidth[index],
+                      ),
+                      Row( mainAxisAlignment: MainAxisAlignment.end,
+                        children:[ showExpand[index] ?
+                          RotatedBox( 
+                          quarterTurns: 1,
+                          child: IconButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary), 
+                          onPressed: () {
+                            fullWidth[index] = !fullWidth[index];
+                            setState((){}); 
+                          },
+                          icon: fullWidth[index] ? Icon(Icons.compress, color: Theme.of(context).colorScheme.onPrimary): Icon(Icons.expand, color: Theme.of(context).colorScheme.onPrimary
+                        ),),): SizedBox.shrink(),IconButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
+                          onPressed: () {
+                            searchdata.selectedStructure = index;
+                            searchdata.selectedBy = selectedby.structure;
+                            context.go("/subtreeevalue");
+                          },
+                          icon: Icon(Icons.search, color: Theme.of(context).colorScheme.onPrimary),
+                        ),],),],),);
                 },
               ),
             ),
@@ -809,12 +818,19 @@ class AllEvaluePage extends StatefulWidget {
 
 class _AllEvaluePageState extends State<AllEvaluePage> {
   final ScrollController _scrollController2 = ScrollController();
+  List<bool> fullWidth = [];
+  List<bool> showExpand = [];
   @override
   Widget build(BuildContext context) {
     return Material(
       child: Consumer2<SearchData, GraphData>(
         builder: (context, searchdata, graphdata, child) {
-
+          if (fullWidth.length != searchdata.hits.length){
+            // something has changed, reset the fullwidth list
+            fullWidth = List.filled(searchdata.hits.length, false);
+            showExpand = List.filled(searchdata.hits.length, false);
+          }
+          final screenWidth = MediaQuery.sizeOf(context).width;
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
             appBar:  HmmtaxAppBar(text : "${searchdata.hits.length} hits found"),
@@ -824,6 +840,7 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
                 controller: _scrollController2,
                 itemCount: searchdata.hits.length ,
                 itemBuilder: (BuildContext context, int index) {
+                  showExpand[index] = requiredHitWidth(searchdata.hits[index], false, false, context) > screenWidth;
                   return Card(
                     margin: EdgeInsets.only(bottom: 8),
                     color: Theme.of(context).colorScheme.surface,
@@ -838,15 +855,27 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
                         DrawHit(
                           hit: searchdata.hits[index],
                           searchdata: searchdata,
+                          fullWidth: fullWidth[index],
                         ),
-                        Align( alignment: Alignment(1.0,0.0), child: IconButton(
+                        Row( mainAxisAlignment: MainAxisAlignment.end,
+                        children:[ showExpand[index] ?
+                          RotatedBox( 
+                          quarterTurns: 1,
+                          child: IconButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary), 
+                          onPressed: () {
+                            fullWidth[index] = !fullWidth[index];
+                            setState((){}); 
+                          },
+                          icon: fullWidth[index] ? Icon(Icons.compress, color: Theme.of(context).colorScheme.onPrimary): Icon(Icons.expand, color: Theme.of(context).colorScheme.onPrimary
+                        ),),): SizedBox.shrink(),IconButton(
                           style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
                           onPressed: () {
                             searchdata.selectedHit = index;
                             context.go("/sequence");
                           },
                           icon: Icon(Icons.search, color: Theme.of(context).colorScheme.onPrimary),
-                        ),),
+                        ),],),
                       ],
                     ),
                   );
@@ -863,7 +892,7 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
 
 // Widget that displays a subtree's results by evalue
 class SubtreeEvaluePage extends StatefulWidget {
-  const SubtreeEvaluePage({super.key});
+  SubtreeEvaluePage({Key? key}) : super(key: key);
 
   @override
   State<SubtreeEvaluePage> createState() => _SubtreeEvaluePageState();
@@ -871,6 +900,8 @@ class SubtreeEvaluePage extends StatefulWidget {
 
 class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
   final ScrollController _scrollController2 = ScrollController();
+  List<bool> fullWidth = [];
+  List<bool> showExpand = [];
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -881,7 +912,7 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
           switch (searchdata.selectedBy){
             case selectedby.subtree:
               hitIndices = searchdata.currentHitsByEvalue;
-
+              title = "${hitIndices.length} hits found under node ${graphdata.getNode(graphdata.currentRoot).name}";
               break;
             case selectedby.subtree_structure:
               hitIndices = searchdata.currentHits[searchdata.selectedStructure].hits;
@@ -894,6 +925,13 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
             default:
               hitIndices = Int64List(0) ;
           }
+          if ((fullWidth.length != hitIndices.length)|| (searchdata.selectedBy != searchdata.previousSelectedBy)){
+            // something has changed, reset the fullwidth list
+            fullWidth = List.filled(hitIndices.length, false);
+            showExpand = List.filled(hitIndices.length, false);
+            searchdata.previousSelectedBy = searchdata.selectedBy;
+          }
+          final screenWidth = MediaQuery.sizeOf(context).width;
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
             appBar:  HmmtaxAppBar(text : title),
@@ -903,6 +941,7 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                 controller: _scrollController2,
                 itemCount: hitIndices.length,
                 itemBuilder: (BuildContext context, int index) {
+                  showExpand[index] = requiredHitWidth(searchdata.hits[hitIndices[index].toInt()], false, false, context) > screenWidth;
                   return Card(
                     margin: EdgeInsets.only(bottom: 8),
                     color: Theme.of(context).colorScheme.surface,
@@ -914,18 +953,31 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                             "Sequence: " + searchdata.hits[hitIndices[index].toInt()].name +", E-Value: " + 
                             searchdata.hits[hitIndices[index].toInt()].seqEvalue.toStringAsExponential(4),
                         ),
-                        DrawHit(
+                        DrawHit( 
                           hit: searchdata.hits[hitIndices[index].toInt()],
                           searchdata: searchdata,
+                          fullWidth: fullWidth[index],
                         ),
-                        Align( alignment: Alignment(1.0,0.0), child: IconButton(
+                         Row( mainAxisAlignment: MainAxisAlignment.end,
+                        children:[ showExpand[index] ?
+                          RotatedBox( 
+                          quarterTurns: 1,
+                          child: IconButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary), 
+                          onPressed: () {
+                            fullWidth[index] = !fullWidth[index];
+                            setState((){}); 
+                          },
+                          icon: fullWidth[index] ? Icon(Icons.compress, color: Theme.of(context).colorScheme.onPrimary): Icon(Icons.expand, color: Theme.of(context).colorScheme.onPrimary
+                        ),),): SizedBox.shrink(),
+                        IconButton(
                           style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
                           onPressed: () {
-                            searchdata.selectedHit = hitIndices[index].toInt();
+                            searchdata.selectedHit = index;
                             context.go("/sequence");
                           },
                           icon: Icon(Icons.search, color: Theme.of(context).colorScheme.onPrimary),
-                        ),),
+                        ),],),
                       ],
                     ),
                   );
@@ -948,13 +1000,17 @@ class SequencePage extends StatefulWidget {
 }
 
 class _SequencePageState extends State<SequencePage> {
+  bool fullWidth = false;
+  bool showExpand = false;
   final ScrollController _scrollController2 = ScrollController();
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
     return Material(
       child: Consumer<SearchData>(
         builder: (context, searchdata, child) {
           Hit theHit = searchdata.hits[searchdata.selectedHit.toInt()];
+          showExpand = requiredHitWidth(theHit, true, true, context) > screenWidth;
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
             appBar:  HmmtaxAppBar(text : "Sequence ${theHit.name}"),
@@ -977,15 +1033,20 @@ class _SequencePageState extends State<SequencePage> {
                           hit: theHit,
                           allDomains: true,
                           searchdata: searchdata,
+                          fullWidth: fullWidth,
+                          showSequence:true,
+                          sequence: theHit.sequence
                         ),
-                        Text(
-                          style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
-                          "Sequence:",                 
-                        ),
-                        Text(
-                          style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onSurface),
-                          theHit.sequence,
-                        ),
+                        Align( alignment: Alignment(1.0,0.0), child: RotatedBox( 
+                          quarterTurns: 1,
+                          child: showExpand ?IconButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
+                          onPressed: () {
+                            fullWidth = !fullWidth;
+                            setState((){}); 
+                          },
+                          icon: fullWidth? Icon(Icons.compress, color: Theme.of(context).colorScheme.onPrimary): Icon(Icons.expand, color: Theme.of(context).colorScheme.onPrimary
+                        ),): SizedBox.shrink(), ),),
                       ],
                     ),
                 ),

@@ -166,8 +166,8 @@ class MainNavBar extends StatelessWidget {
   
   static const List<String> _routes = <String>[
     "/",
-    "/svg",
-    "/svg",
+    "/graph",
+    "/allstructure",
     "/allevalue",
   "/subtreestructure",
   "/subtreeevalue",
@@ -210,12 +210,11 @@ class MainNavBar extends StatelessWidget {
                 label: 'Taxonomic Display',
               ),
               NavigationDestination(
-                 icon: Icon(Icons.category),
-                  enabled: true,
+                 icon: Icon(Icons.category,
+                color: (whereAmI != WhichPage.allstructure) && searchdata.resultsLoaded ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).disabledColor),
+                enabled: (whereAmI != WhichPage.allstructure) && searchdata.resultsLoaded,   
                 tooltip: "",
                 label: 'All Hits by Domain Structure',
-            /*  color: (whereAmI != WhichPage.allstructure) && searchdata.resultsLoaded ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).disabledColor),
-                enabled: (whereAmI != WhichPage.allstructure) && searchdata.resultsLoaded, */
               ), 
               NavigationDestination(
                 icon: Icon(Icons.swap_vert,

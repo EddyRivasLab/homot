@@ -750,21 +750,21 @@ class _MacMenuBarState extends State<MacMenu> {
     builder: (context, state) => MainPage(),
     ),
     GoRoute(path: '/settings',
-    builder: (context, state) => const SettingsPage(),),
+    builder: (context, state) => SettingsPage(),),
     GoRoute(path: '/graph',
-    builder: (context, state) => const GraphPage(),),
+    builder: (context, state) => GraphPage(),),
     GoRoute(path: '/allstructure',
-    builder: (context, state) => const AllStructurePage(),),
+    builder: (context, state) => AllStructurePage(),),
     GoRoute(path: '/subtreestructure',
-    builder: (context, state) => const SubtreeStructurePage(),),
+    builder: (context, state) => SubtreeStructurePage(),),
     GoRoute(path: '/subtreeevalue',
-    builder: (context, state) => const SubtreeEvaluePage(),),
+    builder: (context, state) => SubtreeEvaluePage(key:UniqueKey()),),
     GoRoute(path: '/allevalue',
-    builder: (context, state) => const AllEvaluePage(),),
+    builder: (context, state) => AllEvaluePage(),),
     GoRoute(path: '/sequence',
-    builder: (context, state) => const SequencePage(),),
+    builder: (context, state) => SequencePage(),),
       GoRoute(path: '/svg',
-    builder: (context, state) => const SvgPage(),),
+    builder: (context, state) => SvgPage(),),
   ]);
   Widget build(BuildContext context) {
     return PlatformMenuBar(
@@ -1004,12 +1004,17 @@ class SearchData with ChangeNotifier{
   bool _currentLoaded = false;
   int _selectedStructure = -1;
   selectedby _selectedBy = selectedby.none;
+  selectedby _previousSelectedBy = selectedby.none;
   HashMap<String, (Color, Color)> _domainColors = HashMap();
   PlatformInt64 _selectedHit = -1;
   selectedby get selectedBy => _selectedBy;
+  selectedby get previousSelectedBy => _previousSelectedBy;
   void set selectedBy(selectedby method){
     _selectedBy = method;
     notifyListeners();
+  }
+  void set previousSelectedBy(selectedby method){
+    _previousSelectedBy = method;
   }
   PlatformInt64 get selectedHit => _selectedHit;
   List<Hit> get hits => _hits;
