@@ -304,6 +304,7 @@ impl SseDecode for crate::api::graph::Domain {
         let mut var_domEvalue = <f64>::sse_decode(deserializer);
         let mut var_fullMatchStart = <bool>::sse_decode(deserializer);
         let mut var_fullMatchEnd = <bool>::sse_decode(deserializer);
+        let mut var_fromBlast = <bool>::sse_decode(deserializer);
         return crate::api::graph::Domain {
             name: var_name,
             clan: var_clan,
@@ -316,6 +317,7 @@ impl SseDecode for crate::api::graph::Domain {
             dom_evalue: var_domEvalue,
             full_match_start: var_fullMatchStart,
             full_match_end: var_fullMatchEnd,
+            from_blast: var_fromBlast,
         };
     }
 }
@@ -631,6 +633,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::graph::Domain {
             self.dom_evalue.into_into_dart().into_dart(),
             self.full_match_start.into_into_dart().into_dart(),
             self.full_match_end.into_into_dart().into_dart(),
+            self.from_blast.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -802,6 +805,7 @@ impl SseEncode for crate::api::graph::Domain {
         <f64>::sse_encode(self.dom_evalue, serializer);
         <bool>::sse_encode(self.full_match_start, serializer);
         <bool>::sse_encode(self.full_match_end, serializer);
+        <bool>::sse_encode(self.from_blast, serializer);
     }
 }
 

@@ -45,8 +45,9 @@ import 'package:touchable/touchable.dart';
   }
 
 void _addButton(List<Widget> buttons, double top, double bottom, double left, double right, String dName, String dDesc, String cName,
-double sEval, double dEval, int sLen, int hLen, int sStart, int sEnd, int hStart, int hEnd, bool query, BuildContext context) {
-  String tooltipText = query ? "Query: ${dName}\nDomain e-value:${dEval.toStringAsExponential(2)}\nSequence e-value: ${sEval.toStringAsExponential(2)}\nSequence length: ${sLen}\nHMM length: ${hLen}\nDomain matched sequence positions ${sStart}-${sEnd}\nDomain matched HMM positions: ${hStart}-${hEnd}":
+double sEval, double dEval, int sLen, int hLen, int sStart, int sEnd, int hStart, int hEnd, bool query, bool fromBlast, BuildContext context) {
+  String tooltipText = query ? fromBlast?"Query: ${dName}\nSequence e-value: ${sEval.toStringAsExponential(2)}\nSequence length: ${sLen}\nDomain matched target positions ${sStart}-${sEnd}\nDomain matched query positions: ${hStart}-${hEnd}":
+  "Query: ${dName}\nDomain e-value:${dEval.toStringAsExponential(2)}\nSequence e-value: ${sEval.toStringAsExponential(2)}\nSequence length: ${sLen}\nHMM length: ${hLen}\nDomain matched query positions ${sStart}-${sEnd}\nDomain matched HMM positions: ${hStart}-${hEnd}":
   "Domain: ${dName}\nDescription: ${dDesc} \nClan: ${cName}\nDomain e-value:${dEval.toStringAsExponential(2)}\nSequence e-value: ${sEval.toStringAsExponential(2)}\nSequence length: ${sLen}\nHMM length: ${hLen}\nDomain matched sequence positions ${sStart}-${sEnd}\nDomain matched HMM positions: ${hStart}-${hEnd}";
   
   //print("addding button at top=$top bottom=$bottom left=$left right=$right\n" );
@@ -156,6 +157,7 @@ class DrawDomains extends StatelessWidget {
         domEvalue: seqEvalue,
         fullMatchStart: true,
         fullMatchEnd: true,
+        fromBlast: false,
       ));
     }
     // Sort the domains by start position
@@ -231,7 +233,7 @@ List<Widget> CreateButtons(
       _addButton(buttons, (i* lineSpace + (lineSpace/2)) * heightPerLine, 
       (((i)* lineSpace + (lineSpace/2)) * heightPerLine) + heightPerLine,  
       start, start + domainWidth, domain.name, domain.description, domain.clan, seqEvalue, domain.domEvalue, seqLength, domain.hmmLength, domain.seqStart, domain.seqEnd, domain.hmmStart,
-      domain.hmmEnd, false, context);
+      domain.hmmEnd, false, domain.fromBlast, context);
     
     }
   }
@@ -244,7 +246,7 @@ List<Widget> CreateButtons(
       _addButton(buttons, ((queryStartRow+ i)* lineSpace + (lineSpace/2)) * heightPerLine, 
         (((queryStartRow+ i)* lineSpace + (lineSpace/2)) * heightPerLine) + heightPerLine,  
         start, start + domainWidth, query.name, query.description, query.clan, seqEvalue, query.domEvalue, seqLength, query.hmmLength, query.seqStart, query.seqEnd, query.hmmStart,
-        query.hmmEnd, true, context);
+        query.hmmEnd, true,query.fromBlast, context);
     }
   }
   return buttons;

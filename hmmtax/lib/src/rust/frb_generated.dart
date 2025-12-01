@@ -325,8 +325,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Domain dco_decode_domain(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 11)
-      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
     return Domain(
       name: dco_decode_String(arr[0]),
       clan: dco_decode_String(arr[1]),
@@ -339,6 +339,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       domEvalue: dco_decode_f_64(arr[8]),
       fullMatchStart: dco_decode_bool(arr[9]),
       fullMatchEnd: dco_decode_bool(arr[10]),
+      fromBlast: dco_decode_bool(arr[11]),
     );
   }
 
@@ -590,6 +591,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_domEvalue = sse_decode_f_64(deserializer);
     var var_fullMatchStart = sse_decode_bool(deserializer);
     var var_fullMatchEnd = sse_decode_bool(deserializer);
+    var var_fromBlast = sse_decode_bool(deserializer);
     return Domain(
       name: var_name,
       clan: var_clan,
@@ -602,6 +604,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       domEvalue: var_domEvalue,
       fullMatchStart: var_fullMatchStart,
       fullMatchEnd: var_fullMatchEnd,
+      fromBlast: var_fromBlast,
     );
   }
 
@@ -909,6 +912,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_f_64(self.domEvalue, serializer);
     sse_encode_bool(self.fullMatchStart, serializer);
     sse_encode_bool(self.fullMatchEnd, serializer);
+    sse_encode_bool(self.fromBlast, serializer);
   }
 
   @protected

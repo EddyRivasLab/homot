@@ -62,7 +62,7 @@ class _MainPageState extends State<MainPage> {
                     AnnDbSelect(),
     
                     Text(style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: Theme.of(context).colorScheme.onPrimary),
-                    "Domtblout File(s):"),
+                    "Search Result File(s):"),
                     Builder(
                         builder: (context) {
                             return 
@@ -400,7 +400,7 @@ class _GraphPageState extends State<GraphPage> {
   }
     return Scaffold(
       backgroundColor: Colors.grey,//Theme.of(context).colorScheme.primary,
-      appBar: HmmtaxAppBar(text: "Taxonomic Display"),
+     appBar: HmmtaxAppBar(text: "Taxonomic Display"),
       body:     LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
                 var width = constraints.maxWidth;
@@ -467,7 +467,7 @@ class _GraphPageState extends State<GraphPage> {
                           Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: <Widget>[ 
-                SizedBox(
+               SizedBox(
                               height: legendHeight,
                               width: legendWidth,
                                   child : Card(
@@ -800,7 +800,7 @@ class _AllStructurePageState extends State<AllStructurePage> {
                 },
               ),
             ),
-            bottomNavigationBar: MainNavBar(whereAmI: WhichPage.allstructure),
+           bottomNavigationBar: MainNavBar(whereAmI: WhichPage.allstructure),
           );
         },
       ),
@@ -1013,7 +1013,7 @@ class _SequencePageState extends State<SequencePage> {
           showExpand = requiredHitWidth(theHit, true, true, context) > screenWidth;
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
-            appBar:  HmmtaxAppBar(text : "Sequence ${theHit.name}"),
+           appBar:  HmmtaxAppBar(text : "Sequence ${theHit.name}"),
             body: SingleChildScrollView(
               controller: _scrollController2,
               child: 

@@ -23,7 +23,25 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 // List of pairs of background and foregrund colors for displaying
 // domains.  Taken from the ColorBrewer example color sets.
 // Format is (BGcolor, FG color)
+
 const domainColors = [
+  (Color(0xFF004949),Color(0xffffffff)),
+  (Color(0xFF009292),Color(0xffffffff)),
+  (Color(0xFFFF6DB6),Color(0xff000000)),
+  (Color(0xFFFFB6DB),Color(0xff000000)),
+  (Color(0xFF490092),Color(0xffffffff)),
+  (Color(0xFF006DDB),Color(0xffffffff)),
+  (Color(0xFFB66DFF),Color(0xff000000)),
+  (Color(0xFF6DB6FF),Color(0xff000000)),
+  (Color(0xFFB6DBFF),Color(0xff000000)),
+  (Color(0xFF920000),Color(0xffffffff)),
+  (Color(0xFF924900),Color(0xffffffff)),
+  (Color(0xFFDB6D00),Color(0xffffffff)),
+  (Color(0xFF24FF24),Color(0xff000000)),
+  (Color(0xFFFFFF6D),Color(0xff000000)),
+];
+
+const domainColorsOld = [
   (Color(0xff9e0142), Color(0xffffffff)),
   (Color(0xff5475b4), Color(0xffffffff)),
   (Color(0xff40004b), Color(0xffffffff)),

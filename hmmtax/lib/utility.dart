@@ -327,7 +327,7 @@ class _DomtblSelectState extends State<DomtblSelect> {
   @override
   void initState() {
     super.initState();
-    myController.text = "Select or enter .domtblout file(s)";
+    myController.text = "Select or enter search result file(s)";
   }
     Widget build(BuildContext context) {
     return Consumer<FileData>(
@@ -340,7 +340,7 @@ class _DomtblSelectState extends State<DomtblSelect> {
             autovalidateMode: AutovalidateMode.onUserInteraction,
             onFieldSubmitted: (String? value) async{
               if(value != null&& File(value).existsSync()){filedata.addDomtbloutFile(value);
-                  myController.text = "Select or enter .domtblout file(s)"; 
+                  myController.text = "Select or enter search result file(s)"; 
                   }},
             validator: (String? value){
               return(value == null || !File(value).existsSync()) ? "Must be valid filename":null;
@@ -352,7 +352,7 @@ class _DomtblSelectState extends State<DomtblSelect> {
             FilePickerResult? dTemp = await FilePicker.platform.pickFiles(
               initialDirectory: filedata.domtbloutFileDir,
               allowMultiple: true,
-              dialogTitle: "Select .domtblout file(s)",
+              dialogTitle: "Select search result file(s)",
             );
             if (dTemp == null) {
             } else {
@@ -396,7 +396,7 @@ class _DomtblEditState extends State<DomtblEdit> {
               return(value == null || !File(value).existsSync()) ? "Must be valid filename":null;
             },
         ),),
-       
+        
         ],),);
       });
   }
