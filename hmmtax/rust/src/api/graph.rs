@@ -37,10 +37,12 @@ impl From<&Slice> for Dmap{
 pub struct Node{
     pub taxid: i64,
     pub parent: i64,
+    #[frb(non_final)]
     pub children: Vec<i64>,
     pub rank: String,
     pub ranknum: u32,
     pub name: String,
+    #[frb(non_final)]
     pub hits_below: i64,
     pub hits: Vec<i64>,
     #[frb(non_final)]
@@ -271,7 +273,7 @@ fn count_hits(graph: &mut HashMap<i64, Node>, id: i64) -> i64 {
 
 
 #[frb(serialize)]
-pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32, dom_eval_max:f32) -> SearchResults{
+pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32, dom_eval_max:f32, fileType: DataFileType) -> SearchResults{
    // println!("Starting fetch_graph");
 
     let mut results = SearchResults{
@@ -355,7 +357,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
     // load hits from the data files
     for domtbloutfile in domtblout_files{
        // println!("searching {}", domtbloutfile);
-        match read_hits_from_file(&domtbloutfile,  &mut hit_map, 0.0, eval_max, 0.0, dom_eval_max, &db, &domain_map, DataFileType::Infer){  
+        match read_hits_from_file(&domtbloutfile,  &mut hit_map, 0.0, eval_max, 0.0, dom_eval_max, &db, &domain_map, &fileType){  
             Ok(v) => {
                         num_domtbl_hits += v;
             }
@@ -416,7 +418,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
 
 // Wrapper that calls the right read_hits function based on file type
 fn read_hits_from_file(filename: &str, hits: &mut DashMap<String, Hit>, min_seq_evalue: f32, max_seq_evalue: f32, min_dom_evalue: f32, max_dom_evalue: f32, 
-annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap>, fileType: DataFileType) -> Result<i64, String>{
+annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap>, fileType: &DataFileType) -> Result<i64, String>{
 
 
     let file = match File::open(filename){
@@ -443,7 +445,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap>, fileType: Data
         None => return Err(format!("File {} is empty", filename)),
     }
 
-    if fileType == DataFileType::DomTblOut || inferred_filetype == DataFileType::DomTblOut{
+    if *fileType == DataFileType::DomTblOut || inferred_filetype == DataFileType::DomTblOut{
         reader.rewind().unwrap(); // Back up to the start of the file
         return read_hits_from_domtblout(reader, hits, min_seq_evalue, max_seq_evalue, min_dom_evalue, max_dom_evalue, annotation_db, domain_map);
     }

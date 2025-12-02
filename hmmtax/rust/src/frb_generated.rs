@@ -131,6 +131,7 @@ fn wire__crate__api__graph__fetch_graph_impl(
             let api_domtblout_files = <Vec<String>>::sse_decode(&mut deserializer);
             let api_eval_max = <f32>::sse_decode(&mut deserializer);
             let api_dom_eval_max = <f32>::sse_decode(&mut deserializer);
+            let api_fileType = <crate::api::graph::DataFileType>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, ()>((move || {
@@ -139,6 +140,7 @@ fn wire__crate__api__graph__fetch_graph_impl(
                         api_domtblout_files,
                         api_eval_max,
                         api_dom_eval_max,
+                        api_fileType,
                     ))?;
                     Ok(output_ok)
                 })())
@@ -290,6 +292,19 @@ impl SseDecode for bool {
     }
 }
 
+impl SseDecode for crate::api::graph::DataFileType {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::graph::DataFileType::DomTblOut,
+            1 => crate::api::graph::DataFileType::Blast,
+            2 => crate::api::graph::DataFileType::Infer,
+            _ => unreachable!("Invalid variant for DataFileType: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for crate::api::graph::Domain {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -369,6 +384,13 @@ impl SseDecode for crate::api::graph::HitResults {
             categories: var_categories,
             hits: var_hits,
         };
+    }
+}
+
+impl SseDecode for i32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_i32::<NativeEndian>().unwrap()
     }
 }
 
@@ -579,13 +601,6 @@ impl SseDecode for usize {
     }
 }
 
-impl SseDecode for i32 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        deserializer.cursor.read_i32::<NativeEndian>().unwrap()
-    }
-}
-
 fn pde_ffi_dispatcher_primary_impl(
     func_id: i32,
     port: flutter_rust_bridge::for_generated::MessagePort,
@@ -618,6 +633,28 @@ fn pde_ffi_dispatcher_sync_impl(
 
 // Section: rust2dart
 
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::graph::DataFileType {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::DomTblOut => 0.into_dart(),
+            Self::Blast => 1.into_dart(),
+            Self::Infer => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::graph::DataFileType
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::graph::DataFileType>
+    for crate::api::graph::DataFileType
+{
+    fn into_into_dart(self) -> crate::api::graph::DataFileType {
+        self
+    }
+}
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::graph::Domain {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
@@ -791,6 +828,23 @@ impl SseEncode for bool {
     }
 }
 
+impl SseEncode for crate::api::graph::DataFileType {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::graph::DataFileType::DomTblOut => 0,
+                crate::api::graph::DataFileType::Blast => 1,
+                crate::api::graph::DataFileType::Infer => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for crate::api::graph::Domain {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -842,6 +896,13 @@ impl SseEncode for crate::api::graph::HitResults {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Vec<crate::api::graph::SigCategory>>::sse_encode(self.categories, serializer);
         <Vec<i64>>::sse_encode(self.hits, serializer);
+    }
+}
+
+impl SseEncode for i32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_i32::<NativeEndian>(self).unwrap();
     }
 }
 
@@ -1008,13 +1069,6 @@ impl SseEncode for usize {
             .cursor
             .write_u64::<NativeEndian>(self as _)
             .unwrap();
-    }
-}
-
-impl SseEncode for i32 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        serializer.cursor.write_i32::<NativeEndian>(self).unwrap();
     }
 }
 

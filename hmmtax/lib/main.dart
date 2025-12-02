@@ -7,7 +7,7 @@ import 'package:hmmtax/src/rust/api/graph.dart';
 import 'package:hmmtax/printing.dart';
 
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import"dart:math";
+import "dart:math";
 import 'package:touchable/touchable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
@@ -25,20 +25,20 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 // Format is (BGcolor, FG color)
 
 const domainColors = [
-  (Color(0xFF004949),Color(0xffffffff)),
-  (Color(0xFF009292),Color(0xffffffff)),
-  (Color(0xFFFF6DB6),Color(0xff000000)),
-  (Color(0xFFFFB6DB),Color(0xff000000)),
-  (Color(0xFF490092),Color(0xffffffff)),
-  (Color(0xFF006DDB),Color(0xffffffff)),
-  (Color(0xFFB66DFF),Color(0xff000000)),
-  (Color(0xFF6DB6FF),Color(0xff000000)),
-  (Color(0xFFB6DBFF),Color(0xff000000)),
-  (Color(0xFF920000),Color(0xffffffff)),
-  (Color(0xFF924900),Color(0xffffffff)),
-  (Color(0xFFDB6D00),Color(0xffffffff)),
-  (Color(0xFF24FF24),Color(0xff000000)),
-  (Color(0xFFFFFF6D),Color(0xff000000)),
+  (Color(0xFF004949), Color(0xffffffff)),
+  (Color(0xFF009292), Color(0xffffffff)),
+  (Color(0xFFFF6DB6), Color(0xff000000)),
+  (Color(0xFFFFB6DB), Color(0xff000000)),
+  (Color(0xFF490092), Color(0xffffffff)),
+  (Color(0xFF006DDB), Color(0xffffffff)),
+  (Color(0xFFB66DFF), Color(0xff000000)),
+  (Color(0xFF6DB6FF), Color(0xff000000)),
+  (Color(0xFFB6DBFF), Color(0xff000000)),
+  (Color(0xFF920000), Color(0xffffffff)),
+  (Color(0xFF924900), Color(0xffffffff)),
+  (Color(0xFFDB6D00), Color(0xffffffff)),
+  (Color(0xFF24FF24), Color(0xff000000)),
+  (Color(0xFFFFFF6D), Color(0xff000000)),
 ];
 
 const domainColorsOld = [
@@ -65,33 +65,33 @@ const domainColorsOld = [
 ];
 
 ColorScheme lightScheme = ColorScheme.fromSeed(
-    seedColor: const Color(0xff5475b4),
-    primary: const Color(0xff5475b4),
-    secondary: const Color(0xff9e0142),
-    surface: const Color(0xffffffff),
-    error: const Color(0xfff46d43),
-    onPrimary: const Color(0xffffffff),
-    onSecondary: const Color(0xffffffff),
-    onSurface: const Color(0xff000000),
-    onError: const Color(0xffffffff),
-  );
+  seedColor: const Color(0xff5475b4),
+  primary: const Color(0xff5475b4),
+  secondary: const Color(0xff9e0142),
+  surface: const Color(0xffffffff),
+  error: const Color(0xfff46d43),
+  onPrimary: const Color(0xffffffff),
+  onSecondary: const Color(0xffffffff),
+  onSurface: const Color(0xff000000),
+  onError: const Color(0xffffffff),
+);
 
 ColorScheme darkScheme = ColorScheme.fromSeed(
-    seedColor: const Color(0xff5475b4),
-    primary: const Color(0xff5475b4),
-    secondary: const Color(0xff9e0142),
-    surface: const Color(0xff000000),
-    error: const Color(0xfff46d43),
-    onPrimary: const Color(0xffffffff),
-    onSecondary: const Color(0xffffffff),
-    onSurface: const Color(0xffffffff),
-    onError: const Color(0xff000000),
-  );
+  seedColor: const Color(0xff5475b4),
+  primary: const Color(0xff5475b4),
+  secondary: const Color(0xff9e0142),
+  surface: const Color(0xff000000),
+  error: const Color(0xfff46d43),
+  onPrimary: const Color(0xffffffff),
+  onSecondary: const Color(0xffffffff),
+  onSurface: const Color(0xffffffff),
+  onError: const Color(0xff000000),
+);
 
 const numColors = 9;
 const shadesPerColor = 5;
 
-var lightGraphColors =[
+var lightGraphColors = [
   (Colors.amber[500], Colors.black),
   (Colors.amber[700], Colors.black),
   (Colors.amber[900], Colors.black),
@@ -106,13 +106,13 @@ var lightGraphColors =[
   (Colors.red[700], Colors.white),
   (Colors.red[900], Colors.white),
   (Colors.red[600], Colors.white),
-  (Colors.red[800], Colors.white),  
+  (Colors.red[800], Colors.white),
   (Colors.purple[500], Colors.white),
   (Colors.purple[700], Colors.white),
   (Colors.purple[900], Colors.white),
   (Colors.purple[600], Colors.white),
   (Colors.purple[800], Colors.white),
-    (Colors.green[500], Colors.white),
+  (Colors.green[500], Colors.white),
   (Colors.green[700], Colors.white),
   (Colors.green[900], Colors.white),
   (Colors.green[600], Colors.white),
@@ -137,10 +137,9 @@ var lightGraphColors =[
   (Colors.teal[900], Colors.white),
   (Colors.teal[600], Colors.white),
   (Colors.teal[800], Colors.white),
-
 ];
 
-var darkGraphColors =[
+var darkGraphColors = [
   (Colors.amber[100], Colors.black),
   (Colors.amber[300], Colors.black),
   (Colors.amber[500], Colors.black),
@@ -148,20 +147,20 @@ var darkGraphColors =[
   (Colors.amber[400], Colors.black),
   (Colors.blue[100], Colors.black),
   (Colors.blue[300], Colors.black),
-  (Colors.blue[500], Colors.black ),
+  (Colors.blue[500], Colors.black),
   (Colors.blue[200], Colors.black),
   (Colors.blue[400], Colors.white),
   (Colors.red[100], Colors.black),
   (Colors.red[300], Colors.black),
   (Colors.red[500], Colors.white),
   (Colors.red[200], Colors.white),
-  (Colors.red[400], Colors.white),  
-    (Colors.purple[100], Colors.black),
+  (Colors.red[400], Colors.white),
+  (Colors.purple[100], Colors.black),
   (Colors.purple[300], Colors.black),
   (Colors.purple[500], Colors.white),
   (Colors.purple[200], Colors.white),
   (Colors.purple[400], Colors.white),
-    (Colors.green[100], Colors.black),
+  (Colors.green[100], Colors.black),
   (Colors.green[300], Colors.black),
   (Colors.green[500], Colors.black),
   (Colors.green[200], Colors.black),
@@ -176,7 +175,7 @@ var darkGraphColors =[
   (Colors.orange[500], Colors.black),
   (Colors.orange[200], Colors.black),
   (Colors.orange[400], Colors.black),
-    (Colors.pink[100], Colors.black),
+  (Colors.pink[100], Colors.black),
   (Colors.pink[300], Colors.black),
   (Colors.pink[500], Colors.white),
   (Colors.pink[200], Colors.white),
@@ -194,21 +193,35 @@ Future<void> main() async {
   String font = await prefs.getString("Hmmtax_font") ?? "Roboto";
   double evalMax = await prefs.getDouble("Hmmtax_evalMax") ?? 10.0;
   double domEvalMax = await prefs.getDouble("Hmmtax_domEvalMAx") ?? 10.0;
-  double scale = await prefs.getDouble("Hmmtax_scale")?? 1.0;
-  double lineWidth= await prefs.getDouble("Hmmtax_lineWidth")?? 2.0;
+  double scale = await prefs.getDouble("Hmmtax_scale") ?? 1.0;
+  double lineWidth = await prefs.getDouble("Hmmtax_lineWidth") ?? 2.0;
   int mode = await prefs.getInt("Hmmtax_mode") ?? 3;
-  runApp(  MultiProvider(
+  int DataFileType = await prefs.getInt("Hmmtax_datatype") ?? 3;
+
+  runApp(
+    MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => FileData()),
         ChangeNotifierProvider(create: (_) => GraphData()),
-        ChangeNotifierProvider(create: (_) => HSettings(prefs, mode, font, scale, evalMax, domEvalMax, lineWidth)),
+        ChangeNotifierProvider(
+          create:
+              (_) => HSettings(
+                prefs,
+                mode,
+                font,
+                scale,
+                evalMax,
+                domEvalMax,
+                lineWidth,
+                DataFileType,
+              ),
+        ),
         ChangeNotifierProvider(create: (_) => SearchData()),
       ],
       child: TopLevel(),
     ),
   );
 }
-
 
 //  Top-level application
 class TopLevel extends StatelessWidget {
@@ -219,22 +232,23 @@ class TopLevel extends StatelessWidget {
     return Consumer<HSettings>(
       builder: (context, hsettings, child) {
         return MaterialApp(
-              theme: hsettings.themeData,
+          theme: hsettings.themeData,
 
-              debugShowCheckedModeBanner: false,
-              title: 'Hmmtax',
-              home: MediaQuery.withNoTextScaling(child: MacMenu()),
-              initialRoute: '/',
-              routes: {
-                '/main': (context) => const MainPage(),
-                '/graph': (context) => const GraphPage(),
-                '/settings': (context) => const SettingsPage(),
-              },
-            );
+          debugShowCheckedModeBanner: false,
+          title: 'Hmmtax',
+          home: MediaQuery.withNoTextScaling(child: MacMenu()),
+          initialRoute: '/',
+          routes: {
+            '/main': (context) => const MainPage(),
+            '/graph': (context) => const GraphPage(),
+            '/settings': (context) => const SettingsPage(),
+          },
+        );
       },
     );
   }
 }
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -242,22 +256,19 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-       // appBar: AppBar(title: const Text('flutter_rust_bridge quickstart')),
-        body: Center(
-          child: Text("Hello, world")
-        ),),);
-      }
+        // appBar: AppBar(title: const Text('flutter_rust_bridge quickstart')),
+        body: Center(child: Text("Hello, world")),
+      ),
+    );
   }
-
-enum brightModes {
-  light,
-  dark,
-  system,
 }
+
+enum brightModes { light, dark, system }
+
 // ChangeNotifier for theme state
 class HSettings with ChangeNotifier {
-
   brightModes _mode = brightModes.light;
+  DataFileType _dataType = DataFileType.infer;
   ThemeData? _themeData;
 
   String _font = "Roboto";
@@ -265,24 +276,33 @@ class HSettings with ChangeNotifier {
   double _evalMax = 10.0;
   double _domEvalMax = 10.0;
   double _lineWidth = 2.0;
-  late SharedPreferencesAsync _prefs; 
+  late SharedPreferencesAsync _prefs;
   List<(Color?, Color?)> get graphColors {
     if (_mode == brightModes.light ||
-    (_mode == brightModes.system &&  ThemeMode.system == ThemeMode.light)) {
+        (_mode == brightModes.system && ThemeMode.system == ThemeMode.light)) {
       return lightGraphColors;
     } else {
       return darkGraphColors;
     }
   }
 
-  HSettings(SharedPreferencesAsync prefs, int mode, String font, double scale, double evalMax, double domEvalMax, double lineWidth){
+  HSettings(
+    SharedPreferencesAsync prefs,
+    int mode,
+    String font,
+    double scale,
+    double evalMax,
+    double domEvalMax,
+    double lineWidth,
+    int dataType,
+  ) {
     _prefs = prefs;
     _font = font;
     _scale = scale;
     _evalMax = evalMax;
     _domEvalMax = domEvalMax;
     _lineWidth = lineWidth;
-    switch (mode){
+    switch (mode) {
       case 1:
         _mode = brightModes.light;
       case 2:
@@ -291,12 +311,22 @@ class HSettings with ChangeNotifier {
         _mode = brightModes.system;
       default:
         print("Illegal value passed to mode in HSettings");
-    } 
+    }
+    switch (dataType) {
+      case 1:
+        _dataType = DataFileType.domTblOut;
+      case 2:
+        _dataType = DataFileType.blast;
+      case 3:
+        _dataType = DataFileType.infer;
+      default:
+        print("Illegal value passed to dataType in HSettings");
+    }
   }
 
   ThemeData _updateTheme() {
     if (_mode == brightModes.light ||
-    (_mode == brightModes.system &&  ThemeMode.system == ThemeMode.light)) {
+        (_mode == brightModes.system && ThemeMode.system == ThemeMode.light)) {
       return ThemeData(
         colorScheme: lightScheme,
         fontFamily: _font,
@@ -313,17 +343,14 @@ class HSettings with ChangeNotifier {
           bodyLarge: TextStyle(fontSize: 16 * _scale),
           bodyMedium: TextStyle(fontSize: 14 * _scale),
           bodySmall: TextStyle(fontSize: 12 * _scale),
-          labelLarge: TextStyle(fontSize: 14* _scale),
+          labelLarge: TextStyle(fontSize: 14 * _scale),
           labelMedium: TextStyle(fontSize: 12 * _scale),
           labelSmall: TextStyle(fontSize: 11 * _scale),
         ),
         tooltipTheme: TooltipThemeData(
           decoration: BoxDecoration(
             color: lightScheme.surface,
-            border: Border.all(
-              color: lightScheme.onSurface,
-              width: 1.0,
-            ),
+            border: Border.all(color: lightScheme.onSurface, width: 1.0),
             borderRadius: BorderRadius.circular(4.0),
           ),
         ),
@@ -332,7 +359,7 @@ class HSettings with ChangeNotifier {
       return ThemeData(
         colorScheme: darkScheme,
         fontFamily: _font,
-                textTheme: TextTheme(
+        textTheme: TextTheme(
           displayLarge: TextStyle(fontSize: 57 * _scale),
           displayMedium: TextStyle(fontSize: 45 * _scale),
           displaySmall: TextStyle(fontSize: 36 * _scale),
@@ -345,25 +372,24 @@ class HSettings with ChangeNotifier {
           bodyLarge: TextStyle(fontSize: 16 * _scale),
           bodyMedium: TextStyle(fontSize: 14 * _scale),
           bodySmall: TextStyle(fontSize: 12 * _scale),
-          labelLarge: TextStyle(fontSize: 14* _scale),
+          labelLarge: TextStyle(fontSize: 14 * _scale),
           labelMedium: TextStyle(fontSize: 12 * _scale),
           labelSmall: TextStyle(fontSize: 11 * _scale),
         ),
         tooltipTheme: TooltipThemeData(
           decoration: BoxDecoration(
-            border: Border.all(
-              color: darkScheme.onSurface,
-              width: 1.0,
-            ),
+            border: Border.all(color: darkScheme.onSurface, width: 1.0),
             color: darkScheme.surface,
             borderRadius: BorderRadius.circular(4.0),
-          ),),
+          ),
+        ),
       );
     }
   }
-  void set mode(brightModes newmode){
-    _mode=newmode;
-    switch (newmode){
+
+  void set mode(brightModes newmode) {
+    _mode = newmode;
+    switch (newmode) {
       case brightModes.light:
         _prefs.setInt("Hmmtax_mode", 1);
       case brightModes.dark:
@@ -373,53 +399,72 @@ class HSettings with ChangeNotifier {
     }
     notifyListeners();
   }
+
+  void set dataType(DataFileType newtype) {
+    _dataType = newtype;
+    switch (newtype) {
+      case DataFileType.domTblOut:
+        _prefs.setInt("Hmmtax_datatype", 1);
+      case DataFileType.blast:
+        _prefs.setInt("Hmmtax_datatype", 2);
+      case DataFileType.infer:
+        _prefs.setInt("Hmmtax_datatype", 3);
+    }
+    notifyListeners();
+  }
+
   void set font(String font) {
     _font = font;
     _prefs.setString("Hmmtax_font", font);
     notifyListeners();
   }
-  void set scale(double scale){
+
+  void set scale(double scale) {
     _scale = scale;
     _prefs.setDouble("Hmmtax_scale", scale);
     notifyListeners();
   }
 
-  void set evalMax(double newMax){
+  void set evalMax(double newMax) {
     _evalMax = newMax;
     _prefs.setDouble("Hmmtax_evalMax", newMax);
     notifyListeners();
   }
 
-  void set domEvalMax(double newMax){
+  void set domEvalMax(double newMax) {
     _domEvalMax = newMax;
     _prefs.setDouble("Hmmtax_domEvalMax", newMax);
     notifyListeners();
   }
-  void set lineWidth(double newWidth){
-    if (newWidth > 0){
+
+  void set lineWidth(double newWidth) {
+    if (newWidth > 0) {
       _lineWidth = newWidth;
     }
   }
+
   ThemeData get themeData => _updateTheme();
   double get scale => _scale;
   String get font => _font;
   brightModes get mode => _mode;
   double get evalMax => _evalMax;
   double get domEvalMax => _domEvalMax;
-  double get lineWidth => _lineWidth; 
+  double get lineWidth => _lineWidth;
+  DataFileType get dataType => _dataType;
 }
 
 // ChangeNotifier for graph data
 class GraphData with ChangeNotifier {
-  PlatformInt64 _graphRoot = -1;  // This is the root node of the entire graph, not the root of the part that's displayed
-  Map<PlatformInt64, Node> _graph ={};
+  PlatformInt64 _graphRoot =
+      -1; // This is the root node of the entire graph, not the root of the part that's displayed
+  Map<PlatformInt64, Node> _graph = {};
   PlatformInt64 _currentRoot = -1; // root of the subgraph we're showing
   List<PlatformInt64> _history = [];
   List<String> _historyNames = [];
   int _historyIndex = 0;
   int _maxLevels = 0; // how many levels of the graph to show
   int _depth = 0; // depth of graph, extract from data eventually
-  bool _graphSet = false; 
+  bool _graphSet = false;
   double _rotation = 0.0;
   double _translateX = 0.0;
   double _translateY = 0.0;
@@ -428,55 +473,63 @@ class GraphData with ChangeNotifier {
   double _rootRadius = 0.0;
   Size _size = Size.zero;
   Matrix4 _transform = Matrix4.identity();
-  TrackRegions _trackRegions= TrackRegions(0); // Data structure to track regions of the graph on screen
+  TrackRegions _trackRegions = TrackRegions(
+    0,
+  ); // Data structure to track regions of the graph on screen
   TrackRegions get trackRegions => _trackRegions;
   final TransformationController _tController = TransformationController();
   final ItemScrollController _sController = ItemScrollController();
 
-  ItemScrollController get itemScrollController=> _sController;
+  ItemScrollController get itemScrollController => _sController;
   TransformationController get tController => _tController;
   double get radPerLevel => _radPerLevel;
-  set radPerLevel(double rad){
+  set radPerLevel(double rad) {
     _radPerLevel = rad;
   }
-  void updateTransform(){
+
+  void updateTransform() {
     Matrix4Transform m4t = Matrix4Transform();
-    m4t = m4t.scale(_scale, origin: Offset(_size.width/2, _size.height/2));
+    m4t = m4t.scale(_scale, origin: Offset(_size.width / 2, _size.height / 2));
     m4t = m4t.rotateByCenter(_rotation, _size);
-    m4t = m4t.translate(x: _translateX*_scale, y: _translateY*_scale);
+    m4t = m4t.translate(x: _translateX * _scale, y: _translateY * _scale);
     _transform = m4t.matrix4;
     notifyListeners();
   }
-  set transform(Matrix4 newTransform){
+
+  set transform(Matrix4 newTransform) {
     _transform = newTransform;
     notifyListeners();
   }
-  set size(Size newSize){
+
+  set size(Size newSize) {
     _size = newSize;
   }
-  String historyNames(int index){
-    if (index >=0 && index < _historyNames.length){
+
+  String historyNames(int index) {
+    if (index >= 0 && index < _historyNames.length) {
       return _historyNames[index];
-    }
-    else{
+    } else {
       return "None";
     }
   }
 
-  int history(int index){
-    if (index >=0 && index < _history.length){
+  int history(int index) {
+    if (index >= 0 && index < _history.length) {
       return _history[index];
-    }
-    else{
+    } else {
       return -1;
     }
   }
-  void setHistoryIndex(int newIndex){
-    if (newIndex >=0 && newIndex < _history.length){
+
+  void setHistoryIndex(int newIndex) {
+    if (newIndex >= 0 && newIndex < _history.length) {
       _historyIndex = newIndex;
-      if(_sController.isAttached){_sController.jumpTo(index: _historyIndex, alignment: 0.5);}
+      if (_sController.isAttached) {
+        _sController.jumpTo(index: _historyIndex, alignment: 0.5);
+      }
     }
   }
+
   int get historyLength => _history.length;
   int get historyIndex => _historyIndex;
   Size get size => _size;
@@ -485,17 +538,20 @@ class GraphData with ChangeNotifier {
   double get translateY => _translateY;
   double get scale => _scale;
   double get rootRadius => rootRadius;
-  set rootRadius(double rad){
+  set rootRadius(double rad) {
     _rootRadius = rad;
   }
+
   void set translateX(double x) {
     _translateX = x;
     updateTransform();
   }
+
   void set translateY(double y) {
     _translateY = y;
     updateTransform();
   }
+
   void set scale(double s) {
     _scale = s;
     updateTransform();
@@ -504,20 +560,34 @@ class GraphData with ChangeNotifier {
   void set trackRegions(TrackRegions tr) {
     _trackRegions = tr;
   }
+
   void clearRegions() {
     _trackRegions = TrackRegions(0);
   }
+
   void addRegion(int level, Region region) {
     _trackRegions.addRegion(level, region);
   }
 
-  PlatformInt64 findNode(double xPos, double yPos, double centerX, double centerY) {
-    return _trackRegions.findNode(xPos, yPos, centerX, centerY, _radPerLevel, _rootRadius);
+  PlatformInt64 findNode(
+    double xPos,
+    double yPos,
+    double centerX,
+    double centerY,
+  ) {
+    return _trackRegions.findNode(
+      xPos,
+      yPos,
+      centerX,
+      centerY,
+      _radPerLevel,
+      _rootRadius,
+    );
   }
 
   Map<PlatformInt64, Node> get graph => _graph;
-  
-  bool get graphSet => _graphSet; 
+
+  bool get graphSet => _graphSet;
   PlatformInt64 get graphRoot => _graphRoot;
   PlatformInt64 get currentRoot => _currentRoot;
 
@@ -529,6 +599,7 @@ class GraphData with ChangeNotifier {
     _graphSet = true;
     notifyListeners();
   }
+
   void clearGraph() {
     _history = [];
     _historyNames = [];
@@ -547,85 +618,128 @@ class GraphData with ChangeNotifier {
     _maxLevels = 0;
     notifyListeners();
   }
-  Node getNode(PlatformInt64 nodeId){
+
+  Node getNode(PlatformInt64 nodeId) {
     return _graph[nodeId]!;
   }
+
   void addRoot(PlatformInt64 newRoot) {
     if (_graph.containsKey(newRoot)) {
       _currentRoot = newRoot;
       _history.add(newRoot);
       _historyNames.add(_graph[newRoot]!.name);
-      _historyIndex +=1; 
-      if(_sController.isAttached){_sController.jumpTo(index: _historyIndex, alignment: 0.5);}
+      _historyIndex += 1;
+      if (_sController.isAttached) {
+        _sController.jumpTo(index: _historyIndex, alignment: 0.5);
+      }
       notifyListeners();
     }
   }
+
   void setRoot(PlatformInt64 newRoot) {
     if (_graph.containsKey(newRoot)) {
       _currentRoot = newRoot;
       notifyListeners();
     }
   }
- void set graphRoot(PlatformInt64 newRoot) {
+
+  void set graphRoot(PlatformInt64 newRoot) {
     if (_graph.containsKey(newRoot)) {
       _graphRoot = newRoot;
       notifyListeners();
     }
   }
-  void incrementIndex(){
-    if (_historyIndex < _history.length -1){
-      // There's history to go forward through
-      _historyIndex +=1;
-      setRoot(_history[_historyIndex]);
-     if(_sController.isAttached){_sController.jumpTo(index: _historyIndex, alignment: 0.5);}
+
+  void removeEdge(PlatformInt64 from, PlatformInt64 to) {
+    if (_graph.containsKey(from)) {
+      Node fromNode = _graph[from]!;
+
+      // This is really ugly, but is necessary because we keep the children
+      // as an Int64List for efficiency, which is not growable.
+      List<BigInt> growableList = fromNode.children.toList();
+      growableList.remove(BigInt.from(to));
+      print("$growableList");
+      fromNode.children = Int64List.fromList(
+        growableList.map((e) => e.toInt()).toList(),
+      );
+      var removedHits = _graph[to]!.hitsBelow;
+      // Now need to update hitsBelow for fromNode and all its parents
+      fromNode.hitsBelow -= removedHits;
+      while (fromNode.parent != fromNode.taxid) {
+        fromNode = _graph[fromNode.parent]!;
+        fromNode.hitsBelow -= removedHits;
+      }
+      notifyListeners();
     }
   }
 
-  void decrementIndex(){
-    if (_historyIndex > 0){
+  void incrementIndex() {
+    if (_historyIndex < _history.length - 1) {
+      // There's history to go forward through
+      _historyIndex += 1;
+      setRoot(_history[_historyIndex]);
+      if (_sController.isAttached) {
+        _sController.jumpTo(index: _historyIndex, alignment: 0.5);
+      }
+    }
+  }
+
+  void decrementIndex() {
+    if (_historyIndex > 0) {
       // There's history to go back through
       _historyIndex -= 1;
       setRoot(_history[_historyIndex]);
-    if(_sController.isAttached){_sController.jumpTo(index: _historyIndex, alignment: 0.5);}
+      if (_sController.isAttached) {
+        _sController.jumpTo(index: _historyIndex, alignment: 0.5);
+      }
     }
   }
-  // removes elements of the history that are past the current pointer so that we 
+
+  // removes elements of the history that are past the current pointer so that we
   // can go deeper
-  void popPastIndex(){
-    if (_history.length ==0 || _historyIndex <0){ // nothing to pop
+  void popPastIndex() {
+    if (_history.length == 0 || _historyIndex < 0) {
+      // nothing to pop
       return;
     }
-    var numPops = (_history.length - _historyIndex)-1; // need the -1 because of zero-index arrays
-    while (numPops > 0){
+    var numPops =
+        (_history.length - _historyIndex) -
+        1; // need the -1 because of zero-index arrays
+    while (numPops > 0) {
       _history.removeLast();
       _historyNames.removeLast();
       numPops -= 1;
     }
     notifyListeners();
   }
+
   void setDepth(int newDepth) {
     if (newDepth > 0) {
       _depth = newDepth;
       notifyListeners();
     }
   }
+
   void setMaxLevels(int newMaxLevels) {
     if (newMaxLevels > 0) {
       _maxLevels = newMaxLevels;
       notifyListeners();
     }
   }
+
   void pushHistory(PlatformInt64 node) {
     _history.add(node);
     notifyListeners();
   }
+
   void setRotation(double newRotation) {
-    if (newRotation> 0 && newRotation <= 2*pi) {
+    if (newRotation > 0 && newRotation <= 2 * pi) {
       _rotation = newRotation;
       updateTransform();
     }
   }
-  PlatformInt64 popHistory() { 
+
+  PlatformInt64 popHistory() {
     if (_history.isNotEmpty) {
       PlatformInt64 last = _history.removeLast();
       notifyListeners();
@@ -636,7 +750,7 @@ class GraphData with ChangeNotifier {
   }
 }
 
-enum PdfUnits{inches, cm}
+enum PdfUnits { inches, cm }
 
 // ChangeNotifier for input files
 class FileData with ChangeNotifier {
@@ -647,7 +761,7 @@ class FileData with ChangeNotifier {
   String _annFileDir = ".";
   String _domtbloutFileDir = ".";
   String _pdfFile = "";
-  String _pdfFileDir =".";
+  String _pdfFileDir = ".";
   bool _pdfFileSet = false;
   double _pdfHeight = 11.0;
   double _pdfWidth = 8.5;
@@ -667,30 +781,34 @@ class FileData with ChangeNotifier {
       return "Change";
     }
   }
+
   double get pdfHeight => _pdfHeight;
   double get pdfWidth => _pdfWidth;
   PdfUnits get pdfUnits => _pdfUnits;
 
-  void set pdfHeight(double height){
+  void set pdfHeight(double height) {
     _pdfHeight = height;
     notifyListeners();
   }
-  void set pdfWidth(double width){
+
+  void set pdfWidth(double width) {
     _pdfWidth = width;
     notifyListeners();
   }
-  void set pdfUnits(PdfUnits unit){
+
+  void set pdfUnits(PdfUnits unit) {
     _pdfUnits = unit;
     notifyListeners();
   }
+
   // Don't notify listners after these functions,
   // because we want to make all changes, then trigger a load
   void setAnnotationsFile(String newAnnotations) {
     _annotationsFile = newAnnotations;
     _annFileSet = true;
     var splits = newAnnotations.split('/');
-    if(splits.length > 1){
-      _annFileDir = splits.getRange(0, splits.length-1).join("/");
+    if (splits.length > 1) {
+      _annFileDir = splits.getRange(0, splits.length - 1).join("/");
     }
     notifyListeners();
   }
@@ -699,8 +817,8 @@ class FileData with ChangeNotifier {
     _domtbloutFiles.add(domtblout);
     _domtbloutFilesSet = true;
     var splits = domtblout.split('/');
-    if(splits.length > 1){
-      _domtbloutFileDir = splits.getRange(0, splits.length-1).join("/");
+    if (splits.length > 1) {
+      _domtbloutFileDir = splits.getRange(0, splits.length - 1).join("/");
     }
     notifyListeners();
   }
@@ -710,13 +828,14 @@ class FileData with ChangeNotifier {
     _domtbloutFilesSet = false;
     notifyListeners();
   }
-  void setDomtbloutFile(int which, String domtblout){
-    if (which >= 0 && which < _domtbloutFiles.length){
+
+  void setDomtbloutFile(int which, String domtblout) {
+    if (which >= 0 && which < _domtbloutFiles.length) {
       _domtbloutFiles[which] = domtblout;
-    var splits = domtblout.split('/');
-    if(splits.length > 1){
-      _domtbloutFileDir = splits.getRange(0, splits.length-1).join("/");
-    }
+      var splits = domtblout.split('/');
+      if (splits.length > 1) {
+        _domtbloutFileDir = splits.getRange(0, splits.length - 1).join("/");
+      }
       notifyListeners();
     }
   }
@@ -728,12 +847,13 @@ class FileData with ChangeNotifier {
     }
     notifyListeners();
   }
- void setPdfFile(String newFile) {
+
+  void setPdfFile(String newFile) {
     _pdfFile = newFile;
     _pdfFileSet = true;
     var splits = newFile.split('/');
-    if(splits.length > 1){
-      _pdfFileDir = splits.getRange(0, splits.length-1).join("/");
+    if (splits.length > 1) {
+      _pdfFileDir = splits.getRange(0, splits.length - 1).join("/");
     }
     notifyListeners();
   }
@@ -741,14 +861,10 @@ class FileData with ChangeNotifier {
 
 // Wrapper that selects the correct menu bar for the platform
 class MenuWrapper extends StatelessWidget {
-
   Widget build(BuildContext context) {
-    
-    return (Platform.isMacOS) ? MacMenu(): TopLevel();
-        
-        }
+    return (Platform.isMacOS) ? MacMenu() : TopLevel();
+  }
 }
-
 
 // Mac menus3
 class MacMenu extends StatefulWidget {
@@ -758,32 +874,31 @@ class MacMenu extends StatefulWidget {
   State<MacMenu> createState() => _MacMenuBarState();
 }
 
-enum QuitResponses{
-  quit,
-  cancel
-}
+enum QuitResponses { quit, cancel }
+
 class _MacMenuBarState extends State<MacMenu> {
-  final _router=GoRouter(routes: <RouteBase>[
-    GoRoute(path: '/',
-    builder: (context, state) => MainPage(),
-    ),
-    GoRoute(path: '/settings',
-    builder: (context, state) => SettingsPage(),),
-    GoRoute(path: '/graph',
-    builder: (context, state) => GraphPage(),),
-    GoRoute(path: '/allstructure',
-    builder: (context, state) => AllStructurePage(),),
-    GoRoute(path: '/subtreestructure',
-    builder: (context, state) => SubtreeStructurePage(),),
-    GoRoute(path: '/subtreeevalue',
-    builder: (context, state) => SubtreeEvaluePage(key:UniqueKey()),),
-    GoRoute(path: '/allevalue',
-    builder: (context, state) => AllEvaluePage(),),
-    GoRoute(path: '/sequence',
-    builder: (context, state) => SequencePage(),),
-      GoRoute(path: '/svg',
-    builder: (context, state) => SvgPage(),),
-  ]);
+  final _router = GoRouter(
+    routes: <RouteBase>[
+      GoRoute(path: '/', builder: (context, state) => MainPage()),
+      GoRoute(path: '/settings', builder: (context, state) => SettingsPage()),
+      GoRoute(path: '/graph', builder: (context, state) => GraphPage()),
+      GoRoute(
+        path: '/allstructure',
+        builder: (context, state) => AllStructurePage(),
+      ),
+      GoRoute(
+        path: '/subtreestructure',
+        builder: (context, state) => SubtreeStructurePage(),
+      ),
+      GoRoute(
+        path: '/subtreeevalue',
+        builder: (context, state) => SubtreeEvaluePage(key: UniqueKey()),
+      ),
+      GoRoute(path: '/allevalue', builder: (context, state) => AllEvaluePage()),
+      GoRoute(path: '/sequence', builder: (context, state) => SequencePage()),
+      GoRoute(path: '/svg', builder: (context, state) => SvgPage()),
+    ],
+  );
   Widget build(BuildContext context) {
     return PlatformMenuBar(
       menus: <PlatformMenuItem>[
@@ -806,25 +921,53 @@ class _MacMenuBarState extends State<MacMenu> {
                 LogicalKeyboardKey.keyQ,
                 meta: true,
               ),
-              
+
               onSelected: () {
-              showDialog(context: context,
-                builder: (BuildContext context){
-                return AlertDialog(title: const Text("Quit Hmmtax?"),
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  titleTextStyle: TextStyle(color: Theme.of(context).colorScheme.onPrimary,),
-                  actions: <Widget>[
-                    ElevatedButton(
-                      style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.onPrimary,),
-                      onPressed: (){exit(0);}, child: Text("Quit",style: TextStyle(color: Theme.of(context).colorScheme.primary,),),),
-                    ElevatedButton(
-                      style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.onPrimary,),
-                      onPressed:(){Navigator.pop(context,'Cancel');}, child: Text("Cancel", style: TextStyle(color: Theme.of(context).colorScheme.primary,),),),
-                    ],
-                  );
-                },
-              );
-              },  
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: const Text("Quit Hmmtax?"),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      titleTextStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                      actions: <Widget>[
+                        ElevatedButton(
+                          style: MenuItemButton.styleFrom(
+                            backgroundColor:
+                                Theme.of(context).colorScheme.onPrimary,
+                          ),
+                          onPressed: () {
+                            exit(0);
+                          },
+                          child: Text(
+                            "Quit",
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                        ElevatedButton(
+                          style: MenuItemButton.styleFrom(
+                            backgroundColor:
+                                Theme.of(context).colorScheme.onPrimary,
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context, 'Cancel');
+                          },
+                          child: Text(
+                            "Cancel",
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
             ),
           ],
         ),
@@ -907,52 +1050,82 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
     return MenuAnchor(
       menuChildren: <Widget>[
         MenuItemButton(
-          style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.onPrimary,),
+          style: MenuItemButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.onPrimary,
+          ),
           onPressed: () {
-              showAboutDialog(
-                context: context,
-                applicationName: 'Hmmtax: A taxonomy viewer for HMMER',
-                applicationVersion: '0.0.1',
-              );
-            },
-            child: Text("About",
-              style: TextStyle(color: Theme.of(context).colorScheme.primary,),),
+            showAboutDialog(
+              context: context,
+              applicationName: 'Hmmtax: A taxonomy viewer for HMMER',
+              applicationVersion: '0.0.1',
+            );
+          },
+          child: Text(
+            "About",
+            style: TextStyle(color: Theme.of(context).colorScheme.primary),
+          ),
         ),
         MenuItemButton(
-            style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.onPrimary,),
-            onPressed: () {
-              showDialog(context: context,
-                builder: (BuildContext context){
-                return AlertDialog(title: const Text("Quit Hmmtax?"),
+          style: MenuItemButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.onPrimary,
+          ),
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text("Quit Hmmtax?"),
                   backgroundColor: Theme.of(context).colorScheme.onPrimary,
-                  titleTextStyle: TextStyle(color: Theme.of(context).colorScheme.primary,),
+                  titleTextStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   actions: <Widget>[
                     ElevatedButton(
-                      style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary,),
-                      onPressed: (){exit(0);}, child: Text("Quit",style: TextStyle(color: Theme.of(context).colorScheme.onPrimary,),),),
+                      style: MenuItemButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                      ),
+                      onPressed: () {
+                        exit(0);
+                      },
+                      child: Text(
+                        "Quit",
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                    ),
                     ElevatedButton(
-                      style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary,),
-                      onPressed:(){Navigator.pop(context,'Cancel');}, child: Text("Cancel", style: TextStyle(color: Theme.of(context).colorScheme.onPrimary,),),),
-                    ],
-                  );
-                },
-              );
-            },
-            child: Text('Quit Hmmtax',
-            style: TextStyle(color: Theme.of(context).colorScheme.primary,),),
+                      style: MenuItemButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context, 'Cancel');
+                      },
+                      child: Text(
+                        "Cancel",
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+          child: Text(
+            'Quit Hmmtax',
+            style: TextStyle(color: Theme.of(context).colorScheme.primary),
           ),
-        MenuItemButton(
-            style: MenuItemButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.onPrimary,),
-            onPressed: () {
-              drawPdfDialog(context);
-            },
-            child: Text('Export to PDF',
-            style: TextStyle(color: Theme.of(context).colorScheme.primary,),),
-          ),
+        ),
       ],
-      builder: (BuildContext context, MenuController controller, Widget? child){
+      builder: (
+        BuildContext context,
+        MenuController controller,
+        Widget? child,
+      ) {
         return IconButton(
-          icon: const Icon(Icons.menu), 
+          icon: const Icon(Icons.menu),
           color: Theme.of(context).colorScheme.onPrimary,
           onPressed: () {
             if (controller.isOpen) {
@@ -962,10 +1135,9 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
             }
           },
         );
-      }
+      },
     );
   }
-
 
   List<MenuEntry> _getMenus(BuildContext context) {
     return [
@@ -985,12 +1157,24 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
           MenuEntry(
             label: 'Quit Hmmtax',
             onPressed: () {
-              showDialog(context: context,
-                builder: (BuildContext context){
-                return AlertDialog(title: const Text("Quit Hmmtax?"),
-                  actions: <Widget>[
-                    TextButton(onPressed: (){exit(0);}, child: const Text("Quit"),),
-                    TextButton( onPressed:(){Navigator.pop(context,'Cancel');}, child: const Text("Cancel"),),
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text("Quit Hmmtax?"),
+                    actions: <Widget>[
+                      TextButton(
+                        onPressed: () {
+                          exit(0);
+                        },
+                        child: const Text("Quit"),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context, 'Cancel');
+                        },
+                        child: const Text("Cancel"),
+                      ),
                     ],
                   );
                 },
@@ -1002,15 +1186,11 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
     ];
   }
 }
- enum selectedby{
-  none,
-  structure,
-  subtree,
-  subtree_structure,
- }
+
+enum selectedby { none, structure, subtree, subtree_structure }
 
 // class that holds the results of a search
-class SearchData with ChangeNotifier{
+class SearchData with ChangeNotifier {
   List<Hit> _hits = [];
   Uint32List _hitStructures = Uint32List(0);
   List<String> _structures = [];
@@ -1027,13 +1207,15 @@ class SearchData with ChangeNotifier{
   PlatformInt64 _selectedHit = -1;
   selectedby get selectedBy => _selectedBy;
   selectedby get previousSelectedBy => _previousSelectedBy;
-  void set selectedBy(selectedby method){
+  void set selectedBy(selectedby method) {
     _selectedBy = method;
     notifyListeners();
   }
-  void set previousSelectedBy(selectedby method){
+
+  void set previousSelectedBy(selectedby method) {
     _previousSelectedBy = method;
   }
+
   PlatformInt64 get selectedHit => _selectedHit;
   List<Hit> get hits => _hits;
   Uint32List get hitStructures => _hitStructures;
@@ -1045,19 +1227,19 @@ class SearchData with ChangeNotifier{
   bool get currentLoaded => _currentLoaded;
   int get selectedStructure => _selectedStructure;
   Int64List get currentHitsByEvalue => _currentHitsByEvalue;
-  void set currentHitsByEvalue(Int64List hits){
+  void set currentHitsByEvalue(Int64List hits) {
     _currentHitsByEvalue = hits;
     notifyListeners();
   }
 
-  void set selectedHit(PlatformInt64 theHit){
-    if (0<= theHit &&  theHit < _hits.length){
+  void set selectedHit(PlatformInt64 theHit) {
+    if (0 <= theHit && theHit < _hits.length) {
       _selectedHit = theHit;
       notifyListeners();
     }
   }
 
-  void setSearchResults(SearchResults results){
+  void setSearchResults(SearchResults results) {
     _hits = results.hits;
     _hitStructures = results.hitStructures;
     _structures = results.structures;
@@ -1080,19 +1262,19 @@ class SearchData with ChangeNotifier{
     notifyListeners();
   }
 
-  void set currentHits(List<SigCategory> hits){
+  void set currentHits(List<SigCategory> hits) {
     _currentHits = hits;
     _currentLoaded = true;
     notifyListeners();
   }
 
-  void clearCurrentLoaded(){
+  void clearCurrentLoaded() {
     _currentLoaded = false;
     notifyListeners();
   }
 
-  void set selectedStructure(int newCat){
-    if(newCat >= 0 && newCat < _structures.length){
+  void set selectedStructure(int newCat) {
+    if (newCat >= 0 && newCat < _structures.length) {
       _selectedStructure = newCat;
       notifyListeners();
     }

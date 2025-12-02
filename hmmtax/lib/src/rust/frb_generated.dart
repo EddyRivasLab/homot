@@ -89,6 +89,7 @@ abstract class RustLibApi extends BaseApi {
     required List<String> domtbloutFiles,
     required double evalMax,
     required double domEvalMax,
+    required DataFileType fileType,
   });
 
   HitResults crateApiGraphFindHitsBelowNode({
@@ -161,6 +162,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required List<String> domtbloutFiles,
     required double evalMax,
     required double domEvalMax,
+    required DataFileType fileType,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -170,6 +172,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_list_String(domtbloutFiles, serializer);
           sse_encode_f_32(evalMax, serializer);
           sse_encode_f_32(domEvalMax, serializer);
+          sse_encode_data_file_type(fileType, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -182,7 +185,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGraphFetchGraphConstMeta,
-        argValues: [annfile, domtbloutFiles, evalMax, domEvalMax],
+        argValues: [annfile, domtbloutFiles, evalMax, domEvalMax, fileType],
         apiImpl: this,
       ),
     );
@@ -190,7 +193,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiGraphFetchGraphConstMeta => const TaskConstMeta(
     debugName: "fetch_graph",
-    argNames: ["annfile", "domtbloutFiles", "evalMax", "domEvalMax"],
+    argNames: [
+      "annfile",
+      "domtbloutFiles",
+      "evalMax",
+      "domEvalMax",
+      "fileType",
+    ],
   );
 
   @override
@@ -322,6 +331,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  DataFileType dco_decode_data_file_type(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return DataFileType.values[raw as int];
+  }
+
+  @protected
   Domain dco_decode_domain(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -383,6 +398,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       categories: dco_decode_list_sig_category(arr[0]),
       hits: dco_decode_list_prim_i_64_strict(arr[1]),
     );
+  }
+
+  @protected
+  int dco_decode_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
   }
 
   @protected
@@ -578,6 +599,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  DataFileType sse_decode_data_file_type(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return DataFileType.values[inner];
+  }
+
+  @protected
   Domain sse_decode_domain(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_name = sse_decode_String(deserializer);
@@ -649,6 +677,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_categories = sse_decode_list_sig_category(deserializer);
     var var_hits = sse_decode_list_prim_i_64_strict(deserializer);
     return HitResults(categories: var_categories, hits: var_hits);
+  }
+
+  @protected
+  int sse_decode_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getInt32();
   }
 
   @protected
@@ -843,12 +877,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  int sse_decode_i_32(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getInt32();
-  }
-
-  @protected
   void
   sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64(
     VecI64 self,
@@ -899,6 +927,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_data_file_type(DataFileType self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
   void sse_encode_domain(Domain self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.name, serializer);
@@ -945,6 +979,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_sig_category(self.categories, serializer);
     sse_encode_list_prim_i_64_strict(self.hits, serializer);
+  }
+
+  @protected
+  void sse_encode_i_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putInt32(self);
   }
 
   @protected
@@ -1114,12 +1154,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_usize(BigInt self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putBigUint64(self);
-  }
-
-  @protected
-  void sse_encode_i_32(int self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putInt32(self);
   }
 }
 
