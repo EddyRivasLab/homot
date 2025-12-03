@@ -14,13 +14,17 @@ Future<SearchResults> fetchGraph({
   required String annfile,
   required List<String> domtbloutFiles,
   required double evalMax,
+  required double evalMin,
   required double domEvalMax,
+  required double domEvalMin,
   required DataFileType fileType,
 }) => RustLib.instance.api.crateApiGraphFetchGraph(
   annfile: annfile,
   domtbloutFiles: domtbloutFiles,
   evalMax: evalMax,
+  evalMin: evalMin,
   domEvalMax: domEvalMax,
+  domEvalMin: domEvalMin,
   fileType: fileType,
 );
 

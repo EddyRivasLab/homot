@@ -273,7 +273,7 @@ fn count_hits(graph: &mut HashMap<i64, Node>, id: i64) -> i64 {
 
 
 #[frb(serialize)]
-pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32, dom_eval_max:f32, fileType: DataFileType) -> SearchResults{
+pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32, eval_min: f32, dom_eval_max:f32, dom_eval_min: f32, fileType: DataFileType) -> SearchResults{
    // println!("Starting fetch_graph");
 
     let mut results = SearchResults{
@@ -357,7 +357,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
     // load hits from the data files
     for domtbloutfile in domtblout_files{
        // println!("searching {}", domtbloutfile);
-        match read_hits_from_file(&domtbloutfile,  &mut hit_map, 0.0, eval_max, 0.0, dom_eval_max, &db, &domain_map, &fileType){  
+        match read_hits_from_file(&domtbloutfile,  &mut hit_map, eval_min, eval_max, dom_eval_min, dom_eval_max, &db, &domain_map, &fileType){  
             Ok(v) => {
                         num_domtbl_hits += v;
             }
@@ -769,7 +769,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
             0.0}   ,
         };
         
-        if seq_evalue >= min_seq_evalue.into() && seq_evalue <= max_seq_evalue.into() && dom_evalue >= min_dom_evalue.into() && dom_evalue <= max_dom_evalue.into(){
+        if seq_evalue >= min_seq_evalue.into() && seq_evalue <= max_seq_evalue.into(){ //BLAST doesn't have domain e-values
             // This is a reportable hit
             hit_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             // build the domain for this hit

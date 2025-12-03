@@ -19,6 +19,7 @@ import 'dart:io';
 import 'dart:collection';
 import 'package:matrix4_transform/matrix4_transform.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'package:patterns_canvas/patterns_canvas.dart';
 
 // List of pairs of background and foregrund colors for displaying
 // domains.  Taken from the ColorBrewer example color sets.
@@ -88,58 +89,79 @@ ColorScheme darkScheme = ColorScheme.fromSeed(
   onError: const Color(0xff000000),
 );
 
-const numColors = 9;
-const shadesPerColor = 5;
+const numColors = 8;
+const shadesPerColor = 8;
 
-var lightGraphColors = [
-  (Colors.amber[500], Colors.black),
-  (Colors.amber[700], Colors.black),
-  (Colors.amber[900], Colors.black),
-  (Colors.amber[600], Colors.black),
-  (Colors.amber[800], Colors.white),
-  (Colors.blue[500], Colors.white),
-  (Colors.blue[700], Colors.white),
-  (Colors.blue[900], Colors.white),
-  (Colors.blue[600], Colors.white),
-  (Colors.blue[900], Colors.white),
-  (Colors.red[500], Colors.white),
-  (Colors.red[700], Colors.white),
-  (Colors.red[900], Colors.white),
-  (Colors.red[600], Colors.white),
-  (Colors.red[800], Colors.white),
-  (Colors.purple[500], Colors.white),
-  (Colors.purple[700], Colors.white),
-  (Colors.purple[900], Colors.white),
-  (Colors.purple[600], Colors.white),
-  (Colors.purple[800], Colors.white),
-  (Colors.green[500], Colors.white),
-  (Colors.green[700], Colors.white),
-  (Colors.green[900], Colors.white),
-  (Colors.green[600], Colors.white),
-  (Colors.green[800], Colors.white),
-  (Colors.cyan[500], Colors.black),
-  (Colors.cyan[700], Colors.white),
-  (Colors.cyan[900], Colors.white),
-  (Colors.cyan[600], Colors.white),
-  (Colors.cyan[800], Colors.white),
-  (Colors.orange[500], Colors.black),
-  (Colors.orange[700], Colors.black),
-  (Colors.orange[900], Colors.black),
-  (Colors.orange[600], Colors.white),
-  (Colors.orange[800], Colors.white),
-  (Colors.pink[500], Colors.white),
-  (Colors.pink[700], Colors.white),
-  (Colors.pink[900], Colors.white),
-  (Colors.pink[600], Colors.white),
-  (Colors.pink[800], Colors.white),
-  (Colors.teal[500], Colors.white),
-  (Colors.teal[700], Colors.white),
-  (Colors.teal[900], Colors.white),
-  (Colors.teal[600], Colors.white),
-  (Colors.teal[800], Colors.white),
-];
+var lightGraphColors = [(Colors.amber[100], Colors.black)];
 
 var darkGraphColors = [
+  (Color.fromRGBO(0x33, 0x22, 0x88, 1.0), Colors.black),
+  (Color.fromRGBO(0x33, 0x22, 0x88, 1.0), Colors.black),
+  (Color.fromRGBO(0x33, 0x22, 0x88, 1.0), Colors.white),
+  (Color.fromRGBO(0x33, 0x22, 0x88, 1.0), Colors.white),
+  (Color.fromRGBO(0x33, 0x22, 0x88, 1.0), Colors.black),
+  (Color.fromRGBO(0x33, 0x22, 0x88, 1.0), Colors.black),
+  (Color.fromRGBO(0x33, 0x22, 0x88, 1.0), Colors.white),
+  (Color.fromRGBO(0x33, 0x22, 0x88, 1.0), Colors.white),
+  (Color.fromRGBO(0x11, 0x77, 0x33, 1.0), Colors.black),
+  (Color.fromRGBO(0x11, 0x77, 0x33, 1.0), Colors.black),
+  (Color.fromRGBO(0x11, 0x77, 0x33, 1.0), Colors.white),
+  (Color.fromRGBO(0x11, 0x77, 0x33, 1.0), Colors.white),
+  (Color.fromRGBO(0x11, 0x77, 0x33, 1.0), Colors.black),
+  (Color.fromRGBO(0x11, 0x77, 0x33, 1.0), Colors.black),
+  (Color.fromRGBO(0x11, 0x77, 0x33, 1.0), Colors.white),
+  (Color.fromRGBO(0x11, 0x77, 0x33, 1.0), Colors.white),
+  (Color.fromRGBO(0x88, 0x22, 0x55, 1.0), Colors.black),
+  (Color.fromRGBO(0x88, 0x22, 0x55, 1.0), Colors.black),
+  (Color.fromRGBO(0x88, 0x22, 0x55, 1.0), Colors.white),
+  (Color.fromRGBO(0x88, 0x22, 0x55, 1.0), Colors.white),
+  (Color.fromRGBO(0x88, 0x22, 0x55, 1.0), Colors.black),
+  (Color.fromRGBO(0x88, 0x22, 0x55, 1.0), Colors.black),
+  (Color.fromRGBO(0x88, 0x22, 0x55, 1.0), Colors.white),
+  (Color.fromRGBO(0x88, 0x22, 0x55, 1.0), Colors.white),
+  (Color.fromRGBO(0x88, 0xcc, 0xee, 1.0), Colors.black),
+  (Color.fromRGBO(0x88, 0xcc, 0xee, 1.0), Colors.black),
+  (Color.fromRGBO(0x88, 0xcc, 0xee, 1.0), Colors.black),
+  (Color.fromRGBO(0x88, 0xcc, 0xee, 1.0), Colors.black),
+  (Color.fromRGBO(0x88, 0xcc, 0xee, 1.0), Colors.black),
+  (Color.fromRGBO(0x88, 0xcc, 0xee, 1.0), Colors.black),
+  (Color.fromRGBO(0x88, 0xcc, 0xee, 1.0), Colors.black),
+  (Color.fromRGBO(0x88, 0xcc, 0xee, 1.0), Colors.black),
+  (Color.fromRGBO(0xdd, 0xcc, 0x77, 1.0), Colors.black),
+  (Color.fromRGBO(0xdd, 0xcc, 0x77, 1.0), Colors.black),
+  (Color.fromRGBO(0xdd, 0xcc, 0x77, 1.0), Colors.white),
+  (Color.fromRGBO(0xdd, 0xcc, 0x77, 1.0), Colors.white),
+  (Color.fromRGBO(0xdd, 0xcc, 0x77, 1.0), Colors.black),
+  (Color.fromRGBO(0xdd, 0xcc, 0x77, 1.0), Colors.black),
+  (Color.fromRGBO(0xdd, 0xcc, 0x77, 1.0), Colors.white),
+  (Color.fromRGBO(0xdd, 0xcc, 0x77, 1.0), Colors.white),
+  (Color.fromRGBO(0xcc, 0x66, 0x77, 1.0), Colors.black),
+  (Color.fromRGBO(0xcc, 0x66, 0x77, 1.0), Colors.black),
+  (Color.fromRGBO(0xcc, 0x66, 0x77, 1.0), Colors.white),
+  (Color.fromRGBO(0xcc, 0x66, 0x77, 1.0), Colors.white),
+  (Color.fromRGBO(0xcc, 0x66, 0x77, 1.0), Colors.black),
+  (Color.fromRGBO(0xcc, 0x66, 0x77, 1.0), Colors.black),
+  (Color.fromRGBO(0xcc, 0x66, 0x77, 1.0), Colors.white),
+  (Color.fromRGBO(0xcc, 0x66, 0x77, 1.0), Colors.white),
+  (Color.fromRGBO(0x44, 0xaa, 0x99, 1.0), Colors.black),
+  (Color.fromRGBO(0x44, 0xaa, 0x99, 1.0), Colors.black),
+  (Color.fromRGBO(0x44, 0xaa, 0x99, 1.0), Colors.white),
+  (Color.fromRGBO(0x44, 0xaa, 0x99, 1.0), Colors.white),
+  (Color.fromRGBO(0x44, 0xaa, 0x99, 1.0), Colors.black),
+  (Color.fromRGBO(0x44, 0xaa, 0x99, 1.0), Colors.black),
+  (Color.fromRGBO(0x44, 0xaa, 0x99, 1.0), Colors.white),
+  (Color.fromRGBO(0x44, 0xaa, 0x99, 1.0), Colors.white),
+  (Color.fromRGBO(0xAA, 0x44, 0x99, 1.0), Colors.black),
+  (Color.fromRGBO(0xAA, 0x44, 0x99, 1.0), Colors.black),
+  (Color.fromRGBO(0xAA, 0x44, 0x99, 1.0), Colors.white),
+  (Color.fromRGBO(0xAA, 0x44, 0x99, 1.0), Colors.white),
+  (Color.fromRGBO(0xAA, 0x44, 0x99, 1.0), Colors.black),
+  (Color.fromRGBO(0xAA, 0x44, 0x99, 1.0), Colors.black),
+  (Color.fromRGBO(0xAA, 0x44, 0x99, 1.0), Colors.white),
+  (Color.fromRGBO(0xAA, 0x44, 0x99, 1.0), Colors.white),
+];
+
+var darkGraphColorsOld = [
   (Colors.amber[100], Colors.black),
   (Colors.amber[300], Colors.black),
   (Colors.amber[500], Colors.black),
@@ -192,7 +214,9 @@ Future<void> main() async {
   final SharedPreferencesAsync prefs = SharedPreferencesAsync();
   String font = await prefs.getString("Hmmtax_font") ?? "Roboto";
   double evalMax = await prefs.getDouble("Hmmtax_evalMax") ?? 10.0;
+  double evalMin = await prefs.getDouble("Hmmtax_evalMin") ?? 0.0;
   double domEvalMax = await prefs.getDouble("Hmmtax_domEvalMAx") ?? 10.0;
+  double domEvalMin = await prefs.getDouble("Hmmtax_domEvalMin") ?? 0.0;
   double scale = await prefs.getDouble("Hmmtax_scale") ?? 1.0;
   double lineWidth = await prefs.getDouble("Hmmtax_lineWidth") ?? 2.0;
   int mode = await prefs.getInt("Hmmtax_mode") ?? 3;
@@ -211,7 +235,9 @@ Future<void> main() async {
                 font,
                 scale,
                 evalMax,
+                evalMin,
                 domEvalMax,
+                domEvalMin,
                 lineWidth,
                 DataFileType,
               ),
@@ -274,13 +300,15 @@ class HSettings with ChangeNotifier {
   String _font = "Roboto";
   double _scale = 1.0;
   double _evalMax = 10.0;
+  double _evalMin = 0.0;
   double _domEvalMax = 10.0;
+  double _domEvalMin = 0.0;
   double _lineWidth = 2.0;
   late SharedPreferencesAsync _prefs;
-  List<(Color?, Color?)> get graphColors {
+  List<(Color, Color)> get graphColors {
     if (_mode == brightModes.light ||
         (_mode == brightModes.system && ThemeMode.system == ThemeMode.light)) {
-      return lightGraphColors;
+      return darkGraphColors;
     } else {
       return darkGraphColors;
     }
@@ -292,7 +320,9 @@ class HSettings with ChangeNotifier {
     String font,
     double scale,
     double evalMax,
+    double evalMin,
     double domEvalMax,
+    double domEvalMin,
     double lineWidth,
     int dataType,
   ) {
@@ -300,7 +330,9 @@ class HSettings with ChangeNotifier {
     _font = font;
     _scale = scale;
     _evalMax = evalMax;
+    _evalMin = evalMin;
     _domEvalMax = domEvalMax;
+    _domEvalMin = domEvalMin;
     _lineWidth = lineWidth;
     switch (mode) {
       case 1:
@@ -437,6 +469,18 @@ class HSettings with ChangeNotifier {
     notifyListeners();
   }
 
+  void set evalMin(double newMin) {
+    _evalMin = newMin;
+    _prefs.setDouble("Hmmtax_evalMin", newMin);
+    notifyListeners();
+  }
+
+  void set domEvalMin(double newMin) {
+    _domEvalMin = newMin;
+    _prefs.setDouble("Hmmtax_domEvalMin", newMin);
+    notifyListeners();
+  }
+
   void set lineWidth(double newWidth) {
     if (newWidth > 0) {
       _lineWidth = newWidth;
@@ -449,6 +493,8 @@ class HSettings with ChangeNotifier {
   brightModes get mode => _mode;
   double get evalMax => _evalMax;
   double get domEvalMax => _domEvalMax;
+  double get evalMin => _evalMin;
+  double get domEvalMin => _domEvalMin;
   double get lineWidth => _lineWidth;
   DataFileType get dataType => _dataType;
 }

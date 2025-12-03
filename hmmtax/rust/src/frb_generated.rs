@@ -130,7 +130,9 @@ fn wire__crate__api__graph__fetch_graph_impl(
             let api_annfile = <String>::sse_decode(&mut deserializer);
             let api_domtblout_files = <Vec<String>>::sse_decode(&mut deserializer);
             let api_eval_max = <f32>::sse_decode(&mut deserializer);
+            let api_eval_min = <f32>::sse_decode(&mut deserializer);
             let api_dom_eval_max = <f32>::sse_decode(&mut deserializer);
+            let api_dom_eval_min = <f32>::sse_decode(&mut deserializer);
             let api_fileType = <crate::api::graph::DataFileType>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
@@ -139,7 +141,9 @@ fn wire__crate__api__graph__fetch_graph_impl(
                         api_annfile,
                         api_domtblout_files,
                         api_eval_max,
+                        api_eval_min,
                         api_dom_eval_max,
+                        api_dom_eval_min,
                         api_fileType,
                     ))?;
                     Ok(output_ok)

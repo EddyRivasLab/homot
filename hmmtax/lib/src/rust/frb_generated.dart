@@ -88,7 +88,9 @@ abstract class RustLibApi extends BaseApi {
     required String annfile,
     required List<String> domtbloutFiles,
     required double evalMax,
+    required double evalMin,
     required double domEvalMax,
+    required double domEvalMin,
     required DataFileType fileType,
   });
 
@@ -161,7 +163,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required String annfile,
     required List<String> domtbloutFiles,
     required double evalMax,
+    required double evalMin,
     required double domEvalMax,
+    required double domEvalMin,
     required DataFileType fileType,
   }) {
     return handler.executeNormal(
@@ -171,7 +175,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(annfile, serializer);
           sse_encode_list_String(domtbloutFiles, serializer);
           sse_encode_f_32(evalMax, serializer);
+          sse_encode_f_32(evalMin, serializer);
           sse_encode_f_32(domEvalMax, serializer);
+          sse_encode_f_32(domEvalMin, serializer);
           sse_encode_data_file_type(fileType, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
@@ -185,7 +191,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: null,
         ),
         constMeta: kCrateApiGraphFetchGraphConstMeta,
-        argValues: [annfile, domtbloutFiles, evalMax, domEvalMax, fileType],
+        argValues: [
+          annfile,
+          domtbloutFiles,
+          evalMax,
+          evalMin,
+          domEvalMax,
+          domEvalMin,
+          fileType,
+        ],
         apiImpl: this,
       ),
     );
@@ -197,7 +211,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       "annfile",
       "domtbloutFiles",
       "evalMax",
+      "evalMin",
       "domEvalMax",
+      "domEvalMin",
       "fileType",
     ],
   );

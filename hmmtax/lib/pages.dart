@@ -130,7 +130,9 @@ class _MainPageState extends State<MainPage> {
                               annfile: filedata.annotationsFile!,
                               domtbloutFiles: filedata.domtbloutFiles,
                               evalMax: hsettings.evalMax,
+                              evalMin: hsettings.evalMin,
                               domEvalMax: hsettings.domEvalMax,
+                              domEvalMin: hsettings.domEvalMin,
                               fileType: hsettings.dataType,
                             ));
                             ScaffoldMessenger.of(context).clearSnackBars();
@@ -521,29 +523,86 @@ class _SettingsPageState extends State<SettingsPage> {
                             ).textTheme.bodyMedium!.copyWith(
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
-                            "Maximum E-Value to Show",
+                            "Show Sequence E-Values",
                           ),
-                          TextFormField(
-                            style: Theme.of(context).textTheme.bodyMedium,
-                            initialValue: hsettings.evalMax.toString(),
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(),
-                            ),
-                            autovalidateMode:
-                                AutovalidateMode.onUserInteraction,
-                            onFieldSubmitted: (String? value) async {
-                              double? val = double.tryParse(value!);
-                              if (val != null) {
-                                hsettings.evalMax = val;
-                                await (_showWarning());
-                              }
-                            },
-                            validator: (String? value) {
-                              return (value == null ||
-                                      double.tryParse(value) == null)
-                                  ? "Must be a real number"
-                                  : null;
-                            },
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              Row(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 6.0),
+                                    child: Text(
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium!.copyWith(
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                      ),
+                                      "Minimum",
+                                    ),
+                                  ),
+                                  InputQty.double(
+                                    initVal: hsettings.evalMin,
+                                    minVal: 0.0,
+                                    steps: 0.1,
+                                    decoration: QtyDecorationProps(
+                                      qtyStyle: QtyStyle.btnOnRight,
+                                      border: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                          color:
+                                              Theme.of(
+                                                context,
+                                              ).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                    ),
+                                    onQtyChanged: (val) {
+                                      hsettings.evalMin = val;
+                                    },
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 6.0),
+                                    child: Text(
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium!.copyWith(
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                      ),
+                                      "Maximum",
+                                    ),
+                                  ),
+                                  InputQty.double(
+                                    initVal: hsettings.evalMax,
+                                    minVal: 0.0,
+                                    steps: 0.1,
+                                    decoration: QtyDecorationProps(
+                                      qtyStyle: QtyStyle.btnOnRight,
+                                      border: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                          color:
+                                              Theme.of(
+                                                context,
+                                              ).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                    ),
+                                    onQtyChanged: (val) {
+                                      hsettings.evalMax = val;
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -560,29 +619,86 @@ class _SettingsPageState extends State<SettingsPage> {
                             ).textTheme.bodyMedium!.copyWith(
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
-                            "Maximum Domain E-Value to Show",
+                            "Show Domain E-Values (HMMER domtblout only)",
                           ),
-                          TextFormField(
-                            style: Theme.of(context).textTheme.bodyMedium,
-                            initialValue: hsettings.domEvalMax.toString(),
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(),
-                            ),
-                            autovalidateMode:
-                                AutovalidateMode.onUserInteraction,
-                            onFieldSubmitted: (String? value) async {
-                              double? val = double.tryParse(value!);
-                              if (val != null) {
-                                hsettings.domEvalMax = val;
-                                await (_showWarning());
-                              }
-                            },
-                            validator: (String? value) {
-                              return (value == null ||
-                                      double.tryParse(value) == null)
-                                  ? "Must be a real number"
-                                  : null;
-                            },
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              Row(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 6.0),
+                                    child: Text(
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium!.copyWith(
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                      ),
+                                      "Minimum",
+                                    ),
+                                  ),
+                                  InputQty.double(
+                                    initVal: hsettings.domEvalMin,
+                                    minVal: 0.0,
+                                    steps: 0.1,
+                                    decoration: QtyDecorationProps(
+                                      qtyStyle: QtyStyle.btnOnRight,
+                                      border: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                          color:
+                                              Theme.of(
+                                                context,
+                                              ).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                    ),
+                                    onQtyChanged: (val) {
+                                      hsettings.domEvalMin = val;
+                                    },
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 6.0),
+                                    child: Text(
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium!.copyWith(
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                      ),
+                                      "Maximum",
+                                    ),
+                                  ),
+                                  InputQty.double(
+                                    initVal: hsettings.domEvalMax,
+                                    minVal: 0.0,
+                                    steps: 0.1,
+                                    decoration: QtyDecorationProps(
+                                      qtyStyle: QtyStyle.btnOnRight,
+                                      border: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                          color:
+                                              Theme.of(
+                                                context,
+                                              ).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                    ),
+                                    onQtyChanged: (val) {
+                                      hsettings.domEvalMax = val;
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ],
                       ),
