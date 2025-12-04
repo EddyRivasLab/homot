@@ -362,8 +362,23 @@ class _SettingsPageState extends State<SettingsPage> {
                           ).textTheme.bodyMedium!.copyWith(
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
-                          "Select Font",
+                          "Font Settings",
                         ),
+                      Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                       Row(
+                      children: [
+                        Padding(
+                                    padding: const EdgeInsets.only(right: 6.0),
+                                    child:Text(
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium!.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          "Font Family",
+                        ),),
                         HmmotSystemFontSelector(
                           width: 200 * hsettings.scale,
                           textStyle: Theme.of(
@@ -379,19 +394,18 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                       ],
                     ),
-                  ),
-                  Card(
-                    color: Theme.of(context).colorScheme.surface,
-                    child: Column(
+                    Row(
                       children: [
-                        Text(
+                        Padding(
+                                    padding: const EdgeInsets.only(right: 6.0),
+                                    child:Text(
                           style: Theme.of(
                             context,
                           ).textTheme.bodyMedium!.copyWith(
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
                           "Font Scale Factor",
-                        ),
+                        ),),
                         InputQty.double(
                           initVal: hsettings.scale,
                           minVal: 0.001,
@@ -410,6 +424,73 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                       ],
                     ),
+                    ],),],),
+                  ),
+                   Card(
+                    color: Theme.of(context).colorScheme.surface,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                      Column(
+                      children: [
+                        Text(
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium!.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          "Graph Line Width",
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            InputQty.double(
+                              initVal: hsettings.lineWidth,
+                              minVal: 0.5,
+                              steps: 0.5,
+                              decoration: QtyDecorationProps(
+                                qtyStyle: QtyStyle.btnOnRight,
+                                border: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
+                              ),
+                              onQtyChanged: (val) {
+                                hsettings.lineWidth = val;
+                              },
+                            ),
+                            SizedBox(width: 20),
+                            CustomPaint(
+                              size: Size(50, 10),
+                              painter: LinePainter(
+                                context,
+                                hsettings,
+                                MediaQuery.of(context).devicePixelRatio,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Row(children: [Checkbox(
+                  value: hsettings.addPatterns,
+                  onChanged: (bool? newValue) {
+                    hsettings.addPatterns = newValue ??false;
+                    },
+                    ),
+                   Text(
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium!.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          "Add Patterns to Graph/Domain Displays",
+                        ), 
+                    ],
+                    ),
+                    ],),
                   ),
                   Card(
                     color: Theme.of(context).colorScheme.surface,
@@ -702,52 +783,6 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                  Card(
-                    color: Theme.of(context).colorScheme.surface,
-                    child: Column(
-                      children: [
-                        Text(
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          "Graph Line Width",
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            InputQty.double(
-                              initVal: hsettings.lineWidth,
-                              minVal: 0.5,
-                              steps: 0.5,
-                              decoration: QtyDecorationProps(
-                                qtyStyle: QtyStyle.btnOnRight,
-                                border: OutlineInputBorder(
-                                  borderSide: BorderSide(
-                                    color:
-                                        Theme.of(context).colorScheme.onSurface,
-                                  ),
-                                ),
-                              ),
-                              onQtyChanged: (val) {
-                                hsettings.lineWidth = val;
-                              },
-                            ),
-                            SizedBox(width: 20),
-                            CustomPaint(
-                              size: Size(50, 10),
-                              painter: LinePainter(
-                                context,
-                                hsettings,
-                                MediaQuery.of(context).devicePixelRatio,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
                     ),
                   ),
                 ],
@@ -1354,8 +1389,8 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      child: Consumer2<SearchData, GraphData>(
-        builder: (context, searchdata, graphdata, child) {
+      child: Consumer3<SearchData, GraphData, HSettings>(
+        builder: (context, searchdata, graphdata, hsettings, child) {
           final List<SigCategory> theHits = searchdata.currentHits;
           int numHits = 0;
           for (var category in theHits) {
@@ -1403,6 +1438,7 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
                           which: index,
                           from: selectedby.subtree_structure,
                           fullWidth: fullWidth[index],
+                          addPatterns: hsettings.addPatterns,
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -1487,8 +1523,8 @@ class _AllStructurePageState extends State<AllStructurePage> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      child: Consumer2<SearchData, GraphData>(
-        builder: (context, searchdata, graphdata, child) {
+      child: Consumer3<SearchData, GraphData, HSettings>(
+        builder: (context, searchdata, graphdata, hsettings, child) {
           final List<SigCategory> theHits = searchdata.rootHits;
           if (fullWidth.length != theHits.length) {
             // something has changed, reset the fullwidth list
@@ -1533,6 +1569,7 @@ class _AllStructurePageState extends State<AllStructurePage> {
                           which: index,
                           from: selectedby.structure,
                           fullWidth: fullWidth[index],
+                          addPatterns: hsettings.addPatterns,
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -1614,8 +1651,8 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      child: Consumer2<SearchData, GraphData>(
-        builder: (context, searchdata, graphdata, child) {
+      child: Consumer3<SearchData, GraphData, HSettings>(
+        builder: (context, searchdata, graphdata, hsettings, child) {
           if (fullWidth.length != searchdata.hits.length) {
             // something has changed, reset the fullwidth list
             fullWidth = List.filled(searchdata.hits.length, false);
@@ -1661,6 +1698,7 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
                           hit: searchdata.hits[index],
                           searchdata: searchdata,
                           fullWidth: fullWidth[index],
+                          addPatterns: hsettings.addPatterns,
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -1741,8 +1779,8 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      child: Consumer2<SearchData, GraphData>(
-        builder: (context, searchdata, graphdata, child) {
+      child: Consumer3<SearchData, GraphData, HSettings>(
+        builder: (context, searchdata, graphdata, hsettings, child) {
           Int64List hitIndices = Int64List(0);
           String title = "";
           switch (searchdata.selectedBy) {
@@ -1815,6 +1853,7 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                           hit: searchdata.hits[hitIndices[index].toInt()],
                           searchdata: searchdata,
                           fullWidth: fullWidth[index],
+                          addPatterns: hsettings.addPatterns,
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -1896,8 +1935,8 @@ class _SequencePageState extends State<SequencePage> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.sizeOf(context).width;
     return Material(
-      child: Consumer<SearchData>(
-        builder: (context, searchdata, child) {
+      child: Consumer2<SearchData, HSettings>(
+        builder: (context, searchdata, hsettings, child) {
           Hit theHit = searchdata.hits[searchdata.selectedHit.toInt()];
           showExpand =
               requiredHitWidth(theHit, true, true, context) > screenWidth;
@@ -1925,6 +1964,7 @@ class _SequencePageState extends State<SequencePage> {
                       fullWidth: fullWidth,
                       showSequence: true,
                       sequence: theHit.sequence,
+                      addPatterns: hsettings.addPatterns,
                     ),
                     Align(
                       alignment: Alignment(1.0, 0.0),

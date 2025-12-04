@@ -26,20 +26,20 @@ import 'package:patterns_canvas/patterns_canvas.dart';
 // Format is (BGcolor, FG color)
 
 const domainColors = [
-  (Color(0xFF004949), Color(0xffffffff)),
-  (Color(0xFF009292), Color(0xffffffff)),
-  (Color(0xFFFF6DB6), Color(0xff000000)),
-  (Color(0xFFFFB6DB), Color(0xff000000)),
-  (Color(0xFF490092), Color(0xffffffff)),
-  (Color(0xFF006DDB), Color(0xffffffff)),
-  (Color(0xFFB66DFF), Color(0xff000000)),
-  (Color(0xFF6DB6FF), Color(0xff000000)),
-  (Color(0xFFB6DBFF), Color(0xff000000)),
-  (Color(0xFF920000), Color(0xffffffff)),
-  (Color(0xFF924900), Color(0xffffffff)),
-  (Color(0xFFDB6D00), Color(0xffffffff)),
-  (Color(0xFF24FF24), Color(0xff000000)),
-  (Color(0xFFFFFF6D), Color(0xff000000)),
+  (Color(0xFF004949), Color(0xffffffff), PatternType.dots, Color(0xFF004949), Color(0xFF000000)),
+  (Color(0xFF009292), Color(0xffffffff), PatternType.crosshatch, Color(0xFF009292), Color(0xFF000000)),
+  (Color(0xFFFF6DB6), Color(0xff000000), PatternType.checkers, Color(0xFFFF6DB6), Color(0xFF000000)),
+  (Color(0xFFFFB6DB), Color(0xff000000), PatternType.raindrops, Color(0xFFFFB6DB), Color(0xFF000000)),
+  (Color(0xFF490092), Color(0xffffffff), PatternType.texture, Color(0xFF490092), Color(0xFF000000)),
+  (Color(0xFF006DDB), Color(0xffffffff), PatternType.subtlepatch, Color(0xFF006DDB), Color(0xFF000000)),
+  (Color(0xFFB66DFF), Color(0xff000000), PatternType.horizontalLight, Color(0xFFB66DFF), Color(0xFF000000)),
+  (Color(0xFF6DB6FF), Color(0xff000000), PatternType.verticalLight, Color(0xFF6DB6FF), Color(0xFF000000)),
+  (Color(0xFFB6DBFF), Color(0xff000000), PatternType.diagonalLight, Color(0xFFB6DBFF), Color(0xFF000000)),
+  (Color(0xFF920000), Color(0xffffffff), PatternType.dots, Color(0xFF920000), Color(0xFF000000)),
+  (Color(0xFF924900), Color(0xffffffff), PatternType.crosshatch, Color(0xFF924900), Color(0xFF000000)),
+  (Color(0xFFDB6D00), Color(0xffffffff), PatternType.checkers, Color(0xFFDB6D00), Color(0xFF000000)),
+  (Color(0xFF24FF24), Color(0xff000000), PatternType.raindrops, Color(0xFF24FF24), Color(0xFF000000)),
+  (Color(0xFFFFFF6D), Color(0xff000000), PatternType.texture, Color(0xFFFFFF6D), Color(0xFF000000)),
 ];
 
 const domainColorsOld = [
@@ -90,75 +90,43 @@ ColorScheme darkScheme = ColorScheme.fromSeed(
 );
 
 const numColors = 8;
-const shadesPerColor = 8;
+const shadesPerColor = 4;
 
-var lightGraphColors = [(Colors.amber[100], Colors.black)];
+var lightGraphColors = [(Colors.amber[100], Colors.black, "blort")];
 
 var darkGraphColors = [
-  (Color.fromRGBO(0x33, 0x22, 0x88, 1.0), Colors.black),
-  (Color.fromRGBO(0x33, 0x22, 0x88, 1.0), Colors.black),
-  (Color.fromRGBO(0x33, 0x22, 0x88, 1.0), Colors.white),
-  (Color.fromRGBO(0x33, 0x22, 0x88, 1.0), Colors.white),
-  (Color.fromRGBO(0x33, 0x22, 0x88, 1.0), Colors.black),
-  (Color.fromRGBO(0x33, 0x22, 0x88, 1.0), Colors.black),
-  (Color.fromRGBO(0x33, 0x22, 0x88, 1.0), Colors.white),
-  (Color.fromRGBO(0x33, 0x22, 0x88, 1.0), Colors.white),
-  (Color.fromRGBO(0x11, 0x77, 0x33, 1.0), Colors.black),
-  (Color.fromRGBO(0x11, 0x77, 0x33, 1.0), Colors.black),
-  (Color.fromRGBO(0x11, 0x77, 0x33, 1.0), Colors.white),
-  (Color.fromRGBO(0x11, 0x77, 0x33, 1.0), Colors.white),
-  (Color.fromRGBO(0x11, 0x77, 0x33, 1.0), Colors.black),
-  (Color.fromRGBO(0x11, 0x77, 0x33, 1.0), Colors.black),
-  (Color.fromRGBO(0x11, 0x77, 0x33, 1.0), Colors.white),
-  (Color.fromRGBO(0x11, 0x77, 0x33, 1.0), Colors.white),
-  (Color.fromRGBO(0x88, 0x22, 0x55, 1.0), Colors.black),
-  (Color.fromRGBO(0x88, 0x22, 0x55, 1.0), Colors.black),
-  (Color.fromRGBO(0x88, 0x22, 0x55, 1.0), Colors.white),
-  (Color.fromRGBO(0x88, 0x22, 0x55, 1.0), Colors.white),
-  (Color.fromRGBO(0x88, 0x22, 0x55, 1.0), Colors.black),
-  (Color.fromRGBO(0x88, 0x22, 0x55, 1.0), Colors.black),
-  (Color.fromRGBO(0x88, 0x22, 0x55, 1.0), Colors.white),
-  (Color.fromRGBO(0x88, 0x22, 0x55, 1.0), Colors.white),
-  (Color.fromRGBO(0x88, 0xcc, 0xee, 1.0), Colors.black),
-  (Color.fromRGBO(0x88, 0xcc, 0xee, 1.0), Colors.black),
-  (Color.fromRGBO(0x88, 0xcc, 0xee, 1.0), Colors.black),
-  (Color.fromRGBO(0x88, 0xcc, 0xee, 1.0), Colors.black),
-  (Color.fromRGBO(0x88, 0xcc, 0xee, 1.0), Colors.black),
-  (Color.fromRGBO(0x88, 0xcc, 0xee, 1.0), Colors.black),
-  (Color.fromRGBO(0x88, 0xcc, 0xee, 1.0), Colors.black),
-  (Color.fromRGBO(0x88, 0xcc, 0xee, 1.0), Colors.black),
-  (Color.fromRGBO(0xdd, 0xcc, 0x77, 1.0), Colors.black),
-  (Color.fromRGBO(0xdd, 0xcc, 0x77, 1.0), Colors.black),
-  (Color.fromRGBO(0xdd, 0xcc, 0x77, 1.0), Colors.white),
-  (Color.fromRGBO(0xdd, 0xcc, 0x77, 1.0), Colors.white),
-  (Color.fromRGBO(0xdd, 0xcc, 0x77, 1.0), Colors.black),
-  (Color.fromRGBO(0xdd, 0xcc, 0x77, 1.0), Colors.black),
-  (Color.fromRGBO(0xdd, 0xcc, 0x77, 1.0), Colors.white),
-  (Color.fromRGBO(0xdd, 0xcc, 0x77, 1.0), Colors.white),
-  (Color.fromRGBO(0xcc, 0x66, 0x77, 1.0), Colors.black),
-  (Color.fromRGBO(0xcc, 0x66, 0x77, 1.0), Colors.black),
-  (Color.fromRGBO(0xcc, 0x66, 0x77, 1.0), Colors.white),
-  (Color.fromRGBO(0xcc, 0x66, 0x77, 1.0), Colors.white),
-  (Color.fromRGBO(0xcc, 0x66, 0x77, 1.0), Colors.black),
-  (Color.fromRGBO(0xcc, 0x66, 0x77, 1.0), Colors.black),
-  (Color.fromRGBO(0xcc, 0x66, 0x77, 1.0), Colors.white),
-  (Color.fromRGBO(0xcc, 0x66, 0x77, 1.0), Colors.white),
-  (Color.fromRGBO(0x44, 0xaa, 0x99, 1.0), Colors.black),
-  (Color.fromRGBO(0x44, 0xaa, 0x99, 1.0), Colors.black),
-  (Color.fromRGBO(0x44, 0xaa, 0x99, 1.0), Colors.white),
-  (Color.fromRGBO(0x44, 0xaa, 0x99, 1.0), Colors.white),
-  (Color.fromRGBO(0x44, 0xaa, 0x99, 1.0), Colors.black),
-  (Color.fromRGBO(0x44, 0xaa, 0x99, 1.0), Colors.black),
-  (Color.fromRGBO(0x44, 0xaa, 0x99, 1.0), Colors.white),
-  (Color.fromRGBO(0x44, 0xaa, 0x99, 1.0), Colors.white),
-  (Color.fromRGBO(0xAA, 0x44, 0x99, 1.0), Colors.black),
-  (Color.fromRGBO(0xAA, 0x44, 0x99, 1.0), Colors.black),
-  (Color.fromRGBO(0xAA, 0x44, 0x99, 1.0), Colors.white),
-  (Color.fromRGBO(0xAA, 0x44, 0x99, 1.0), Colors.white),
-  (Color.fromRGBO(0xAA, 0x44, 0x99, 1.0), Colors.black),
-  (Color.fromRGBO(0xAA, 0x44, 0x99, 1.0), Colors.black),
-  (Color.fromRGBO(0xAA, 0x44, 0x99, 1.0), Colors.white),
-  (Color.fromRGBO(0xAA, 0x44, 0x99, 1.0), Colors.white),
+  (Color(0xff009292), Color(0xffffffff), PatternType.dots, Color(0xFF009292), Color(0xFF000000)),
+  (Color(0xaf009292), Color(0xffffffff), PatternType.crosshatch, Color(0xaf009292) ,Color(0xFF000000)),
+    (Color(0x6F009292), Color(0xffffffff), PatternType.checkers, Color(0x6f009292), Color(0xFF000000)),  
+  (Color(0xcF009292), Color(0xffffffff), PatternType.raindrops, Color(0xcf009292), Color(0xFF000000)),
+ (Color(0xFFFF6DB6), Color(0xff000000), PatternType.crosshatch, Color(0xFFFF6DB6), Color(0xFF000000)),
+  (Color(0xaFFF6DB6), Color(0xff000000), PatternType.checkers, Color(0xaFFF6DB6), Color(0xFF000000)),
+  (Color(0x6FFF6DB6), Color(0xffffffff), PatternType.raindrops, Color(0x6FFF6DB6), Color(0xFF000000)),
+  (Color(0xcFFF6DB6), Color(0xff000000), PatternType.texture, Color(0xcFFF6DB6), Color(0xFF000000)),
+  (Color(0xFF490092), Color(0xffffffff), PatternType.checkers, Color(0xFF490092), Color(0xFF000000)),
+    (Color(0xAF490092), Color(0xffffffff), PatternType.raindrops, Color(0xAF490092), Color(0xFF000000)),
+      (Color(0x6F490092), Color(0xffffffff), PatternType.texture, Color(0x6F490092), Color(0xFF000000)),
+    (Color(0xCF490092), Color(0xffffffff), PatternType.subtlepatch, Color(0xCF490092), Color(0xFF000000)),
+  (Color(0xFF006DDB), Color(0xffffffff), PatternType.raindrops, Color(0xFF006DDB), Color(0xFF000000)),
+   (Color(0xAF006DDB), Color(0xffffffff), PatternType.texture, Color(0xAF006DDB), Color(0xFF000000)),
+     (Color(0x6F006DDB), Color(0xffffffff), PatternType.subtlepatch, Color(0x6F006DDB), Color(0xFF000000)),
+   (Color(0xcF006DDB), Color(0xffffffff), PatternType.dots, Color(0xcF006DDB), Color(0xFF000000)),
+  (Color(0xFFB66DFF), Color(0xff000000), PatternType.texture, Color(0xFFB66DFF), Color(0xFF000000)),
+    (Color(0xAFB66DFF), Color(0xff000000), PatternType.subtlepatch, Color(0xAFB66DFF), Color(0xFF000000)),
+      (Color(0x6FB66DFF), Color(0xffffffff),  PatternType.dots, Color(0x6FB66DFF), Color(0xFF000000)),
+    (Color(0xcFB66DFF), Color(0xff000000), PatternType.crosshatch, Color(0xcFB66DFF), Color(0xFF000000)),
+  (Color(0xFF920000), Color(0xffffffff), PatternType.subtlepatch, Color(0xFF920000), Color(0xFF000000)),
+    (Color(0xAF920000), Color(0xffffffff), PatternType.dots, Color(0xAF920000), Color(0xFF000000)),
+  (Color(0x6F920000), Color(0xffffffff),  PatternType.crosshatch, Color(0x6F920000), Color(0xFF000000)),
+    (Color(0xcF920000), Color(0xffffffff), PatternType.checkers, Color(0xcF920000), Color(0xFF000000)),
+  (Color(0xFF24FF24), Color(0xff000000),  PatternType.dots, Color(0xFF24FF24), Color(0xFF000000)),
+    (Color(0xAF24FF24), Color(0xff000000),  PatternType.crosshatch, Color(0xAF24FF24), Color(0xFF000000)),
+      (Color(0x6F24FF24), Color(0xffffffff), PatternType.checkers, Color(0x6F24FF24), Color(0xFF000000)),
+    (Color(0xcF24FF24), Color(0xff000000),    PatternType.raindrops, Color(0xcF24FF24), Color(0xFF000000)),
+  (Color(0xFFFFFF6D), Color(0xff000000), PatternType.crosshatch, Color(0xFFFFFF6D), Color(0xFF000000)),
+    (Color(0xAFFFFFF6D), Color(0xff000000), PatternType.checkers, Color(0xAFFFFFF6D), Color(0xFF000000)),
+      (Color(0x6FFFFFF6D), Color(0xff000000),  PatternType.raindrops, Color(0x6FFFFFF6D), Color(0xFF000000)),
+    (Color(0xcFFFFFF6D), Color(0xff000000),   PatternType.texture, Color(0xcFFFFFF6D), Color(0xFF000000)),
 ];
 
 var darkGraphColorsOld = [
@@ -221,7 +189,7 @@ Future<void> main() async {
   double lineWidth = await prefs.getDouble("Hmmtax_lineWidth") ?? 2.0;
   int mode = await prefs.getInt("Hmmtax_mode") ?? 3;
   int DataFileType = await prefs.getInt("Hmmtax_datatype") ?? 3;
-
+  bool addPatterns = await prefs.getBool("Hmmtax_patterns") ?? false;
   runApp(
     MultiProvider(
       providers: [
@@ -240,6 +208,7 @@ Future<void> main() async {
                 domEvalMin,
                 lineWidth,
                 DataFileType,
+                addPatterns
               ),
         ),
         ChangeNotifierProvider(create: (_) => SearchData()),
@@ -304,8 +273,9 @@ class HSettings with ChangeNotifier {
   double _domEvalMax = 10.0;
   double _domEvalMin = 0.0;
   double _lineWidth = 2.0;
+  bool _addPatterns = false;
   late SharedPreferencesAsync _prefs;
-  List<(Color, Color)> get graphColors {
+  List<(Color, Color, PatternType, Color, Color)> get graphColors {
     if (_mode == brightModes.light ||
         (_mode == brightModes.system && ThemeMode.system == ThemeMode.light)) {
       return darkGraphColors;
@@ -325,6 +295,7 @@ class HSettings with ChangeNotifier {
     double domEvalMin,
     double lineWidth,
     int dataType,
+    bool addPatterns,
   ) {
     _prefs = prefs;
     _font = font;
@@ -334,6 +305,7 @@ class HSettings with ChangeNotifier {
     _domEvalMax = domEvalMax;
     _domEvalMin = domEvalMin;
     _lineWidth = lineWidth;
+    _addPatterns = addPatterns;
     switch (mode) {
       case 1:
         _mode = brightModes.light;
@@ -486,7 +458,12 @@ class HSettings with ChangeNotifier {
       _lineWidth = newWidth;
     }
   }
-
+  void set addPatterns(bool val) {
+    _addPatterns = val;
+    _prefs.setBool("Hmmtax_patterns", val);
+    notifyListeners();
+  } 
+  
   ThemeData get themeData => _updateTheme();
   double get scale => _scale;
   String get font => _font;
@@ -497,6 +474,7 @@ class HSettings with ChangeNotifier {
   double get domEvalMin => _domEvalMin;
   double get lineWidth => _lineWidth;
   DataFileType get dataType => _dataType;
+  bool get addPatterns => _addPatterns;
 }
 
 // ChangeNotifier for graph data
@@ -1249,7 +1227,7 @@ class SearchData with ChangeNotifier {
   int _selectedStructure = -1;
   selectedby _selectedBy = selectedby.none;
   selectedby _previousSelectedBy = selectedby.none;
-  HashMap<String, (Color, Color)> _domainColors = HashMap();
+  HashMap<String, (Color, Color, PatternType, Color, Color)> _domainColors = HashMap();
   PlatformInt64 _selectedHit = -1;
   selectedby get selectedBy => _selectedBy;
   selectedby get previousSelectedBy => _previousSelectedBy;
@@ -1326,13 +1304,13 @@ class SearchData with ChangeNotifier {
     }
   }
 
-  (Color, Color) get_colors(String domain) {
+  (Color, Color, PatternType, Color, Color) get_colors(String domain) {
     if (_domainColors.containsKey(domain)) {
       return _domainColors[domain]!;
     } else {
       // Defarut to black-and-white if we don't have a color for this domain
       // (this should never happen, but just in case)
-      final color = (Color(0xff000000), Color(0xffffffff));
+      final color = (Color(0xff000000), Color(0xffffffff), PatternType.subtlepatch, Color(0xff000000), Color(0xffffffff));
       return color;
     }
   }

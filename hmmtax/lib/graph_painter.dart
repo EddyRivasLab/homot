@@ -63,6 +63,7 @@ class GraphPainter extends CustomPainter {
     double regionAngle,
     Offset center,
     Color textColor,
+    Color bgColor,
   ) {
     // The easiest way to get the dimensions of some
     // text seems to be to try rendering them and then measure the result.
@@ -74,7 +75,7 @@ class GraphPainter extends CustomPainter {
 
     testPainter.text = TextSpan(
       text: text,
-      style: textTheme.bodyMedium!.copyWith(color: textColor),
+      style: textTheme.bodyMedium!.copyWith(color: textColor, backgroundColor: bgColor),
     );
     testPainter
         .layout(); // laying out the text computes how much space it will take if drawn
@@ -168,14 +169,19 @@ class GraphPainter extends CustomPainter {
     bool drawChildren = node.ranknum < maxLevel;
     Color nodeColor;
     Color fillColor, fillTextColor;
+    PatternType patternType;
+    Color patternFg, patternBg;
     if (nodeId == parentId) {
       // root node of current graph
       nodeColor = hSettings.themeData.colorScheme.onSurface;
       fillColor = hSettings.themeData.colorScheme.onSurface;
       fillTextColor = Colors.white;
+      patternType = PatternType.dots;
+      patternFg = Color(0xff000000);
+      patternBg = Color(0xffffffff);
     } else {
-      (nodeColor, _) = hSettings.graphColors[(majorColor) * shadesPerColor];
-      (fillColor, fillTextColor) =
+      (nodeColor, _, _, _, _) = hSettings.graphColors[(majorColor) * shadesPerColor];
+      (fillColor, fillTextColor, patternType, patternBg, patternFg) =
           hSettings.graphColors[(majorColor) * shadesPerColor + minorColor];
     }
     // keep the node from going beyond the max radius of the graph
@@ -197,13 +203,6 @@ class GraphPainter extends CustomPainter {
     var parentOffset = Offset(
       center.dx + (parentRadius * cos(myAngle)),
       center.dy + (parentRadius * sin(myAngle)),
-    );
-    myCanvas.drawLine(
-      parentOffset,
-      myOffset,
-      paint
-        ..strokeWidth = hSettings.lineWidth / graphData.scale
-        ..color = nodeColor,
     );
 
     if (nodeId == parentId) {
@@ -243,8 +242,19 @@ class GraphPainter extends CustomPainter {
         (node.myArcEnd - node.myArcStart),
         center,
         Theme.of(context).colorScheme.onSurface,
+        Color(0x00000000) // transparent background for text
       );
+      if(textFit){ // Only draw the radial line if we have space for the text,
+      // otherwise, it looks bad with wedges if we're using transparent colors
+            myCanvas.drawLine(
+      parentOffset,
+      myOffset,
+      paint
+        ..strokeWidth = hSettings.lineWidth / graphData.scale
+        ..color = nodeColor,
+    );
 
+      }
       if (!textFit && node.ranknum != startLevel) {
         // There isn't enough space to fit the data for the node, so turn it into a pie wedge out to the edge of
         // graph
@@ -281,35 +291,40 @@ class GraphPainter extends CustomPainter {
           center.dy + (parentRadius * sin(node.myArcStart)),
         );
 
-        myCanvas.drawPath(
-          piePath,
-          paint
-            ..style = PaintingStyle.stroke
-            ..color = fillColor,
-        );
-        myCanvas.drawPath(
+    /*    myCanvas.drawPath(
           piePath,
           paint
             ..style = PaintingStyle.fill
             ..color = fillColor,
-        );
-        /* final Pattern p2 = Pattern.fromValues(
-          patternType: PatternType.diagonalLight,
-          bgColor: Colors.yellowAccent,
-          fgColor: Colors.black,
-        );
-        p2.paintOnPath(myCanvas, size, piePath);
-*/
-        // now, add the region for the node to each level in the wedge outside the
-        //node's actual level
-        for (int level = node.ranknum; level <= maxLevel; level++) {
-          graphData.trackRegions.addRegion(
-            level - startLevel,
-            Region(node.myArcStart, node.myArcEnd, nodeId),
-          );
-        }
+        ); */
+    if (hSettings.addPatterns) { // add patterns to assist color-blind users
+        // By default, patterns have a fixed number of features.  This should scale the number of features proportionally to the size of the area being filled
+        int featuresCount =  (((outerRadius-parentRadius)/(maxLevel *radPerLevel))* 50).round();
 
-        // and see if we can fit the text in the outer edge of the wedge
+        final Pattern p2 = Pattern.fromValues(patternType: patternType, fgColor: patternFg, bgColor: patternBg, featuresCount: featuresCount);
+
+        p2.paintOnPath(myCanvas, size, piePath);
+         // and see if we can fit the text in the outer edge of the wedge
+        _write_if_fits(
+          myCanvas,
+          Theme.of(context).textTheme,
+          nodeText,
+          myAngle,
+          parentRadius,
+          (maxLevel - startLevel) * radPerLevel,
+          (node.myArcEnd - node.myArcStart),
+          center,
+          Color(0xffffffff),
+          Color(0xff000000)
+        );
+    } else { // don't
+       myCanvas.drawPath(
+          piePath,
+          paint
+            ..style = PaintingStyle.fill
+            ..color = fillColor,
+        ); 
+         // and see if we can fit the text in the outer edge of the wedge
         _write_if_fits(
           myCanvas,
           Theme.of(context).textTheme,
@@ -320,7 +335,19 @@ class GraphPainter extends CustomPainter {
           (node.myArcEnd - node.myArcStart),
           center,
           fillTextColor,
+          Color(0x00000000) // transparent background for text
         );
+    }
+        // now, add the region for the node to each level in the wedge outside the
+        //node's actual level
+        for (int level = node.ranknum; level <= maxLevel; level++) {
+          graphData.trackRegions.addRegion(
+            level - startLevel,
+            Region(node.myArcStart, node.myArcEnd, nodeId),
+          );
+        }
+
+       
       }
     }
     if (drawChildren) {

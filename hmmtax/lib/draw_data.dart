@@ -109,6 +109,7 @@ class DrawDomains extends StatelessWidget {
     required this.seqLength,
     required this.seqEvalue,
     required this.allDomains,
+    required this.addPatterns,
   });
 
   //final List<Domain> domains;
@@ -121,6 +122,8 @@ class DrawDomains extends StatelessWidget {
   final int seqLength;
   final double seqEvalue;
   final bool allDomains;
+  final bool addPatterns;
+
   List<List<int>> _map_domains_to_rows(List<Domain> domains) {
     List<List<dCoord>> Lines = [[]];
     int whichDomain = 0;
@@ -250,6 +253,7 @@ class DrawDomains extends StatelessWidget {
       colorScheme: Theme.of(context).colorScheme,
       buttons: buttons,
       allDomains: allDomains,
+      addPatterns: addPatterns,
     );
     return Stack(
       children:
@@ -364,6 +368,7 @@ class DomainPainter extends CustomPainter {
   final ColorScheme colorScheme;
   List<Widget> buttons;
   final bool allDomains;
+  final bool addPatterns;
 
   DomainPainter({
     required this.context,
@@ -381,6 +386,7 @@ class DomainPainter extends CustomPainter {
     required this.colorScheme,
     required this.buttons,
     required this.allDomains,
+    required this.addPatterns,
   });
 
   _drawDomains(
@@ -392,6 +398,8 @@ class DomainPainter extends CustomPainter {
     List<List<int>> domainRows,
     TextTheme textTheme,
     List<Widget> buttons,
+    bool addPatterns,
+    Size size,
   ) {
     List<double> lastEnds = List<double>.filled(domainRows.length, widthOffset);
 
@@ -413,6 +421,8 @@ class DomainPainter extends CustomPainter {
           domain,
           textTheme,
           buttons,
+          addPatterns,
+          size
         );
         lastEnds[i] = end;
       }
@@ -449,7 +459,16 @@ class DomainPainter extends CustomPainter {
     Domain domain,
     TextTheme textTheme,
     List<Widget> buttons,
+    bool addPatterns,
+    Size size,
   ) {
+    // set this up once in case we need it
+    int featuresCount = 5;
+    if (searchdata.get_colors(domain.name).$3 != PatternType.horizontalLight) {
+      featuresCount = (width / 10).round();
+    }
+    Pattern p1 = Pattern.fromValues(patternType: searchdata.get_colors(domain.name).$3, fgColor: searchdata.get_colors(domain.name).$5, 
+    bgColor: searchdata.get_colors(domain.name).$4, featuresCount: featuresCount);
     // First, the line preceeding the domain
     final double start = position.dx;
     final double startY =
@@ -471,14 +490,20 @@ class DomainPainter extends CustomPainter {
           ..strokeWidth = 2.0,
       );
     }
-    if (width <= height) {
-      // domain too small to draw pretty edges
+    if (width <= height) {// domain too small to draw pretty edges
+      final theRect = Rect.fromLTWH(position.dx, startY, width, height);
+     if (addPatterns){
+      p1.paintOnRect(canvas, size, theRect);
+     }
+     else{ // solid fill
       canvas.drawRect(
-        Rect.fromLTWH(position.dx, startY, width, height),
+        theRect,
         paint
           ..color = searchdata.get_colors(domain.name).$1
           ..style = PaintingStyle.fill,
       );
+     }
+     // outline region either way
       canvas.drawRect(
         Rect.fromLTWH(position.dx, startY, width, height),
         paint
@@ -533,13 +558,18 @@ class DomainPainter extends CustomPainter {
         path.lineTo(position.dx + (width - height / 2), startY + height);
       }
       path.lineTo(position.dx + height / 2, startY + height);
+      if(addPatterns) {
+        p1.paintOnPath(canvas, size, path);
+      }
+      else {
       canvas.drawPath(
         path,
         paint
           ..color = searchdata.get_colors(domain.name).$1
           ..style = PaintingStyle.fill,
       );
-
+      }
+      // outline the domain either way
       canvas.drawPath(
         path,
         paint
@@ -557,14 +587,20 @@ class DomainPainter extends CustomPainter {
     String name = "";
     double textOffset = position.dx + (width / 2);
     String evalString = domain.domEvalue.toStringAsExponential(2);
-
+    Color textFG = searchdata.get_colors(domain.name).$2;
+    Color textBG = Color(0x00000000); // transparent
+    if(addPatterns){ // text becomes white on black background for visibility
+      textFG = Color(0xFFFFFFFF); // white
+      textBG = Color(0xFF000000); // black
+    }
     // see if all the data we'd like to display fits in the domain
     name = domain.name + " (" + evalString + ")";
     painter.text =
         painter.text = TextSpan(
           text: name,
           style: textTheme.bodyMedium!.copyWith(
-            color: searchdata.get_colors(domain.name).$2,
+            color: textFG,
+            backgroundColor: textBG
           ),
         );
     painter.layout();
@@ -578,12 +614,12 @@ class DomainPainter extends CustomPainter {
       painter.text = TextSpan(
         text: name,
         style: textTheme.bodyMedium!.copyWith(
-          color: searchdata.get_colors(domain.name).$2,
+          color: textFG,
+          backgroundColor: textBG
         ),
       );
       painter.layout();
       if (painter.width <= (width - heightPerLine)) {
-        // -2 to make sure domain extends past name
         Offset textPosition = Offset(textOffset - painter.width / 2, startY);
         painter.paint(canvas, textPosition);
       } else {
@@ -595,7 +631,8 @@ class DomainPainter extends CustomPainter {
           painter.text = TextSpan(
             text: name,
             style: textTheme.bodyMedium!.copyWith(
-              color: searchdata.get_colors(domain.name).$2,
+              color: textFG,
+              backgroundColor: textBG
             ),
           );
           painter.layout();
@@ -655,6 +692,8 @@ class DomainPainter extends CustomPainter {
       domainRows,
       textTheme,
       buttons,
+      addPatterns,
+      size
     );
     // draw the queries
 
@@ -668,6 +707,8 @@ class DomainPainter extends CustomPainter {
       queryRows,
       textTheme,
       buttons,
+      addPatterns,
+      size
     );
   }
 
@@ -760,6 +801,7 @@ class DrawHit extends StatefulWidget {
     this.fullWidth = true,
     this.showSequence = false,
     this.sequence = "",
+    this.addPatterns = false,
   });
   final Hit hit;
   final bool allDomains;
@@ -767,6 +809,7 @@ class DrawHit extends StatefulWidget {
   final SearchData searchdata;
   final bool showSequence;
   final String sequence;
+  final bool addPatterns;
   State<DrawHit> createState() => _DrawHitState();
 }
 
@@ -816,6 +859,7 @@ class _DrawHitState extends State<DrawHit> {
                 seqLength: widget.hit.seqLength,
                 seqEvalue: widget.hit.seqEvalue,
                 allDomains: widget.allDomains,
+                addPatterns: widget.addPatterns,
               ),
               if (widget.showSequence)
                 Text(
@@ -858,6 +902,7 @@ class _DrawHitState extends State<DrawHit> {
             seqLength: widget.hit.seqLength,
             seqEvalue: widget.hit.seqEvalue,
             allDomains: widget.allDomains,
+            addPatterns: widget.addPatterns,
           ),
           if (widget.showSequence)
             Text(
@@ -889,12 +934,13 @@ class DrawCategory extends StatelessWidget {
     required this.which,
     required this.from,
     required this.fullWidth,
+    required this.addPatterns,
   });
 
   final int which;
   final selectedby from;
   final bool fullWidth;
-
+  final bool addPatterns;
   @override
   Widget build(BuildContext context) {
     return Consumer2<SearchData, GraphData>(
@@ -917,6 +963,7 @@ class DrawCategory extends StatelessWidget {
               hit: searchdata.hits[category.hits[0].toInt()],
               searchdata: searchdata,
               fullWidth: fullWidth,
+              addPatterns: addPatterns,
             ),
           ],
         );
