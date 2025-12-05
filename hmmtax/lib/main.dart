@@ -784,14 +784,6 @@ class FileData with ChangeNotifier {
   bool _domtbloutFilesSet = false;
   String _annFileDir = ".";
   String _domtbloutFileDir = ".";
-  String _pdfFile = "";
-  String _pdfFileDir = ".";
-  bool _pdfFileSet = false;
-  double _pdfHeight = 11.0;
-  double _pdfWidth = 8.5;
-  PdfUnits _pdfUnits = PdfUnits.inches;
-  String get pdfFile => _pdfFile;
-  String get pdfFileDir => _pdfFileDir;
   String get annotationsFile => _annotationsFile;
   List<String> get domtbloutFiles => _domtbloutFiles;
   bool get annFileSet => _annFileSet;
@@ -806,26 +798,7 @@ class FileData with ChangeNotifier {
     }
   }
 
-  double get pdfHeight => _pdfHeight;
-  double get pdfWidth => _pdfWidth;
-  PdfUnits get pdfUnits => _pdfUnits;
-
-  void set pdfHeight(double height) {
-    _pdfHeight = height;
-    notifyListeners();
-  }
-
-  void set pdfWidth(double width) {
-    _pdfWidth = width;
-    notifyListeners();
-  }
-
-  void set pdfUnits(PdfUnits unit) {
-    _pdfUnits = unit;
-    notifyListeners();
-  }
-
-  // Don't notify listners after these functions,
+  // Don't notify listeners after these functions,
   // because we want to make all changes, then trigger a load
   void setAnnotationsFile(String newAnnotations) {
     _annotationsFile = newAnnotations;
@@ -872,15 +845,6 @@ class FileData with ChangeNotifier {
     notifyListeners();
   }
 
-  void setPdfFile(String newFile) {
-    _pdfFile = newFile;
-    _pdfFileSet = true;
-    var splits = newFile.split('/');
-    if (splits.length > 1) {
-      _pdfFileDir = splits.getRange(0, splits.length - 1).join("/");
-    }
-    notifyListeners();
-  }
 }
 
 // Wrapper that selects the correct menu bar for the platform

@@ -10,7 +10,6 @@ import 'package:hmmtax/printing.dart';
 
 import 'package:osler_icons/osler_icons.dart';
 import 'package:provider/provider.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:input_quantity/input_quantity.dart';
 import "dart:io";
 import "package:go_router/go_router.dart";
@@ -18,6 +17,7 @@ import "dart:developer";
 
 import 'package:flutter/material.dart';
 import 'package:system_fonts/system_fonts.dart';
+import 'package:file_selector/file_selector.dart';
 
 
 // This is a very lightly modified version of the SystemFontSelector from the system_fonts package.
@@ -298,10 +298,10 @@ class _AnnDbSelectState extends State<AnnDbSelect> {
         IconButton(icon: Icon(Icons.folder),
         color: Theme.of(context).colorScheme.onSurface,
           onPressed: () async {
-            String? dTemp = await FilePicker.platform.getDirectoryPath(
-              initialDirectory: filedata.annFileDir,
-              dialogTitle: "Select .annotated database directory",
+            String? dTemp = await getDirectoryPath(initialDirectory: filedata.annFileDir,
+              confirmButtonText: "Select Annotations Database",
             );
+          
             if (dTemp == null) {
             } else {
                   if (Directory(dTemp).existsSync()) {
@@ -349,19 +349,19 @@ class _DomtblSelectState extends State<DomtblSelect> {
         IconButton(icon: Icon(Icons.folder),
         color: Theme.of(context).colorScheme.onSurface,
           onPressed: () async {
-            FilePickerResult? dTemp = await FilePicker.platform.pickFiles(
+            List<XFile>? dTemp = await openFiles(
               initialDirectory: filedata.domtbloutFileDir,
-              allowMultiple: true,
-              dialogTitle: "Select search result file(s)",
+              confirmButtonText: "Select search result file(s)",
             );
             if (dTemp == null) {
             } else {
-                for (String? path in dTemp.paths) {
-                  if (path != null && File(path).existsSync()) {
-                    filedata.addDomtbloutFile(path);
+                for (XFile xfile in dTemp) {
+                  if (xfile.path != null && File(xfile.path).existsSync()) {
+                    filedata.addDomtbloutFile(xfile.path);
                   }
                 }
               };
+              null;
           },),
         ],),);
       }
@@ -408,7 +408,7 @@ class Pair<T1, T2>{
 
   Pair(this.a, this.b);
 }
-
+/*
 void drawPdfDialog(BuildContext context){
   final myController = TextEditingController();
   myController.text = "Enter or choose output file name";
@@ -547,3 +547,4 @@ void drawPdfDialog(BuildContext context){
   } 
 }
 
+*/
