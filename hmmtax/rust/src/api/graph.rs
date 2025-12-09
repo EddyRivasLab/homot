@@ -251,6 +251,9 @@ impl From<&UserValue> for AnnotatedSequence{
 fn count_hits(graph: &mut HashMap<i64, Node>, id: i64) -> i64 {
     let mut total: i64=0;   
     let children: Vec<i64>;
+    if (id == -1)||(graph.len()== 0){ // empty graph
+        return 0;
+    }
     if let Some(node) = graph.get(&id) {
         total += node.hits.len() as i64;
         children = node.children.clone();
@@ -351,7 +354,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
 
     let mut hits:Vec<Hit> = Vec::new();
     let mut hit_map:DashMap<String, Hit> = DashMap::with_shard_amount(1024);
-    let root: i64;
+    let mut root: i64 = -1;
     let mut num_domtbl_hits: i64 = 0;
     let now = Instant::now();
     // load hits from the data files
@@ -1161,6 +1164,10 @@ pub fn find_hits_below_node(root: i64, graph: &HashMap<i64, Node>, hit_structure
 
 // traverses the graph starting at root and gathers all of the hits at root or below into a single list
 pub fn collect_hits(root: &i64, graph: &HashMap<i64, Node>, hits: &mut Vec<i64>){
+    if(*root == -1 )||(graph.len() == 0){
+        // empty graph
+        return;
+    }
     let node = &graph[&root];
     for hit in &node.hits{
   //  println!("Found hit {} as child of node{}", hit, root);

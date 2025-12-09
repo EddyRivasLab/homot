@@ -384,8 +384,11 @@ class GraphPainter extends CustomPainter {
       for (var childId in node.children) {
         if (node.ranknum == startLevel) {
           majorColor = i % numColors;
+          minorColor = 0;
         }
-        minorColor = (minorColor + 1) % shadesPerColor;
+        else{
+          minorColor = (minorColor + 1) % shadesPerColor;
+        }
         var childNode = graph[childId.toInt()]!;
         childNode.myArcStart = lastEnd;
         childNode.myArcEnd = lastEnd + (arcPerChild * (childNode.hitsBelow));
@@ -425,12 +428,16 @@ class GraphPainter extends CustomPainter {
     final logicalSize = Size(logicalWidth, logicalHeight);
     final double logicalRadius = graphRadius; // * devicePixelRatio;
 
+    int drawnLevels;
     final Canvas logicalCanvas = canvas;
-
-    var drawnLevels = min(
+    if (graphData.graph[graphData.currentRoot] != null) {
+      drawnLevels = min(
       (graphData.depth - graphData.graph[graphData.currentRoot]!.ranknum),
       graphData.maxLevels,
-    );
+    );}
+    else{
+      drawnLevels = 0;
+    }
     double radPerLevel;
 
     if (drawnLevels != 0) {
@@ -446,10 +453,14 @@ class GraphPainter extends CustomPainter {
       graphData.radPerLevel = 0.0;
     }
     var center = Offset(logicalSize.width / 2, logicalSize.height / 2);
-    var maxLevel =
+    int maxLevel;
+    Node root; 
+    
+    if(graphData.graph[graphData.currentRoot] != null){
+      maxLevel =
         (graphData.graph[graphData.currentRoot]!.ranknum + drawnLevels) - 1;
-
-    var root = graphData.graph[graphData.currentRoot]!;
+      root = graphData.graph[graphData.currentRoot]!;
+  
     graphData.rootRadius = rootFrac * logicalRadius;
     root.myArcStart = 0.0;
     root.myArcEnd = 2 * pi;
@@ -476,6 +487,7 @@ class GraphPainter extends CustomPainter {
       paint,
       size,
     );
+    }
   }
 
   @override

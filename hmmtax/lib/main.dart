@@ -500,6 +500,10 @@ class GraphData with ChangeNotifier {
   TrackRegions _trackRegions = TrackRegions(
     0,
   ); // Data structure to track regions of the graph on screen
+  List<PlatformInt64> _deletedNodes = [];
+
+  List<PlatformInt64> get deletedNodes => _deletedNodes;
+
   TrackRegions get trackRegions => _trackRegions;
   final TransformationController _tController = TransformationController();
   final ItemScrollController _sController = ItemScrollController();
@@ -674,29 +678,86 @@ class GraphData with ChangeNotifier {
     }
   }
 
-  void removeEdge(PlatformInt64 from, PlatformInt64 to) {
-    if (_graph.containsKey(from)) {
-      Node fromNode = _graph[from]!;
+  void deleteNode(PlatformInt64 nodeId) {
+    if (!_graph.containsKey(nodeId) || _deletedNodes.contains(nodeId)) {
+      // node either doesn't exist or was already deleted
+      return;   
+    }
+    Node nodeToDelete = _graph[nodeId]!;
+    Node parentNode = _graph[nodeToDelete.parent]!;
+    _deletedNodes.add(nodeId); // Record that we've deleted this node
 
+    // Need to remove nodeId from parent's children
       // This is really ugly, but is necessary because we keep the children
       // as an Int64List for efficiency, which is not growable.
-      List<BigInt> growableList = fromNode.children.toList();
-      growableList.remove(BigInt.from(to));
-      print("$growableList");
-      fromNode.children = Int64List.fromList(
+    List<BigInt> growableList = parentNode.children.toList();
+    growableList.remove(BigInt.from(nodeId));
+    parentNode.children = Int64List.fromList(
         growableList.map((e) => e.toInt()).toList(),
       );
-      var removedHits = _graph[to]!.hitsBelow;
+    var removedHits = nodeToDelete.hitsBelow;
       // Now need to update hitsBelow for fromNode and all its parents
-      fromNode.hitsBelow -= removedHits;
-      while (fromNode.parent != fromNode.taxid) {
-        fromNode = _graph[fromNode.parent]!;
-        fromNode.hitsBelow -= removedHits;
+    parentNode.hitsBelow -= removedHits;
+    while (parentNode.parent != parentNode.taxid) { // Node with itself as parent is root
+        BigInt childId = BigInt.from(parentNode.taxid);
+        parentNode = _graph[parentNode.parent]!;
+        List<BigInt> listCopy = parentNode.children.toList();  //horrible hack because of type issues comparing to contents of int64List
+        if(listCopy.contains(childId)){ // child wasn't removed from graph
+          parentNode.hitsBelow -= removedHits;
+        } else {
+          break; // parent chain broken, stop updating
+        }
       }
-      notifyListeners();
-    }
+     /* if(parentNode.parent == parentNode.taxid){
+        // we made it to the root of the graph, need to handle the root node
+        parentNode.hitsBelow -= removedHits;
+      }*/
+    notifyListeners();
   }
 
+  PlatformInt64 restoreNode(PlatformInt64 nodeId) {
+    if (!_graph.containsKey(nodeId) || !_deletedNodes.contains(nodeId)) {
+      // node either doesn't exist or wasn't deleted
+      print("Unable to delete node");
+      return -2;
+    }
+    Node nodeToRestore = _graph[nodeId]!;
+    Node parentNode = _graph[nodeToRestore.parent]!;
+    //print("Restored nodes parent was ${nodeToRestore.parent}, ${parentNode.name}");
+    // Need to add nodeId back to parent's children
+      // This is really ugly, but is necessary because we keep the children
+      // as an Int64List for efficiency, which is not growable.
+    List<BigInt> growableList = parentNode.children.toList();
+    //print(growableList);
+    growableList.add(BigInt.from(nodeId));
+    //print(growableList);
+    parentNode.children = Int64List.fromList(
+        growableList.map((e) => e.toInt()).toList(),
+      );
+    //print("${parentNode.children}");
+    var restoredHits = nodeToRestore.hitsBelow;
+      // Now need to update hitsBelow for fromNode and all its parents
+    parentNode.hitsBelow += restoredHits;
+    while (parentNode.parent != parentNode.taxid) { // Node with itself as parent is root
+        BigInt childId = BigInt.from(parentNode.taxid);
+        parentNode = _graph[parentNode.parent]!;
+        List<BigInt> listCopy = parentNode.children.toList();  //horrible hack because of type issues comparing to contents of int64List
+        if(listCopy.contains(childId)){ // child wasn't removed from graph
+          parentNode.hitsBelow += restoredHits;
+        } else {
+     //print("Exiting early because ${parentNode.children} didn't contain ${childId} at node ${parentNode.taxid}");
+          _deletedNodes.remove(nodeId);
+          notifyListeners();
+          return parentNode.taxid; // return the nodId of the first parent that was deleted
+        }
+      }
+      //print(_deletedNodes);
+      _deletedNodes.remove(nodeId); // Record that we've restored this node
+      //print(_deletedNodes);
+      notifyListeners();
+      return -1; // -1 is an unusual success value, but we never use negative taxids
+    }
+  void clearDeletedNodes(){_deletedNodes = [];}
   void incrementIndex() {
     if (_historyIndex < _history.length - 1) {
       // There's history to go forward through
@@ -774,7 +835,6 @@ class GraphData with ChangeNotifier {
   }
 }
 
-enum PdfUnits { inches, cm }
 
 // ChangeNotifier for input files
 class FileData with ChangeNotifier {

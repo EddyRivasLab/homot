@@ -137,7 +137,14 @@ class _MainPageState extends State<MainPage> {
                             ));
                             ScaffoldMessenger.of(context).clearSnackBars();
                             // Update the overview data
-                            if (await !results!.succeeded) {
+                            if (await !results!.succeeded || results.graph.length == 0) {
+                              String message;
+                              if(results.graph.length == 0){
+                                message = "No hits found that met reporting criteria";
+                              }
+                              else{
+                                message = "Data load failed.  Error was ${results.message}";
+                              }
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   //duration: Duration(days: 1),
@@ -146,7 +153,7 @@ class _MainPageState extends State<MainPage> {
                                   content: Center(
                                     child: Column(
                                       children: [
-                                        Text("Load Failed: ${results.message}"),
+                                        Text(message),
                                         ElevatedButton(
                                           child: Text("Close"),
                                           onPressed: () {
@@ -161,10 +168,13 @@ class _MainPageState extends State<MainPage> {
                                 ),
                               );
                             } else {
+
+                              print("${results.graph.length}");
                               graphdata.clearGraph();
                               graphdata.setGraph(results.graph);
                               graphdata.setDepth(results.depth);
                               graphdata.setMaxLevels(results.depth);
+                              graphdata.clearDeletedNodes();
                               graphdata.addRoot(
                                 results.root,
                               ); // set the current root to the overall root
@@ -806,19 +816,251 @@ class GraphPage extends StatefulWidget {
 
 class _GraphPageState extends State<GraphPage> {
   double scaleFactor = 1.0;
-  OverlayEntry? _overlayEntry;
+  OverlayEntry? _nodeOverlayEntry;
+  OverlayEntry? _removedNodesOverlayEntry;
   OverlayEntry? _norootOverlayEntry;
-  @override
-  Widget build(BuildContext context) {
-    double _value = context.watch<GraphData>().maxLevels.toDouble();
-    double _rotation = context.watch<GraphData>().rotation * (360 / (2 * pi));
-    double _scale = context.watch<GraphData>().scale;
-    double _xOffset = context.watch<GraphData>().translateX;
-    double _yOffset = context.watch<GraphData>().translateY;
+  final GlobalKey _myKey = GlobalKey(); // key used to measure size of the nodeOverlay
+  final GlobalKey _secondKey = GlobalKey(); // key used to measure size of the removedNodeOverlay
 
-    final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
-    final GlobalKey<TooltipState> _tooltipKey = GlobalKey<TooltipState>();
+  double findX(GlobalKey theKey, Offset tapPosition, Size mySize){
+    if(_myKey.currentContext!= null){
+      final RenderBox renderBox = _myKey.currentContext!.findRenderObject() as RenderBox;
+      Size widgetSize = renderBox.size;
+      if(widgetSize.width + tapPosition.dx > mySize.width){
+        return mySize.width - widgetSize.width; 
+      }
+      else{
+        return tapPosition.dx;
+      }
+    }
+    else{
+      return tapPosition.dx;
+    }
+  }
+  double findY(GlobalKey theKey, Offset tapPosition, Size mySize){
+    if(_myKey.currentContext!= null){
+      final RenderBox renderBox = _myKey.currentContext!.findRenderObject() as RenderBox;
+      Size widgetSize = renderBox.size;
+      if(widgetSize.height + tapPosition.dy > mySize.height){
+        return mySize.height - widgetSize.height; 
+      }
+      else{
+        return tapPosition.dy;
+      }
+    }
+    else{
+      return tapPosition.dy;
+    }
+  }
+  void _removeAllOverlays(){
+    _removeNorootOverlay();
+    _removeNodeOverlay();
+    _removeRemovedNodesOverlay();
+  }
+  // Displays an overlay showing information about the node clicked 
+  void _showNodeOverlay(
+      BuildContext context,
+      Offset tapPosition,
+      Node theNode,
+      GraphData graphdata,
+    )
+    {
+      String children = "";
+      for (var child in theNode.children) {
+        var childNode = graphdata.getNode(child.toInt());
+        if (children != ""){
+          children += ", ";
+        }
+        children += childNode.name;
+      }
 
+      String parentName = graphdata.getNode(theNode.parent).name;
+      // Declare this once because we have to render it twice
+      Widget theWidget = Container(
+                  key: _myKey,
+                  constraints: BoxConstraints(maxWidth: graphdata.size.width/2),
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(5),
+                    boxShadow: [BoxShadow(
+                      color: Colors.black.withValues(alpha:0.5),
+                      spreadRadius: 5,
+                      blurRadius: 7,
+                      offset: Offset(3,3),
+                    )]
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                    "Taxon: ${theNode.name}\nRank: ${theNode.rank}\nParent: ${parentName}\nChildren: ${children}\n${theNode.hitsBelow} hits at or below this node\n",
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                  ),
+                    IntrinsicWidth(child: Align( 
+                      alignment:AlignmentGeometry.centerRight,
+                      child:Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                      Padding(
+                                    padding: const EdgeInsets.only(right: 6.0),
+                                    child:ElevatedButton(
+                        style: ButtonStyle(backgroundColor:  WidgetStateProperty.resolveWith(
+                                                    (states) {
+                                                      if (states.contains(WidgetState.disabled)){
+                                                        return Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary.withAlpha(128);
+                                                      }
+                                                      else{
+                                                      return Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary;
+                                                    }},
+                                                  ),),
+                        onPressed: (theNode.taxid != theNode.parent) ?() { // Don't let user delete the root node
+                          graphdata.deleteNode(theNode.taxid);
+                          Overlay.of(context).setState(() {
+                            _removeAllOverlays();
+                          });
+                        }:null,
+                        child: Text(style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+                          "Remove Node from Graph"),
+                      ),),
+                       Padding(
+                                    padding: const EdgeInsets.only(right: 6.0),
+                                    child:ElevatedButton(
+                        style: ButtonStyle(backgroundColor:  WidgetStateProperty.resolveWith(
+                                                    (states) {
+                                                      if (states.contains(WidgetState.disabled)){
+                                                        return Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary.withAlpha(128);
+                                                      }
+                                                      else{
+                                                      return Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary;
+                                                    }},
+                                                  ),),
+                        onPressed: graphdata.deletedNodes.isNotEmpty ?() {
+                          Overlay.of(context).setState(() {
+                            _removeAllOverlays();
+                            _showRemovedNodesOverlay(context, tapPosition, theNode);
+                          });
+                        }:null,
+                        child: Text(style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),"Show Removed Nodes"),
+                      ),),
+                      ElevatedButton(
+                        style: ButtonStyle(backgroundColor:  WidgetStateProperty.resolveWith(
+                                                    (states) {
+                                                      return Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary;
+                                                    },
+                                                  ),),
+                        onPressed: (){
+                          Overlay.of(context).setState(() {
+                            _removeAllOverlays();
+                          });
+                        },
+                        child: Text(style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),"Close"),
+                      ),
+                    ],),),),
+                    ],),
+                );
+
+
+      _nodeOverlayEntry = OverlayEntry(
+        builder:
+            (context) { 
+                           Offstage( // render widget offstage so we can measure it
+                offstage: true,
+                child: theWidget);
+            double xCoord = findX(_myKey, tapPosition, graphdata.size);
+            double yCoord = findY(_myKey, tapPosition, graphdata.size);
+            return
+              Positioned(
+              left: xCoord,
+              top:  yCoord,
+              child: Material(
+                child: theWidget,
+              ),
+            );
+            }
+      );
+      Overlay.of(context).insert(_nodeOverlayEntry!);
+    }
+    void _removeNodeOverlay() {
+      _nodeOverlayEntry?.remove();
+      _nodeOverlayEntry = null;
+    }
+
+// Shows an overlay with a list of nodes that have been removed from the graph
+  void _showRemovedNodesOverlay(
+      BuildContext context,
+      Offset tapPosition,
+      Node theNode,
+    )
+    {
+//      String parentName = graphdata.getNode(theNode.parent).name;
+      ScrollController _mainScrollController = ScrollController();
+      // Declare this once because we have to render it twice
+      Widget theWidget = 
+              Consumer<GraphData>(
+            builder: (context, graphdata, child) {
+             return Scrollbar(
+                      key: _secondKey,
+                      controller: _mainScrollController,
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        controller: _mainScrollController,
+                        itemCount: graphdata.deletedNodes.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return Card(
+                            margin: EdgeInsets.only(bottom: 8),
+                            color: Theme.of(context).colorScheme.surface,
+                            child: Row(children: [Text(graphdata.getNode(graphdata.deletedNodes[index]).name),
+                            TextButton(child: Text("Restore"), onPressed: (){graphdata.restoreNode(graphdata.deletedNodes[index]);},),
+                            ],
+                            ),
+                          );
+                        },
+                      ),
+                );
+            });
+
+      _removedNodesOverlayEntry = OverlayEntry(
+        builder:
+            (context) { 
+              return Consumer<GraphData>(
+                builder: (context, graphdata, child){
+            Offstage( // render widget offstage so we can measure it
+                offstage: true,
+                child: theWidget);
+            double xCoord = findX(_secondKey, tapPosition, graphdata.size);
+            double yCoord = findY(_secondKey, tapPosition, graphdata.size);
+            return 
+              Positioned(
+              left: xCoord, //findX(_myKey, tapPosition, graphdata.size),
+              top: yCoord, //findY(_myKey, tapPosition, graphdata.size),
+              width: graphdata.size.width/4,
+              child: Material(
+                child: theWidget,
+              ),
+            );
+            });
+            }
+      );
+      Overlay.of(context).insert(_removedNodesOverlayEntry!);
+    }
+    void _removeRemovedNodesOverlay() {
+      _removedNodesOverlayEntry?.remove();
+      _removedNodesOverlayEntry = null;
+    }
+
+// shows a warning Overlay because it is not possible to re-center the graph on a node
     void _showNorootOverlay(
       BuildContext context,
       Offset tapPosition,
@@ -853,9 +1095,26 @@ class _GraphPageState extends State<GraphPage> {
       _norootOverlayEntry?.remove();
       _norootOverlayEntry = null;
     }
+  @override
+  void dispose() {
+    _removeAllOverlays();
+    _removeNorootOverlay();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double _value = max(context.watch<GraphData>().maxLevels.toDouble(), 1.0);
+    double _rotation = context.watch<GraphData>().rotation * (360 / (2 * pi));
+    double _scale = context.watch<GraphData>().scale;
+    double _xOffset = context.watch<GraphData>().translateX;
+    double _yOffset = context.watch<GraphData>().translateY;
+
+    final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+    //final GlobalKey<TooltipState> _tooltipKey = GlobalKey<TooltipState>();
 
     return Scaffold(
-      backgroundColor: Colors.grey, //Theme.of(context).colorScheme.primary,
+      backgroundColor: Theme.of(context).colorScheme.primary,
       appBar: HmmtaxAppBar(text: "Taxonomic Display"),
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
@@ -882,6 +1141,7 @@ class _GraphPageState extends State<GraphPage> {
                 children: [
                   GestureDetector(
                     onTapDown: (details) {
+                      _removeAllOverlays();
                       final Matrix4 inverseMatrix = Matrix4.inverted(
                         graphdata.transform,
                       );
@@ -898,7 +1158,6 @@ class _GraphPageState extends State<GraphPage> {
                         center.dx,
                         center.dy,
                       );
-                      _removeNorootOverlay();
                       if (node >= 0 && node != graphdata.currentRoot) {
                         // click was in the graph and on a different node than the current root
                         if (graphdata.getNode(node).children.length == 0) {
@@ -927,6 +1186,7 @@ class _GraphPageState extends State<GraphPage> {
                       }
                     },
                     onSecondaryTapDown: (details) {
+                      _removeAllOverlays(); // Remove any existing overlay
                       final Matrix4 inverseMatrix = Matrix4.inverted(
                         graphdata.transform,
                       );
@@ -943,10 +1203,13 @@ class _GraphPageState extends State<GraphPage> {
                         center.dx,
                         center.dy,
                       );
+                      if(node>=0){
                       var theNode = graphdata.getNode(node);
-                      print("Removing edge from ${theNode.parent} to $node");
-                      graphdata.removeEdge(theNode.parent, node);
-                      _removeNorootOverlay();
+                      _showNodeOverlay(context,
+                        details.globalPosition,
+                        theNode,
+                        graphdata,
+                      );}
                     },
 
                     child: Transform(
@@ -1145,8 +1408,8 @@ class _GraphPageState extends State<GraphPage> {
                                             value: _value,
                                             label: _value.round().toString(),
                                             min: 1.0,
-                                            max: graphdata.depth.toDouble(),
-                                            divisions: graphdata.depth - 1,
+                                            max: max(1.0, graphdata.depth.toDouble()),
+                                            divisions: max(1, graphdata.depth - 1),
                                             onChanged: (double value) {
                                               setState(() {
                                                 graphdata.setMaxLevels(
@@ -1207,8 +1470,8 @@ class _GraphPageState extends State<GraphPage> {
                                           child: Slider(
                                             value: _xOffset,
                                             label: _xOffset.round().toString(),
-                                            min: -min(width, height),
-                                            max: min(width, height),
+                                            min: -width,
+                                            max: width,
                                             onChanged: (double xOffset) {
                                               setState(() {
                                                 graphdata.translateX = xOffset;
@@ -1221,7 +1484,7 @@ class _GraphPageState extends State<GraphPage> {
                                     Row(
                                       children: [
                                         Text(
-                                          "Y Offset: -${height / 2}",
+                                          "Y Position:",
                                           style: Theme.of(
                                             context,
                                           ).textTheme.bodyMedium!.copyWith(
@@ -1235,24 +1498,13 @@ class _GraphPageState extends State<GraphPage> {
                                           child: Slider(
                                             value: _yOffset,
                                             label: _yOffset.toStringAsFixed(2),
-                                            min: -height / 2,
-                                            max: height / 2,
+                                            min: -height,
+                                            max: height,
                                             onChanged: (double _yOffset) {
                                               setState(() {
                                                 graphdata.translateY = _yOffset;
                                               });
                                             },
-                                          ),
-                                        ),
-                                        Text(
-                                          "${height / 2}",
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodyMedium!.copyWith(
-                                            color:
-                                                Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurface,
                                           ),
                                         ),
                                       ],
@@ -1532,9 +1784,9 @@ class _AllStructurePageState extends State<AllStructurePage> {
             showExpand = List.filled(theHits.length, false);
           }
           int numHits = searchdata.hits.length;
-          final hitCount = numHits > 1 ? "hits" : "hit";
+          final hitCount = numHits != 1? "hits" : "hit";
           final strucText =
-              theHits.length > 1
+              theHits.length != 1
                   ? "different domain structures"
                   : "domain structure";
           final screenWidth = MediaQuery.sizeOf(context).width;
