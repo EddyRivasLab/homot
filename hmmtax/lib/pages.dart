@@ -45,6 +45,11 @@ class _MainPageState extends State<MainPage> {
   final ScrollController _mainScrollController = ScrollController();
   String? dtemp;
   @override
+  void dispose(){
+    //ScaffoldMessenger.of(context).clearSnackBars();
+    super.dispose();
+  }
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.primary,
@@ -139,11 +144,11 @@ class _MainPageState extends State<MainPage> {
                             // Update the overview data
                             if (await !results!.succeeded || results.graph.length == 0) {
                               String message;
-                              if(results.graph.length == 0){
+                              if(results.succeeded == 0){
                                 message = "No hits found that met reporting criteria";
                               }
                               else{
-                                message = "Data load failed.  Error was ${results.message}";
+                                message = "Data load failed.\n${results.message}";
                               }
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -1098,7 +1103,6 @@ class _GraphPageState extends State<GraphPage> {
   @override
   void dispose() {
     _removeAllOverlays();
-    _removeNorootOverlay();
     super.dispose();
   }
 

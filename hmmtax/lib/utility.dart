@@ -192,6 +192,7 @@ class MainNavBar extends StatelessWidget {
           child: NavigationBar(
             backgroundColor: Theme.of(context).primaryColor,
             onDestinationSelected: (int index) {
+              ScaffoldMessenger.of(context).clearSnackBars(); // clean up any snack bars
               context.go(_routes[index]);
             },
             destinations: <Widget>[

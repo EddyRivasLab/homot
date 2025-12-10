@@ -11,6 +11,7 @@ use dashmap::DashMap;
 use std::time::{Instant};
 use std::cmp::Reverse;
 use rayon::prelude::*;
+use std::sync::{Arc, Mutex};
 #[derive(Clone, Serialize, Deserialize)]
 struct Dmap{
     domain: u16,
@@ -365,7 +366,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
                         num_domtbl_hits += v;
             }
             Err(msg) => {
-                results.message = "Error reading domtblout file ".to_string() + &domtbloutfile + ": " + &msg;
+                results.message = msg;
                 return results;
             },
         }
@@ -448,23 +449,23 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap>, fileType: &Dat
         None => return Err(format!("File {} is empty", filename)),
     }
 
-    if *fileType == DataFileType::DomTblOut || inferred_filetype == DataFileType::DomTblOut{
+    if *fileType == DataFileType::DomTblOut || (*fileType == DataFileType::Infer && inferred_filetype == DataFileType::DomTblOut){
         reader.rewind().unwrap(); // Back up to the start of the file
-        return read_hits_from_domtblout(reader, hits, min_seq_evalue, max_seq_evalue, min_dom_evalue, max_dom_evalue, annotation_db, domain_map);
+        return read_hits_from_domtblout(filename, reader, hits, min_seq_evalue, max_seq_evalue, min_dom_evalue, max_dom_evalue, annotation_db, domain_map);
     }
     else{
         reader.rewind().unwrap(); // Back up to the start of the file
-        return read_hits_from_blast(reader, hits, min_seq_evalue, max_seq_evalue, min_dom_evalue, max_dom_evalue, annotation_db, domain_map);
+        return read_hits_from_blast(filename, reader, hits, min_seq_evalue, max_seq_evalue, annotation_db, domain_map);
     }
 }
 
 // Read the hits from a HMMER domtblout file
-fn read_hits_from_domtblout(reader: BufReader<File>, hits: &mut DashMap<String, Hit>, min_seq_evalue: f32, max_seq_evalue: f32, min_dom_evalue: f32, max_dom_evalue: f32, 
+fn read_hits_from_domtblout(filename: &str, reader: BufReader<File>, hits: &mut DashMap<String, Hit>, min_seq_evalue: f32, max_seq_evalue: f32, min_dom_evalue: f32, max_dom_evalue: f32,
 annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64, String>{
     // domain_map should be safe as a HashMap because it doesn't get modified in this code
 
     let hit_count = AtomicI64::new(0);
-
+    let mut errMsg = Arc::new(Mutex::new(String::new()));
     // Parse the lines in the domtblout file
 // old serial iterator
   /*   for l in reader.lines() {
@@ -475,18 +476,29 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
 
         reader.lines().filter_map(|line_result| line_result.ok()).par_bridge().for_each(|line| {
         if !line.starts_with('#') { // Skip comment lines
-        
+        let my_errMsg = Arc::clone(&errMsg);
      //   println!("Examining line {}", line);
         let fields: Vec<&str> = line.split_whitespace().collect();
-         /*if fields.len() < 23 {
-            errmsg = format!("Malformed line in file {}: {}", filename, line);
-        }*/
-
-        let target_name = fields[0].to_string();
-        let query_name = fields[3].to_string();
-        let hmm_length:u32 = match fields[5].parse(){
-                Err(_) => {
-                    //errmsg = format!("Error converting hmmlength field of {}  to number.", fields[5]);
+        if fields.len() < 23 {
+            let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+            if msg.is_empty() { // haven't already found an error
+                *msg = format!("Unable to parse {} as domtblout file due to malformed line {}", filename, line);
+            }
+            drop(msg);  // Unlock the mutex
+            
+        }
+        else{
+            let mut error_found= false;
+            let target_name = fields[0].to_string();
+            let query_name = fields[3].to_string();
+            let hmm_length:u32 = match fields[5].parse(){
+                Err(e) => {
+                    let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    if msg.is_empty() { // haven't already found an error
+                        *msg = format!("Error {} encountered when trying to parse hmm_length field of {} in line {} of {}", e, fields[5], line, filename);
+                        error_found = true;
+                    }
+                    drop(msg);  // Unlock the mutex
                     0                    
                 },
                 Ok(v) => v,
@@ -494,6 +506,12 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
         let seq_evalue: f64 = match fields[6].parse(){
             Ok(v) => v,
             Err(e) => {//errmsg = format!("Error parsing seq_evalue in file {}: {}", filename, e);
+            let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    if msg.is_empty() { // haven't already found an error
+                        *msg = format!("Error {} encountered when trying to parse seq_evalue field of {} in line {} of {}", e, fields[6], line, filename);
+                        error_found = true;
+                    }
+                    drop(msg);  // Unlock the mutex
                 0.0
             }
         };
@@ -501,35 +519,64 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
         let seq_start: u32 = match fields[17].parse(){
             Ok(v) => v,
             Err(e) => {//errmsg = format!("Error parsing seq_start in file {}: {}", filename, e);
+            let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    if msg.is_empty() { // haven't already found an error
+                        *msg = format!("Error {} encountered when trying to parse seq_start field of {} in line {} of {}", e, fields[17], line, filename);
+                        error_found = true;
+                    }
+                    drop(msg);  // Unlock the mutex
             0},
         };
         
         let seq_end: u32 = match fields[18].parse(){
             Ok(v) => v,
-            Err(e) => {//errmsg = format!("Error parsing seq_end in file {}: {}", filename, e);
+            Err(e) =>{
+                let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                if msg.is_empty() { // haven't already found an error
+                        *msg = format!("Error {} encountered when trying to parse seq_end field of {} in line {} of {}", e, fields[18], line, filename);
+                        error_found = true;
+                    }
+                    drop(msg);  // Unlock the mutex
             0}
         }; 
 
         let hmm_start: u32 = match fields[15].parse(){
             Ok(v) => v,
-            Err(e) => {//errmsg = format!("Error parsing hmm_start in file {}: {}", filename, e);
+            Err(e) => {
+                let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    if msg.is_empty() { // haven't already found an error
+                        *msg = format!("Error {} encountered when trying to parse hmm_start field of {} in line {} of {}", e, fields[15], line, filename);
+                        error_found = true;
+                    }
+                    drop(msg);  // Unlock the mutex
             0},
         };
 
         let hmm_end: u32 = match fields[16].parse(){
             Ok(v) => v,
-            Err(e) => {//errmsg = format!("Error parsing hmm_end in file {}: {}", filename, e);
+            Err(e) => {
+                let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    if msg.is_empty() { // haven't already found an error
+                        *msg = format!("Error {} encountered when trying to parse hmm_end field of {} in line {} of {}", e, fields[16], line, filename);
+                        error_found = true;
+                    }
+                    drop(msg);  // Unlock the mutex
             0},
         };
 
         let dom_evalue: f64= match fields[12].parse(){
             Ok(v) => v,
-            Err(e) => {//errmsg = format!("Error parsing dom_evalue in file {}: {}", filename, e);
+            Err(e) => {let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    if msg.is_empty() { // haven't already found an error
+                        *msg = format!("Error {} encountered when trying to parse dom_evalue field of {} in line {} of {}", e, fields[12], line, filename);
+                        error_found = true;
+                    }
+                    drop(msg);  // Unlock the mutex
             0.0}   ,
         };
         
-        if seq_evalue >= min_seq_evalue.into() && seq_evalue <= max_seq_evalue.into() && dom_evalue >= min_dom_evalue.into() && dom_evalue <= max_dom_evalue.into(){
-            // This is a reportable hit
+        if !error_found && seq_evalue >= min_seq_evalue.into() && seq_evalue <= max_seq_evalue.into() && dom_evalue >= min_dom_evalue.into() && dom_evalue <= max_dom_evalue.into(){
+            // This parsed correctly and is a reportable hit
             hit_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             // build the domain for this hit
             let domain = Domain {
@@ -700,42 +747,54 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
             }
 
         } // closes if that decides if reportable hit
+    }// closes if that detects line with not enough fields
     } // closes if that skips comment lines
   }); // closes parallel iterator over lines in file
   // closes loop over lines in domtblout file
-    return Ok(hit_count.load(std::sync::atomic::Ordering::SeqCst));
+    let msg = errMsg.lock().unwrap();
+    if msg.is_empty(){ // no error detected
+        return Ok(hit_count.load(std::sync::atomic::Ordering::SeqCst));
+    }
+    else{
+        return Err((*msg).clone());
+    }
 }
 
-fn read_hits_from_blast(reader: BufReader<File>, hits: &mut DashMap<String, Hit>, min_seq_evalue: f32, max_seq_evalue: f32, min_dom_evalue: f32, max_dom_evalue: f32, 
+fn read_hits_from_blast(filename: &str, reader: BufReader<File>, hits: &mut DashMap<String, Hit>, min_seq_evalue: f32, max_seq_evalue: f32,
 annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64, String>{
     // domain_map should be safe as a HashMap because it doesn't get modified in this code
 
     let hit_count = AtomicI64::new(0);
-
-    // Parse the lines in the domtblout file
-// old serial iterator
-  /*   for l in reader.lines() {
-        let line = match l{
-            Err(e) => return Err(format!("Error reading line in file {}: {}", filename, e)),
-            Ok(l) => l,
-        }; */
+    let mut errMsg = Arc::new(Mutex::new(String::new()));
+ 
 
         reader.lines().filter_map(|line_result| line_result.ok()).par_bridge().for_each(|line| {
         if !line.starts_with('#') { // Skip comment lines
-        
+          let my_errMsg = Arc::clone(&errMsg);
      //   println!("Examining line {}", line);
         let fields: Vec<&str> = line.split_whitespace().collect();
-         /*if fields.len() < 23 {
-            errmsg = format!("Malformed line in file {}: {}", filename, line);
-        }*/
+        if fields.len() != 12 {
+            let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+            if msg.is_empty() { // haven't already found an error
+                *msg = format!("Unable to parse {} as BLAST tabular output file due to malformed line {}", filename, line);
+            }
+            drop(msg);  // Unlock the mutex
+        }
 
+        else{
         let target_name = fields[1].to_string();
         let query_name = fields[0].to_string();
         let hmm_length:u32 = 0xFFFFF; // Not available from BLAST
-
+            let mut error_found = false;
         let seq_evalue: f64 = match fields[10].parse(){
             Ok(v) => v,
-            Err(e) => {//errmsg = format!("Error parsing seq_evalue in file {}: {}", filename, e);
+            Err(e) => {
+                    let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    if msg.is_empty() { // haven't already found an error
+                        *msg = format!("Error {} encountered when trying to parse seq_evalue field of {} in line {} of {}", e, fields[10], line, filename);
+                        error_found = true;
+                    }
+                    drop(msg);  // Unlock the mutex
                 0.0
             }
         };
@@ -743,36 +802,52 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
         //println!("seq_evalue: {} ", seq_evalue);
         let seq_start: u32 = match fields[8].parse(){
             Ok(v) => v,
-            Err(e) => {//errmsg = format!("Error parsing seq_start in file {}: {}", filename, e);
+            Err(e) => {let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    if msg.is_empty() { // haven't already found an error
+                        *msg = format!("Error {} encountered when trying to parse seq_start field of {} in line {} of {}", e, fields[8], line, filename);
+                        error_found = true;
+                    }
+                    drop(msg);  // Unlock the mutex
             0},
         };
         
         let seq_end: u32 = match fields[9].parse(){
             Ok(v) => v,
-            Err(e) => {//errmsg = format!("Error parsing seq_end in file {}: {}", filename, e);
+            Err(e) => {let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    if msg.is_empty() { // haven't already found an error
+                        *msg = format!("Error {} encountered when trying to parse seq_end field of {} in line {} of {}", e, fields[9], line, filename);
+                        error_found = true;
+                    }
+                    drop(msg);  // Unlock the mutex
             0}
         }; 
 
         let hmm_start: u32 = match fields[6].parse(){
             Ok(v) => v,
-            Err(e) => {//errmsg = format!("Error parsing hmm_start in file {}: {}", filename, e);
+            Err(e) => {let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    if msg.is_empty() { // haven't already found an error
+                        *msg = format!("Error {} encountered when trying to parse hmm_start field of {} in line {} of {}", e, fields[6], line, filename);
+                        error_found = true;
+                    }
+                    drop(msg);  // Unlock the mutex
             0},
         };
 
         let hmm_end: u32 = match fields[7].parse(){
             Ok(v) => v,
-            Err(e) => {//errmsg = format!("Error parsing hmm_end in file {}: {}", filename, e);
+            Err(e) => {let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    if msg.is_empty() { // haven't already found an error
+                        *msg = format!("Error {} encountered when trying to parse hmm_end field of {} in line {} of {}", e, fields[7], line, filename);
+                        error_found = true;
+                    }
+                    drop(msg);  // Unlock the mutex
             0},
         };
 
         //BLAST doesn't report a domain evalue, so just use the seq evalue
-        let dom_evalue: f64= match fields[10].parse(){
-            Ok(v) => v,
-            Err(e) => {//errmsg = format!("Error parsing dom_evalue in file {}: {}", filename, e);
-            0.0}   ,
-        };
+        let dom_evalue: f64= seq_evalue;
         
-        if seq_evalue >= min_seq_evalue.into() && seq_evalue <= max_seq_evalue.into(){ //BLAST doesn't have domain e-values
+        if !error_found && (seq_evalue >= min_seq_evalue.into()) && (seq_evalue <= max_seq_evalue.into()){ //BLAST doesn't have domain e-values
             // This is a reportable hit
             hit_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             // build the domain for this hit
@@ -944,10 +1019,17 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
             }
 
         } // closes if that decides if reportable hit
-    } // closes if that skips comment lines
-  }); // closes parallel iterator over lines in file
-  // closes loop over lines in domtblout file
-    return Ok(hit_count.load(std::sync::atomic::Ordering::SeqCst));
+    }
+    }
+});
+
+let msg = errMsg.lock().unwrap();
+    if msg.is_empty(){ // no error detected
+        return Ok(hit_count.load(std::sync::atomic::Ordering::SeqCst));
+    }
+    else{
+        return Err((*msg).clone());
+    }
 }
 
 
