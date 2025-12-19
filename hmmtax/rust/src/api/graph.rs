@@ -13,12 +13,34 @@ use std::cmp::Reverse;
 use rayon::prelude::*;
 use std::sync::{Arc, Mutex};
 #[derive(Clone, Serialize, Deserialize)]
-struct Dmap{
-    domain: u16,
-    name: String,
-    description: String,
-    clan_name: String,
-    hmm_length: u32,
+pub enum AnnotationType{Hmmer, Interpro, Other}
+
+impl From<&AnnotationType> for Slice{
+    fn from(val: &AnnotationType) ->Self{
+        rmp_serde::to_vec(&val).expect("Serialization error for AnnotationType").into()
+    }
+}
+
+impl From<&UserValue> for AnnotationType{
+    fn from(value: &UserValue) -> Self{
+        let item: AnnotationType = rmp_serde::from_slice(&value).expect("Deserialization error for Dmap");
+        item
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Dmap{ // Information about each domain type
+    pub domain: u32,
+    pub name: String,
+    pub description: String,
+    pub clan_name: String,
+    pub hmm_length: u32,
+    pub source: AnnotationType, // what type of annotation is this from?
+    // fields below here are only used for Interpro annotations
+    pub ip_short: String,
+    pub ip_long: String,
+    pub pfam_name: String,
+    pub i_type: String,
 }
 impl From<&Dmap> for Slice{
     fn from(val: &Dmap) ->Self{
@@ -77,6 +99,12 @@ pub struct Domain{
     pub full_match_start: bool,
     pub full_match_end: bool,
     pub from_blast: bool, // was this domain hit from a blast search?
+    pub source: AnnotationType, // what type of annotation is this from?
+    // fields below here are only used for Interpro annotations
+    pub ip_short: String,
+    pub ip_long: String,
+    pub pfam_name: String,
+    pub i_type: String,
   }
 impl From<&Domain> for Slice{
     fn from(val: &Domain) ->Self{
@@ -202,8 +230,8 @@ impl From<&UserValue> for SearchResults{
 
 #[derive(Serialize, Deserialize, Clone)]
 struct DbDomain{
-    domain: u16,  //numeric ID of the domain
-    clan: u16, // numeric ID of the clan, FFFF if none 
+    domain: u32,  //numeric ID of the domain
+    clan: u32, // numeric ID of the clan, FFFF if none 
     alifrom: u32, // Start of the hit to the domain
     alito: u32,  // End of the hit to the domain
     hmmfrom: u32, // Start of the hit to the HMM
@@ -355,7 +383,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
 
     let mut hits:Vec<Hit> = Vec::new();
     let mut hit_map:DashMap<String, Hit> = DashMap::with_shard_amount(1024);
-    let mut root: i64 = -1;
+    let mut root: i64;
     let mut num_domtbl_hits: i64 = 0;
     let now = Instant::now();
     // load hits from the data files
@@ -422,7 +450,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
 
 // Wrapper that calls the right read_hits function based on file type
 fn read_hits_from_file(filename: &str, hits: &mut DashMap<String, Hit>, min_seq_evalue: f32, max_seq_evalue: f32, min_dom_evalue: f32, max_dom_evalue: f32, 
-annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap>, fileType: &DataFileType) -> Result<i64, String>{
+annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap>, fileType: &DataFileType) -> Result<i64, String>{
 
 
     let file = match File::open(filename){
@@ -461,7 +489,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap>, fileType: &Dat
 
 // Read the hits from a HMMER domtblout file
 fn read_hits_from_domtblout(filename: &str, reader: BufReader<File>, hits: &mut DashMap<String, Hit>, min_seq_evalue: f32, max_seq_evalue: f32, min_dom_evalue: f32, max_dom_evalue: f32,
-annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64, String>{
+annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64, String>{
     // domain_map should be safe as a HashMap because it doesn't get modified in this code
 
     let hit_count = AtomicI64::new(0);
@@ -592,6 +620,12 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                 full_match_start: hmm_start == 1,
                 full_match_end: hmm_end==hmm_length,
                 from_blast: false,
+                source: AnnotationType::Hmmer,
+    // fields below here are only used for Interpro annotations
+                    ip_short: "".to_string(),
+                    ip_long: "".to_string(),
+                    pfam_name: "".to_string(),
+                    i_type: "".to_string(),     
             }; 
 
             // assume that the common case is that a search only finds one hit to each sequence, so go ahead and build the Hit
@@ -661,6 +695,11 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                         description: "No annotation data available".to_string(),
                         clan_name: "No annotation data available".to_string(),
                         hmm_length: 0,
+                        source: AnnotationType::Other,
+                        ip_short: "".to_string(),
+                        ip_long: "".to_string(),
+                        pfam_name: "".to_string(),
+                        i_type: "".to_string(),
                     },
                     Some(v) => v.clone(),
                 };
@@ -677,6 +716,12 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                     full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
                     full_match_end: db_domain.full_match_end,
                     from_blast: false,
+                    source: ddata.source,
+    // fields below here are only used for Interpro annotations
+                    ip_short: ddata.ip_short,
+                    ip_long: ddata.ip_long,
+                    pfam_name: ddata.pfam_name,
+                    i_type: ddata.i_type,        
                 };
                 our_domains.push(the_domain);
             }
@@ -690,6 +735,11 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                         description: "No annotation data available".to_string(),
                         clan_name: "No annotation data available".to_string(),
                         hmm_length: 0,
+                        source: AnnotationType::Other,
+                        ip_short: "".to_string(),
+                        ip_long: "".to_string(),
+                        pfam_name: "".to_string(),
+                        i_type: "".to_string(),
                     },
                     Some(v) => v.clone(),
                 };
@@ -706,6 +756,12 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                     full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
                     full_match_end: db_domain.full_match_end,
                     from_blast: false,
+                    source: ddata.source,
+                    // fields below here are only used for Interpro annotations
+                    ip_short: ddata.ip_short,
+                    ip_long: ddata.ip_long,
+                    pfam_name: ddata.pfam_name,
+                    i_type: ddata.i_type,        
                 };
                 structure_domains.push(the_domain);
             }
@@ -761,11 +817,11 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
 }
 
 fn read_hits_from_blast(filename: &str, reader: BufReader<File>, hits: &mut DashMap<String, Hit>, min_seq_evalue: f32, max_seq_evalue: f32,
-annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64, String>{
+annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64, String>{
     // domain_map should be safe as a HashMap because it doesn't get modified in this code
 
     let hit_count = AtomicI64::new(0);
-    let mut errMsg = Arc::new(Mutex::new(String::new()));
+    let errMsg = Arc::new(Mutex::new(String::new()));
  
 
         reader.lines().filter_map(|line_result| line_result.ok()).par_bridge().for_each(|line| {
@@ -864,6 +920,12 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                 full_match_start: true, // Don't have HMM information from BLAST, so assume full match
                 full_match_end: true,   // ditto
                 from_blast: true,
+                source: AnnotationType::Other,
+    // fields below here are only used for Interpro annotations
+                ip_short: "".to_string(),
+                ip_long: "".to_string(),
+                pfam_name: "".to_string(),
+                i_type: "".to_string(),        
             }; 
 
             // assume that the common case is that a search only finds one hit to each sequence, so go ahead and build the Hit
@@ -933,6 +995,11 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                         description: "No annotation data available".to_string(),
                         clan_name: "No annotation data available".to_string(),
                         hmm_length: 0,
+                        source: AnnotationType::Other,
+                        ip_short: "".to_string(),
+                        ip_long: "".to_string(),
+                        pfam_name: "".to_string(),
+                        i_type: "".to_string(),
                     },
                     Some(v) => v.clone(),
                 };
@@ -949,6 +1016,12 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                     full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
                     full_match_end: db_domain.full_match_end,
                     from_blast: false,
+                    source: ddata.source,
+    // fields below here are only used for Interpro annotations
+                    ip_short: ddata.ip_short,
+                    ip_long: ddata.ip_long,
+                    pfam_name: ddata.pfam_name,
+                    i_type: ddata.i_type,        
                 };
                 our_domains.push(the_domain);
             }
@@ -962,6 +1035,11 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                         description: "No annotation data available".to_string(),
                         clan_name: "No annotation data available".to_string(),
                         hmm_length: 0,
+                        source: AnnotationType::Other,
+                        ip_short: "".to_string(),
+                        ip_long: "".to_string(),
+                        pfam_name: "".to_string(),
+                        i_type: "".to_string(),
                     },
                     Some(v) => v.clone(),
                 };
@@ -978,6 +1056,12 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u16, Dmap> ) -> Result<i64
                     full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
                     full_match_end: db_domain.full_match_end,
                     from_blast: false,
+                    source: ddata.source,
+    // fields below here are only used for Interpro annotations
+                    ip_short: ddata.ip_short,
+                    ip_long: ddata.ip_long,
+                    pfam_name: ddata.pfam_name,
+                    i_type: ddata.i_type,        
                 };
                 structure_domains.push(the_domain);
             }
@@ -1261,8 +1345,8 @@ pub fn collect_hits(root: &i64, graph: &HashMap<i64, Node>, hits: &mut Vec<i64>)
     }
 }
 
-fn create_domain_id_map(db: &fjall::PartitionHandle) -> Result<HashMap<u16, Dmap>, String>{
-    let mut map:HashMap<u16, Dmap> = HashMap::new();
+fn create_domain_id_map(db: &fjall::PartitionHandle) -> Result<HashMap<u32, Dmap>, String>{
+    let mut map:HashMap<u32, Dmap> = HashMap::new();
     for key in db.keys(){ // This would be dangerous if we didn't know that the domainidtoname partition didn't 
     // have a limited number of entries
         let keybody = match key{

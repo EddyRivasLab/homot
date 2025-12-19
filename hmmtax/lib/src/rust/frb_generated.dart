@@ -341,6 +341,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AnnotationType dco_decode_annotation_type(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return AnnotationType.values[raw as int];
+  }
+
+  @protected
   bool dco_decode_bool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as bool;
@@ -356,8 +362,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Domain dco_decode_domain(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 12)
-      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    if (arr.length != 17)
+      throw Exception('unexpected arr length: expect 17 but see ${arr.length}');
     return Domain(
       name: dco_decode_String(arr[0]),
       clan: dco_decode_String(arr[1]),
@@ -371,6 +377,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       fullMatchStart: dco_decode_bool(arr[9]),
       fullMatchEnd: dco_decode_bool(arr[10]),
       fromBlast: dco_decode_bool(arr[11]),
+      source: dco_decode_annotation_type(arr[12]),
+      ipShort: dco_decode_String(arr[13]),
+      ipLong: dco_decode_String(arr[14]),
+      pfamName: dco_decode_String(arr[15]),
+      iType: dco_decode_String(arr[16]),
     );
   }
 
@@ -609,6 +620,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AnnotationType sse_decode_annotation_type(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return AnnotationType.values[inner];
+  }
+
+  @protected
   bool sse_decode_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8() != 0;
@@ -636,6 +654,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_fullMatchStart = sse_decode_bool(deserializer);
     var var_fullMatchEnd = sse_decode_bool(deserializer);
     var var_fromBlast = sse_decode_bool(deserializer);
+    var var_source = sse_decode_annotation_type(deserializer);
+    var var_ipShort = sse_decode_String(deserializer);
+    var var_ipLong = sse_decode_String(deserializer);
+    var var_pfamName = sse_decode_String(deserializer);
+    var var_iType = sse_decode_String(deserializer);
     return Domain(
       name: var_name,
       clan: var_clan,
@@ -649,6 +672,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       fullMatchStart: var_fullMatchStart,
       fullMatchEnd: var_fullMatchEnd,
       fromBlast: var_fromBlast,
+      source: var_source,
+      ipShort: var_ipShort,
+      ipLong: var_ipLong,
+      pfamName: var_pfamName,
+      iType: var_iType,
     );
   }
 
@@ -937,6 +965,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_annotation_type(
+    AnnotationType self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
   void sse_encode_bool(bool self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint8(self ? 1 : 0);
@@ -963,6 +1000,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self.fullMatchStart, serializer);
     sse_encode_bool(self.fullMatchEnd, serializer);
     sse_encode_bool(self.fromBlast, serializer);
+    sse_encode_annotation_type(self.source, serializer);
+    sse_encode_String(self.ipShort, serializer);
+    sse_encode_String(self.ipLong, serializer);
+    sse_encode_String(self.pfamName, serializer);
+    sse_encode_String(self.iType, serializer);
   }
 
   @protected

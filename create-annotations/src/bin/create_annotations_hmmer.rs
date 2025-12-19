@@ -473,6 +473,11 @@ pub fn write_annotated_db(domains: HashMap<String, Vec<Domain>>, clan_map: &Hash
 	    clan_name: cname.clone(),
 	    description: dinfo.description.clone(),
 	    hmm_length: dinfo.length,
+        source: AnnotationType::Hmmer,
+        ip_short: "".to_string(),
+        ip_long: "".to_string(),
+        i_type: "".to_string(),
+        pfam_name: "".to_string(),
         };
         domain_db.insert(did.to_string(), &foo).expect("Couldn't insert entry into domain ID part of database");
     }

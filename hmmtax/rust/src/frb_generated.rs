@@ -289,6 +289,19 @@ impl SseDecode for String {
     }
 }
 
+impl SseDecode for crate::api::graph::AnnotationType {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::graph::AnnotationType::Hmmer,
+            1 => crate::api::graph::AnnotationType::Interpro,
+            2 => crate::api::graph::AnnotationType::Other,
+            _ => unreachable!("Invalid variant for AnnotationType: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for bool {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -324,6 +337,11 @@ impl SseDecode for crate::api::graph::Domain {
         let mut var_fullMatchStart = <bool>::sse_decode(deserializer);
         let mut var_fullMatchEnd = <bool>::sse_decode(deserializer);
         let mut var_fromBlast = <bool>::sse_decode(deserializer);
+        let mut var_source = <crate::api::graph::AnnotationType>::sse_decode(deserializer);
+        let mut var_ipShort = <String>::sse_decode(deserializer);
+        let mut var_ipLong = <String>::sse_decode(deserializer);
+        let mut var_pfamName = <String>::sse_decode(deserializer);
+        let mut var_iType = <String>::sse_decode(deserializer);
         return crate::api::graph::Domain {
             name: var_name,
             clan: var_clan,
@@ -337,6 +355,11 @@ impl SseDecode for crate::api::graph::Domain {
             full_match_start: var_fullMatchStart,
             full_match_end: var_fullMatchEnd,
             from_blast: var_fromBlast,
+            source: var_source,
+            ip_short: var_ipShort,
+            ip_long: var_ipLong,
+            pfam_name: var_pfamName,
+            i_type: var_iType,
         };
     }
 }
@@ -638,6 +661,28 @@ fn pde_ffi_dispatcher_sync_impl(
 // Section: rust2dart
 
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::graph::AnnotationType {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Hmmer => 0.into_dart(),
+            Self::Interpro => 1.into_dart(),
+            Self::Other => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::graph::AnnotationType
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::graph::AnnotationType>
+    for crate::api::graph::AnnotationType
+{
+    fn into_into_dart(self) -> crate::api::graph::AnnotationType {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::graph::DataFileType {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -675,6 +720,11 @@ impl flutter_rust_bridge::IntoDart for crate::api::graph::Domain {
             self.full_match_start.into_into_dart().into_dart(),
             self.full_match_end.into_into_dart().into_dart(),
             self.from_blast.into_into_dart().into_dart(),
+            self.source.into_into_dart().into_dart(),
+            self.ip_short.into_into_dart().into_dart(),
+            self.ip_long.into_into_dart().into_dart(),
+            self.pfam_name.into_into_dart().into_dart(),
+            self.i_type.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -825,6 +875,23 @@ impl SseEncode for String {
     }
 }
 
+impl SseEncode for crate::api::graph::AnnotationType {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::graph::AnnotationType::Hmmer => 0,
+                crate::api::graph::AnnotationType::Interpro => 1,
+                crate::api::graph::AnnotationType::Other => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for bool {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -864,6 +931,11 @@ impl SseEncode for crate::api::graph::Domain {
         <bool>::sse_encode(self.full_match_start, serializer);
         <bool>::sse_encode(self.full_match_end, serializer);
         <bool>::sse_encode(self.from_blast, serializer);
+        <crate::api::graph::AnnotationType>::sse_encode(self.source, serializer);
+        <String>::sse_encode(self.ip_short, serializer);
+        <String>::sse_encode(self.ip_long, serializer);
+        <String>::sse_encode(self.pfam_name, serializer);
+        <String>::sse_encode(self.i_type, serializer);
     }
 }
 

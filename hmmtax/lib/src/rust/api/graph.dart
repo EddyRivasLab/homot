@@ -8,7 +8,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `build_graph_from_hits`, `compute_signatures`, `count_hits`, `create_domain_id_map`, `create_domain_list`, `domains_to_structure`, `read_hits_from_blast`, `read_hits_from_domtblout`, `read_hits_from_file`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AnnotatedSequence`, `DbDomain`, `Dmap`, `ResultsOverview`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 Future<SearchResults> fetchGraph({
   required String annfile,
@@ -51,6 +51,8 @@ Future<void> collectHits({
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Vec < i64 >>>
 abstract class VecI64 implements RustOpaqueInterface {}
 
+enum AnnotationType { hmmer, interpro, other }
+
 enum DataFileType { domTblOut, blast, infer }
 
 class Domain {
@@ -66,6 +68,11 @@ class Domain {
   final bool fullMatchStart;
   final bool fullMatchEnd;
   final bool fromBlast;
+  final AnnotationType source;
+  final String ipShort;
+  final String ipLong;
+  final String pfamName;
+  final String iType;
 
   const Domain({
     required this.name,
@@ -80,6 +87,11 @@ class Domain {
     required this.fullMatchStart,
     required this.fullMatchEnd,
     required this.fromBlast,
+    required this.source,
+    required this.ipShort,
+    required this.ipLong,
+    required this.pfamName,
+    required this.iType,
   });
 
   @override
@@ -95,7 +107,12 @@ class Domain {
       domEvalue.hashCode ^
       fullMatchStart.hashCode ^
       fullMatchEnd.hashCode ^
-      fromBlast.hashCode;
+      fromBlast.hashCode ^
+      source.hashCode ^
+      ipShort.hashCode ^
+      ipLong.hashCode ^
+      pfamName.hashCode ^
+      iType.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -113,7 +130,12 @@ class Domain {
           domEvalue == other.domEvalue &&
           fullMatchStart == other.fullMatchStart &&
           fullMatchEnd == other.fullMatchEnd &&
-          fromBlast == other.fromBlast;
+          fromBlast == other.fromBlast &&
+          source == other.source &&
+          ipShort == other.ipShort &&
+          ipLong == other.ipLong &&
+          pfamName == other.pfamName &&
+          iType == other.iType;
 }
 
 class Hit {

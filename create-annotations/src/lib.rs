@@ -50,6 +50,12 @@ pub struct Dmap{
     pub description: String,
     pub clan_name: String,
     pub hmm_length: u32,
+    pub source: AnnotationType, // what type of annotation is this from?
+    // fields below here are only used for Interpro annotations
+    pub ip_short: String,
+    pub ip_long: String,
+    pub pfam_name: String,
+    pub i_type: String,
 }
 
 impl From<&Dmap> for Slice{
@@ -65,6 +71,21 @@ impl From<&UserValue> for Dmap{
     }
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+pub enum AnnotationType{Hmmer, Interpro, Other}
+
+impl From<&AnnotationType> for Slice{
+    fn from(val: &AnnotationType) ->Self{
+        rmp_serde::to_vec(&val).expect("Serialization error for AnnotationType").into()
+    }
+}
+
+impl From<&UserValue> for AnnotationType{
+    fn from(value: &UserValue) -> Self{
+        let item: AnnotationType = rmp_serde::from_slice(&value).expect("Deserialization error for Dmap");
+        item
+    }
+}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Domain{
@@ -76,7 +97,7 @@ pub struct Domain{
     pub hmmto: u32, // End of the HMM match
     pub eval: f32, // evalue of the hit
     pub full_match_start: bool,  // Was the domain a full match to the start of HMM
-    pub full_match_end: bool,  // and/or th end
+    pub full_match_end: bool,  // and/or the end
 }
 
 impl From<&Domain> for Vec<u8>{

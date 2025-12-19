@@ -217,6 +217,11 @@ pub fn write_annotated_db(domains: HashMap<String, Vec<Domain>>,
 	    clan_name: "No clan information available for Interpro annotations".to_string(),
 	    description: dinfo.description.clone(),
 	    hmm_length: 0,
+        source: AnnotationType::Interpro,
+        i_type: dinfo.i_type.clone(),
+        ip_long: dinfo.ip_long.clone(),
+        ip_short: dinfo.ip_short.clone(),
+        pfam_name: dinfo.pfam_name.clone(),
         };
         domain_db.insert(key, &foo).expect("Couldn't insert entry into domain ID part of database");
     }

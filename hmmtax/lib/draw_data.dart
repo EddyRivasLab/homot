@@ -211,6 +211,11 @@ class DrawDomains extends StatelessWidget {
           fullMatchStart: true,
           fullMatchEnd: true,
           fromBlast: false,
+          source: AnnotationType.other,
+          ipShort: "",
+          ipLong: "",
+          pfamName: "",
+          iType: "",
         ),
       );
     }
