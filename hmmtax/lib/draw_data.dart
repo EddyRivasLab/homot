@@ -928,42 +928,112 @@ class _DrawHitState extends State<DrawHit> {
 }
 
 // Widget to display the information for a category of hits
-class DrawCategory extends StatelessWidget {
-  const DrawCategory({
+class DrawCategory extends StatefulWidget {
+  DrawCategory({
     super.key,
     required this.which,
     required this.from,
-    required this.fullWidth,
-    required this.addPatterns,
+    required this.context,
   });
 
   final int which;
   final selectedby from;
-  final bool fullWidth;
-  final bool addPatterns;
+  BuildContext context;
+   @override
+  State<DrawCategory> createState() => _DrawCategory();
+}
+
+class _DrawCategory extends State<DrawCategory>{
+  @override
+  late bool fullWidth;
+  void initState(){
+    super.initState();
+    fullWidth = false;
+  }
   @override
   Widget build(BuildContext context) {
-    return Consumer2<SearchData, GraphData>(
-      builder: (context, searchdata, graphdata, child) {
+    return Consumer3<SearchData, HSettings, GraphData>(
+      builder: (context, searchdata, hsettings, graphdata, child) {
         final SigCategory category =
-            from == selectedby.structure
-                ? searchdata.rootHits[which]
-                : searchdata.currentHits[which];
+            widget.from == selectedby.structure
+                ? searchdata.rootHits[widget.which]
+                : searchdata.currentHits[widget.which];
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              "${category.hits.length} sequences with domain structure ${searchdata.structures[category.signature]}",
-            ),
-            Text("Example: " + searchdata.hits[category.hits[0].toInt()].name),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                 crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium!.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          
+                              "${category.hits.length} hits with signature ${searchdata.structures[category.signature]}"
+                        ),
+                   Text(
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium!.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          "Example: " +
+                              searchdata.hits[category.hits[0].toInt()].name +
+                              ", Taxon: " +
+                              graphdata.graph[searchdata.hits[category.hits[0].toInt()].taxid]!.name,
+                        ),],),
+               Row( children:[ requiredHitWidth(searchdata.hits[category.hits[0].toInt()],
+                  false, false, context) > MediaQuery.sizeOf(context).width ?  
+                RotatedBox(
+                                  quarterTurns: 1,
+                                  child: IconButton.outlined(
+                                    iconSize: 24 * hsettings.scale,
+                                    onPressed: () {
+                                    setState(() {
+                                      fullWidth = !fullWidth;});},
+                                    icon:
+                                        fullWidth
+                                            ? Icon(
+                                              Icons.compress,
+                                              color:
+                                                  Theme.of(
+                                                    context,
+                                                  ).colorScheme.onPrimary,
+                                            )
+                                            : Icon(
+                                              Icons.expand,
+                                              color:
+                                                  Theme.of(
+                                                    context,
+                                                  ).colorScheme.onPrimary,
+                                            ),
+                                  ),
+                                )
+                                : SizedBox.shrink(),
+                            IconButton.outlined(
+                              iconSize: 24 * hsettings.scale,
+                              onPressed: () {
+                                searchdata.selectedStructure = widget.which;
+                                searchdata.selectedBy = widget.from;
+                                context.go("/subtreeevalue");
+                              },
+                              icon: Icon(
+                                Icons.search,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                            ),
+                          ],
+                        ),],),
             DrawHit(
               hit: searchdata.hits[category.hits[0].toInt()],
               searchdata: searchdata,
               fullWidth: fullWidth,
-              addPatterns: addPatterns,
+              addPatterns: hsettings.addPatterns,
             ),
           ],
         );

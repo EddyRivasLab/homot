@@ -260,6 +260,7 @@ dependencies = [
  "rayon",
  "rmp-serde",
  "serde",
+ "xml",
 ]
 
 [[package]]
@@ -1479,6 +1480,12 @@ checksum = "3268f3d866458b787f390cf61f4bbb563b922d091359f9608842999eaee3943c"
 dependencies = [
  "bitflags",
 ]
+
+[[package]]
+name = "xml"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2df5825faced2427b2da74d9100f1e2e93c533fff063506a81ede1cf517b2e7e"
 
 [[package]]
 name = "xxhash-rust"

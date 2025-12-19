@@ -441,6 +441,51 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     ],),],),
                   ),
+                  Card(
+                    color: Theme.of(context).colorScheme.surface,
+                    child: Column(
+                      children: [
+                        Text(
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium!.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          "Draw Taxonomy As",
+                        ),
+                         RadioGroup<GraphDrawType>(
+                      groupValue: hsettings.drawType,
+                      onChanged: (GraphDrawType? value){
+                        if (value != null){
+                          hsettings.drawType = value;
+                        }
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                        IntrinsicWidth( 
+                          child: RadioListTile<GraphDrawType>(
+                          title: Text('Lines'),
+                          value: GraphDrawType.line,
+                        ),),
+                        IntrinsicWidth( child:
+                        RadioListTile<GraphDrawType>(
+                          title: Text('Wedges'),
+                          value: GraphDrawType.wedge,
+                        ),),
+                        IntrinsicWidth( 
+                          child: RadioListTile<GraphDrawType>(
+                          title: Text('Arc Segments'),
+                          value: GraphDrawType.outline,
+                        ),),
+                        IntrinsicWidth( child:
+                        RadioListTile<GraphDrawType>(
+                          title: Text('Filled Arc Segments'),
+                          value: GraphDrawType.fill,
+                        ),),
+                      ],)
+                    ),],),
+                  ),
                    Card(
                     color: Theme.of(context).colorScheme.surface,
                     child: Row(
@@ -1086,7 +1131,7 @@ class _GraphPageState extends State<GraphPage> {
                     borderRadius: BorderRadius.circular(5),
                   ),
                   child: Text(
-                    "Node ${theNode.name} has no children, so cannot be the root of the graph",
+                    "Node ${theNode.name} has no children",
                     style: TextStyle(color: Colors.black),
                   ),
                 ),
@@ -1174,7 +1219,7 @@ class _GraphPageState extends State<GraphPage> {
                           Future.delayed(const Duration(seconds: 5), () {
                             _removeNorootOverlay();
                           });
-                        } else {
+                        }//else {
                           graphdata.popPastIndex();
                           graphdata.addRoot(node);
                           HitResults hitResults = findHitsBelowNode(
@@ -1185,8 +1230,8 @@ class _GraphPageState extends State<GraphPage> {
                           searchdata.currentHitsByEvalue = hitResults.hits;
                           searchdata.currentHits = hitResults.categories;
                           searchdata.selectedBy = selectedby.subtree;
-                        }
-                        ;
+                        //}
+                        //;
                       }
                     },
                     onSecondaryTapDown: (details) {
@@ -1687,67 +1732,15 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
                   return Card(
                     margin: EdgeInsets.only(bottom: 8),
                     color: Theme.of(context).colorScheme.surface,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Stack(
+                      //crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         DrawCategory(
                           which: index,
                           from: selectedby.subtree_structure,
-                          fullWidth: fullWidth[index],
-                          addPatterns: hsettings.addPatterns,
+                          context: context,
                         ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            showExpand[index]
-                                ? RotatedBox(
-                                  quarterTurns: 1,
-                                  child: IconButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          Theme.of(context).colorScheme.primary,
-                                    ),
-                                    onPressed: () {
-                                      fullWidth[index] = !fullWidth[index];
-                                      setState(() {});
-                                    },
-                                    icon:
-                                        fullWidth[index]
-                                            ? Icon(
-                                              Icons.compress,
-                                              color:
-                                                  Theme.of(
-                                                    context,
-                                                  ).colorScheme.onPrimary,
-                                            )
-                                            : Icon(
-                                              Icons.expand,
-                                              color:
-                                                  Theme.of(
-                                                    context,
-                                                  ).colorScheme.onPrimary,
-                                            ),
-                                  ),
-                                )
-                                : SizedBox.shrink(),
-                            IconButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    Theme.of(context).colorScheme.primary,
-                              ),
-                              onPressed: () {
-                                searchdata.selectedStructure = index;
-                                searchdata.selectedBy =
-                                    selectedby.subtree_structure;
-                                context.go("/subtreeevalue");
-                              },
-                              icon: Icon(
-                                Icons.search,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
+                        
                       ],
                     ),
                   );
@@ -1818,68 +1811,12 @@ class _AllStructurePageState extends State<AllStructurePage> {
                   return Card(
                     margin: EdgeInsets.only(bottom: 8),
                     color: Theme.of(context).colorScheme.surface,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                    child: 
                         DrawCategory(
                           which: index,
                           from: selectedby.structure,
-                          fullWidth: fullWidth[index],
-                          addPatterns: hsettings.addPatterns,
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            showExpand[index]
-                                ? RotatedBox(
-                                  quarterTurns: 1,
-                                  child: IconButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          Theme.of(context).colorScheme.primary,
-                                    ),
-                                    onPressed: () {
-                                      fullWidth[index] = !fullWidth[index];
-                                      setState(() {});
-                                    },
-                                    icon:
-                                        fullWidth[index]
-                                            ? Icon(
-                                              Icons.compress,
-                                              color:
-                                                  Theme.of(
-                                                    context,
-                                                  ).colorScheme.onPrimary,
-                                            )
-                                            : Icon(
-                                              Icons.expand,
-                                              color:
-                                                  Theme.of(
-                                                    context,
-                                                  ).colorScheme.onPrimary,
-                                            ),
-                                  ),
-                                )
-                                : SizedBox.shrink(),
-                            IconButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    Theme.of(context).colorScheme.primary,
-                              ),
-                              onPressed: () {
-                                searchdata.selectedStructure = index;
-                                searchdata.selectedBy = selectedby.structure;
-                                context.go("/subtreeevalue");
-                              },
-                              icon: Icon(
-                                Icons.search,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          context:context,
+                        ),        
                   );
                 },
               ),
@@ -1938,7 +1875,10 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                          Text(
                           style: Theme.of(
                             context,
                           ).textTheme.bodyMedium!.copyWith(
@@ -1946,27 +1886,20 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
                           ),
                           "Sequence: " +
                               searchdata.hits[index].name +
-                              ", E-Value: " +
+                              "\nE-Value: " +
                               searchdata.hits[index].seqEvalue
-                                  .toStringAsExponential(4),
+                                  .toStringAsExponential(4)+"\nTaxon: "+graphdata.graph[searchdata.hits[index].taxid]!.name,
                         ),
-                        DrawHit(
-                          hit: searchdata.hits[index],
-                          searchdata: searchdata,
-                          fullWidth: fullWidth[index],
-                          addPatterns: hsettings.addPatterns,
-                        ),
+
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             showExpand[index]
                                 ? RotatedBox(
                                   quarterTurns: 1,
-                                  child: IconButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          Theme.of(context).colorScheme.primary,
-                                    ),
+                                  child: IconButton.outlined(
+                                    iconSize: 24 * hsettings.scale,
+                                  
                                     onPressed: () {
                                       fullWidth[index] = !fullWidth[index];
                                       setState(() {});
@@ -1990,11 +1923,8 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
                                   ),
                                 )
                                 : SizedBox.shrink(),
-                            IconButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    Theme.of(context).colorScheme.primary,
-                              ),
+                            IconButton.outlined(
+                                    iconSize: 24 * hsettings.scale,
                               onPressed: () {
                                 searchdata.selectedHit = index;
                                 context.go("/sequence");
@@ -2005,6 +1935,13 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
                               ),
                             ),
                           ],
+                        ),
+                          ],),
+                        DrawHit(
+                          hit: searchdata.hits[index],
+                          searchdata: searchdata,
+                          fullWidth: fullWidth[index],
+                          addPatterns: hsettings.addPatterns,
                         ),
                       ],
                     ),
@@ -2151,7 +2088,7 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                                     Theme.of(context).colorScheme.primary,
                               ),
                               onPressed: () {
-                                searchdata.selectedHit = index;
+                                searchdata.selectedHit = hitIndices[index].toInt();
                                 context.go("/sequence");
                               },
                               icon: Icon(

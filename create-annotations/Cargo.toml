@@ -13,3 +13,4 @@ rayon = "1.10.0"
 dashmap = "6.1.0"
 num = "0.4.3"
 clap = { version = "4.5.48", features = ["derive"] }
+xml = "1.2.0"

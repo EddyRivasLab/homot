@@ -100,9 +100,9 @@ var darkGraphColors = [
     (Color(0x6F009292), Color(0xffffffff), PatternType.checkers, Color(0x6f009292), Color(0xFF000000)),  
   (Color(0xcF009292), Color(0xffffffff), PatternType.raindrops, Color(0xcf009292), Color(0xFF000000)),
  (Color(0xFFFF6DB6), Color(0xff000000), PatternType.crosshatch, Color(0xFFFF6DB6), Color(0xFF000000)),
-  (Color(0xaFFF6DB6), Color(0xff000000), PatternType.checkers, Color(0xaFFF6DB6), Color(0xFF000000)),
+  (Color(0xaFFF6DB6), Color(0xffffffff), PatternType.checkers, Color(0xaFFF6DB6), Color(0xFF000000)),
   (Color(0x6FFF6DB6), Color(0xffffffff), PatternType.raindrops, Color(0x6FFF6DB6), Color(0xFF000000)),
-  (Color(0xcFFF6DB6), Color(0xff000000), PatternType.texture, Color(0xcFFF6DB6), Color(0xFF000000)),
+  (Color(0xcFFF6DB6), Color(0xffffffff), PatternType.texture, Color(0xcFFF6DB6), Color(0xFF000000)),
   (Color(0xFF490092), Color(0xffffffff), PatternType.checkers, Color(0xFF490092), Color(0xFF000000)),
     (Color(0xAF490092), Color(0xffffffff), PatternType.raindrops, Color(0xAF490092), Color(0xFF000000)),
       (Color(0x6F490092), Color(0xffffffff), PatternType.texture, Color(0x6F490092), Color(0xFF000000)),
@@ -259,7 +259,7 @@ class MyApp extends StatelessWidget {
 }
 
 enum brightModes { light, dark, system }
-
+enum GraphDrawType{line, wedge, outline, fill}
 // ChangeNotifier for theme state
 class HSettings with ChangeNotifier {
   brightModes _mode = brightModes.light;
@@ -274,6 +274,7 @@ class HSettings with ChangeNotifier {
   double _domEvalMin = 0.0;
   double _lineWidth = 2.0;
   bool _addPatterns = false;
+  GraphDrawType _drawType = GraphDrawType.line;
   late SharedPreferencesAsync _prefs;
   List<(Color, Color, PatternType, Color, Color)> get graphColors {
     if (_mode == brightModes.light ||
@@ -391,6 +392,11 @@ class HSettings with ChangeNotifier {
     }
   }
 
+  void set drawType(GraphDrawType newType){
+    _drawType = newType;
+    notifyListeners();
+  }
+
   void set mode(brightModes newmode) {
     _mode = newmode;
     switch (newmode) {
@@ -475,6 +481,7 @@ class HSettings with ChangeNotifier {
   double get lineWidth => _lineWidth;
   DataFileType get dataType => _dataType;
   bool get addPatterns => _addPatterns;
+  GraphDrawType get drawType => _drawType;
 }
 
 // ChangeNotifier for graph data

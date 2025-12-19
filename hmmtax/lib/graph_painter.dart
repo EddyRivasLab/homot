@@ -64,6 +64,7 @@ class GraphPainter extends CustomPainter {
     Offset center,
     Color textColor,
     Color bgColor,
+    bool moveInward, // move the label in as far as possible 
   ) {
     // The easiest way to get the dimensions of some
     // text seems to be to try rendering them and then measure the result.
@@ -102,6 +103,21 @@ class GraphPainter extends CustomPainter {
       //    print("text = $text");
       return false;
     }
+    double slideIn = 0.0; // Amount to move the label towards the center of the graph.  
+    // 0 unless we're trying to move inward
+
+    if (moveInward){
+      double minRadius = testPainter.height / (2 * sin(regionAngle/2)); 
+      //print("${text}: startRadius = ${startRadius}, endRadius = ${endRadius}, minRadius = ${minRadius}");
+      // Distance from center at which the wedge becomes wide enough to fit the text
+      if (minRadius < endRadius - ((endRadius - startRadius)/2) - (testPainter.width /2)){ // Plenty of room, center text at midpoint of wedge
+        slideIn = ((endRadius - startRadius)/2) - (testPainter.width/2);
+      }
+      else{
+        slideIn = endRadius - (minRadius + testPainter.width);
+      }
+    }
+
     // if we get here, then we can print the text.
     double rotAngle = angle;
     double startX;
@@ -119,7 +135,7 @@ class GraphPainter extends CustomPainter {
       // to motion along the radius.
 
       startX =
-          -((testPainter.width / 2) -
+          -(-slideIn + (testPainter.width / 2) -
               2 * hSettings.lineWidth / graphData.scale);
       startY = -testPainter.height / 2;
     } else {
@@ -128,7 +144,7 @@ class GraphPainter extends CustomPainter {
       // to motion along the radius.
 
       startX =
-          -((testPainter.width / 2) +
+          -(slideIn +(testPainter.width / 2) +
               2 * hSettings.lineWidth / graphData.scale);
       startY = -testPainter.height / 2;
     }
@@ -242,18 +258,112 @@ class GraphPainter extends CustomPainter {
         (node.myArcEnd - node.myArcStart),
         center,
         Theme.of(context).colorScheme.onSurface,
-        Color(0x00000000) // transparent background for text
+        Color(0x00000000), // transparent background for text
+        false
       );
       if(textFit){ // Only draw the radial line if we have space for the text,
       // otherwise, it looks bad with wedges if we're using transparent colors
-            myCanvas.drawLine(
-      parentOffset,
-      myOffset,
-      paint
-        ..strokeWidth = hSettings.lineWidth / graphData.scale
-        ..color = nodeColor,
-    );
+        switch(hSettings.drawType){
+          case GraphDrawType.line:
+            myCanvas.drawLine(parentOffset, myOffset, paint
+                              ..strokeWidth = hSettings.lineWidth / graphData.scale
+                              ..color = nodeColor,);
+            break;
 
+          case GraphDrawType.wedge:
+            var wedgeRect = Rect.fromCircle(center: center, radius: myRadius);
+            myCanvas.drawArc(
+              wedgeRect,
+              node.myArcStart,
+              node.myArcEnd - node.myArcStart,
+              false,
+              paint
+                ..style = PaintingStyle.stroke
+                ..color = nodeColor
+                ..strokeWidth = hSettings.lineWidth / graphData.scale,
+              );
+              double arcMiddle = node.myArcStart + (node.myArcEnd - node.myArcStart)/2;
+              Offset edgeStart = Offset( center.dx + (myRadius * cos(node.myArcEnd)), center.dy + (myRadius * sin(node.myArcEnd)));
+              Offset edgeEnd = Offset(center.dx + (parentRadius * cos(arcMiddle)), center.dy + (parentRadius * sin(arcMiddle)));
+              myCanvas.drawLine(edgeStart, edgeEnd, paint
+                              ..strokeWidth = hSettings.lineWidth / graphData.scale
+                              ..color = nodeColor,);
+              edgeStart = Offset( center.dx + (myRadius * cos(node.myArcStart)), center.dy + (myRadius * sin(node.myArcStart)));
+              myCanvas.drawLine(edgeStart, edgeEnd, paint
+                              ..strokeWidth = hSettings.lineWidth / graphData.scale
+                              ..color = nodeColor,);
+              break;
+          case GraphDrawType.outline:
+              var innerRect = Rect.fromCircle(center: center, radius: parentRadius);
+              var outerRect = Rect.fromCircle(center: center, radius: myRadius);
+              var piePath = Path();
+              piePath.moveTo(
+                center.dx + (parentRadius * cos(node.myArcStart)),
+                center.dy + (parentRadius * sin(node.myArcStart)),
+              );
+              piePath.addArc(
+                innerRect,
+                node.myArcStart,
+                node.myArcEnd - node.myArcStart,
+              );
+              piePath.lineTo(
+                center.dx + (myRadius * cos(node.myArcEnd)),
+                center.dy + (myRadius * sin(node.myArcEnd)),
+              );
+              piePath.addArc(
+                outerRect,
+                node.myArcEnd,
+                -(node.myArcEnd - node.myArcStart),
+              );
+              piePath.lineTo(
+                center.dx + (parentRadius * cos(node.myArcStart)),
+                center.dy + (parentRadius * sin(node.myArcStart)),
+              );
+              myCanvas.drawPath(
+                piePath,
+                paint
+                  ..style = PaintingStyle.stroke
+                  ..color = fillColor
+                //  ..strokeWidth = hSettings.lineWidth / graphData.scale
+                  ,
+                ); 
+              break;
+          case GraphDrawType.fill:
+            var innerRect = Rect.fromCircle(center: center, radius: parentRadius);
+              var outerRect = Rect.fromCircle(center: center, radius: myRadius);
+              var piePath = Path();
+              piePath.moveTo(
+                center.dx + (parentRadius * cos(node.myArcStart)),
+                center.dy + (parentRadius * sin(node.myArcStart)),
+              );
+              piePath.addArc(
+                innerRect,
+                node.myArcStart,
+                node.myArcEnd - node.myArcStart,
+              );
+              piePath.lineTo(
+                center.dx + (myRadius * cos(node.myArcEnd)),
+                center.dy + (myRadius * sin(node.myArcEnd)),
+              );
+              piePath.addArc(
+                outerRect,
+                node.myArcEnd,
+                -(node.myArcEnd - node.myArcStart),
+              );
+              piePath.lineTo(
+                center.dx + (parentRadius * cos(node.myArcStart)),
+                center.dy + (parentRadius * sin(node.myArcStart)),
+              );
+              myCanvas.drawPath(
+                piePath,
+                paint
+                  ..style = PaintingStyle.fill
+                  ..color = fillColor
+                //  ..strokeWidth = hSettings.lineWidth / graphData.scale
+                  ,
+                ); 
+            break;
+        }
       }
       if (!textFit && node.ranknum != startLevel) {
         // There isn't enough space to fit the data for the node, so turn it into a pie wedge out to the edge of
@@ -291,12 +401,12 @@ class GraphPainter extends CustomPainter {
           center.dy + (parentRadius * sin(node.myArcStart)),
         );
 
-    /*    myCanvas.drawPath(
+        /*myCanvas.drawPath(
           piePath,
           paint
-            ..style = PaintingStyle.fill
+            ..style = PaintingStyle.stroke
             ..color = fillColor,
-        ); */
+        );*/ 
     if (hSettings.addPatterns) { // add patterns to assist color-blind users
         // By default, patterns have a fixed number of features.  This should scale the number of features proportionally to the size of the area being filled
         int featuresCount =  (((outerRadius-parentRadius)/(maxLevel *radPerLevel))* 50).round();
@@ -315,7 +425,8 @@ class GraphPainter extends CustomPainter {
           (node.myArcEnd - node.myArcStart),
           center,
           Color(0xffffffff),
-          Color(0xff000000)
+          Color(0xff000000),
+          true,
         );
     } else { // don't
        myCanvas.drawPath(
@@ -335,7 +446,8 @@ class GraphPainter extends CustomPainter {
           (node.myArcEnd - node.myArcStart),
           center,
           fillTextColor,
-          Color(0x00000000) // transparent background for text
+          Color(0x00000000), // transparent background for text
+          true
         );
     }
         // now, add the region for the node to each level in the wedge outside the
@@ -359,9 +471,9 @@ class GraphPainter extends CustomPainter {
 
         double arcStart =
             node.myArcStart +
-            (graph[node.children[0].toInt()]!.hitsBelow) * arcPerChild / 2;
+            (graph[node.children[0].toInt()]!.hitsBelow) * arcPerChild / 2; 
         double arcEnd =
-            node.myArcEnd -
+            node.myArcEnd; -
             (graph[node.children[node.children.length - 1].toInt()]!
                     .hitsBelow) *
                 arcPerChild /
@@ -391,7 +503,7 @@ class GraphPainter extends CustomPainter {
         }
         var childNode = graph[childId.toInt()]!;
         childNode.myArcStart = lastEnd;
-        childNode.myArcEnd = lastEnd + (arcPerChild * (childNode.hitsBelow));
+        childNode.myArcEnd = lastEnd + (arcPerChild *childNode.hitsBelow);
         lastEnd = childNode.myArcEnd;
 
         drawNode(
