@@ -26,20 +26,104 @@ import 'package:patterns_canvas/patterns_canvas.dart';
 // Format is (BGcolor, FG color)
 
 const domainColors = [
-  (Color(0xFF004949), Color(0xffffffff), PatternType.dots, Color(0xFF004949), Color(0xFF000000)),
-  (Color(0xFF009292), Color(0xffffffff), PatternType.crosshatch, Color(0xFF009292), Color(0xFF000000)),
-  (Color(0xFFFF6DB6), Color(0xff000000), PatternType.checkers, Color(0xFFFF6DB6), Color(0xFF000000)),
-  (Color(0xFFFFB6DB), Color(0xff000000), PatternType.raindrops, Color(0xFFFFB6DB), Color(0xFF000000)),
-  (Color(0xFF490092), Color(0xffffffff), PatternType.texture, Color(0xFF490092), Color(0xFF000000)),
-  (Color(0xFF006DDB), Color(0xffffffff), PatternType.subtlepatch, Color(0xFF006DDB), Color(0xFF000000)),
-  (Color(0xFFB66DFF), Color(0xff000000), PatternType.horizontalLight, Color(0xFFB66DFF), Color(0xFF000000)),
-  (Color(0xFF6DB6FF), Color(0xff000000), PatternType.verticalLight, Color(0xFF6DB6FF), Color(0xFF000000)),
-  (Color(0xFFB6DBFF), Color(0xff000000), PatternType.diagonalLight, Color(0xFFB6DBFF), Color(0xFF000000)),
-  (Color(0xFF920000), Color(0xffffffff), PatternType.dots, Color(0xFF920000), Color(0xFF000000)),
-  (Color(0xFF924900), Color(0xffffffff), PatternType.crosshatch, Color(0xFF924900), Color(0xFF000000)),
-  (Color(0xFFDB6D00), Color(0xffffffff), PatternType.checkers, Color(0xFFDB6D00), Color(0xFF000000)),
-  (Color(0xFF24FF24), Color(0xff000000), PatternType.raindrops, Color(0xFF24FF24), Color(0xFF000000)),
-  (Color(0xFFFFFF6D), Color(0xff000000), PatternType.texture, Color(0xFFFFFF6D), Color(0xFF000000)),
+  (
+    Color(0xFF004949),
+    Color(0xffffffff),
+    PatternType.dots,
+    Color(0xFF004949),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFF009292),
+    Color(0xffffffff),
+    PatternType.crosshatch,
+    Color(0xFF009292),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFFFF6DB6),
+    Color(0xff000000),
+    PatternType.checkers,
+    Color(0xFFFF6DB6),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFFFFB6DB),
+    Color(0xff000000),
+    PatternType.raindrops,
+    Color(0xFFFFB6DB),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFF490092),
+    Color(0xffffffff),
+    PatternType.texture,
+    Color(0xFF490092),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFF006DDB),
+    Color(0xffffffff),
+    PatternType.subtlepatch,
+    Color(0xFF006DDB),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFFB66DFF),
+    Color(0xff000000),
+    PatternType.horizontalLight,
+    Color(0xFFB66DFF),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFF6DB6FF),
+    Color(0xff000000),
+    PatternType.verticalLight,
+    Color(0xFF6DB6FF),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFFB6DBFF),
+    Color(0xff000000),
+    PatternType.diagonalLight,
+    Color(0xFFB6DBFF),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFF920000),
+    Color(0xffffffff),
+    PatternType.dots,
+    Color(0xFF920000),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFF924900),
+    Color(0xffffffff),
+    PatternType.crosshatch,
+    Color(0xFF924900),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFFDB6D00),
+    Color(0xffffffff),
+    PatternType.checkers,
+    Color(0xFFDB6D00),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFF24FF24),
+    Color(0xff000000),
+    PatternType.raindrops,
+    Color(0xFF24FF24),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFFFFFF6D),
+    Color(0xff000000),
+    PatternType.texture,
+    Color(0xFFFFFF6D),
+    Color(0xFF000000),
+  ),
 ];
 
 const domainColorsOld = [
@@ -95,38 +179,230 @@ const shadesPerColor = 4;
 var lightGraphColors = [(Colors.amber[100], Colors.black, "blort")];
 
 var darkGraphColors = [
-  (Color(0xff009292), Color(0xffffffff), PatternType.dots, Color(0xFF009292), Color(0xFF000000)),
-  (Color(0xaf009292), Color(0xffffffff), PatternType.crosshatch, Color(0xaf009292) ,Color(0xFF000000)),
-    (Color(0x6F009292), Color(0xffffffff), PatternType.checkers, Color(0x6f009292), Color(0xFF000000)),  
-  (Color(0xcF009292), Color(0xffffffff), PatternType.raindrops, Color(0xcf009292), Color(0xFF000000)),
- (Color(0xFFFF6DB6), Color(0xff000000), PatternType.crosshatch, Color(0xFFFF6DB6), Color(0xFF000000)),
-  (Color(0xaFFF6DB6), Color(0xffffffff), PatternType.checkers, Color(0xaFFF6DB6), Color(0xFF000000)),
-  (Color(0x6FFF6DB6), Color(0xffffffff), PatternType.raindrops, Color(0x6FFF6DB6), Color(0xFF000000)),
-  (Color(0xcFFF6DB6), Color(0xffffffff), PatternType.texture, Color(0xcFFF6DB6), Color(0xFF000000)),
-  (Color(0xFF490092), Color(0xffffffff), PatternType.checkers, Color(0xFF490092), Color(0xFF000000)),
-    (Color(0xAF490092), Color(0xffffffff), PatternType.raindrops, Color(0xAF490092), Color(0xFF000000)),
-      (Color(0x6F490092), Color(0xffffffff), PatternType.texture, Color(0x6F490092), Color(0xFF000000)),
-    (Color(0xCF490092), Color(0xffffffff), PatternType.subtlepatch, Color(0xCF490092), Color(0xFF000000)),
-  (Color(0xFF006DDB), Color(0xffffffff), PatternType.raindrops, Color(0xFF006DDB), Color(0xFF000000)),
-   (Color(0xAF006DDB), Color(0xffffffff), PatternType.texture, Color(0xAF006DDB), Color(0xFF000000)),
-     (Color(0x6F006DDB), Color(0xffffffff), PatternType.subtlepatch, Color(0x6F006DDB), Color(0xFF000000)),
-   (Color(0xcF006DDB), Color(0xffffffff), PatternType.dots, Color(0xcF006DDB), Color(0xFF000000)),
-  (Color(0xFFB66DFF), Color(0xff000000), PatternType.texture, Color(0xFFB66DFF), Color(0xFF000000)),
-    (Color(0xAFB66DFF), Color(0xff000000), PatternType.subtlepatch, Color(0xAFB66DFF), Color(0xFF000000)),
-      (Color(0x6FB66DFF), Color(0xffffffff),  PatternType.dots, Color(0x6FB66DFF), Color(0xFF000000)),
-    (Color(0xcFB66DFF), Color(0xff000000), PatternType.crosshatch, Color(0xcFB66DFF), Color(0xFF000000)),
-  (Color(0xFF920000), Color(0xffffffff), PatternType.subtlepatch, Color(0xFF920000), Color(0xFF000000)),
-    (Color(0xAF920000), Color(0xffffffff), PatternType.dots, Color(0xAF920000), Color(0xFF000000)),
-  (Color(0x6F920000), Color(0xffffffff),  PatternType.crosshatch, Color(0x6F920000), Color(0xFF000000)),
-    (Color(0xcF920000), Color(0xffffffff), PatternType.checkers, Color(0xcF920000), Color(0xFF000000)),
-  (Color(0xFF24FF24), Color(0xff000000),  PatternType.dots, Color(0xFF24FF24), Color(0xFF000000)),
-    (Color(0xAF24FF24), Color(0xff000000),  PatternType.crosshatch, Color(0xAF24FF24), Color(0xFF000000)),
-      (Color(0x6F24FF24), Color(0xffffffff), PatternType.checkers, Color(0x6F24FF24), Color(0xFF000000)),
-    (Color(0xcF24FF24), Color(0xff000000),    PatternType.raindrops, Color(0xcF24FF24), Color(0xFF000000)),
-  (Color(0xFFFFFF6D), Color(0xff000000), PatternType.crosshatch, Color(0xFFFFFF6D), Color(0xFF000000)),
-    (Color(0xAFFFFFF6D), Color(0xff000000), PatternType.checkers, Color(0xAFFFFFF6D), Color(0xFF000000)),
-      (Color(0x6FFFFFF6D), Color(0xff000000),  PatternType.raindrops, Color(0x6FFFFFF6D), Color(0xFF000000)),
-    (Color(0xcFFFFFF6D), Color(0xff000000),   PatternType.texture, Color(0xcFFFFFF6D), Color(0xFF000000)),
+  (
+    Color(0xff009292),
+    Color(0xffffffff),
+    PatternType.dots,
+    Color(0xFF009292),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xaf009292),
+    Color(0xffffffff),
+    PatternType.crosshatch,
+    Color(0xaf009292),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0x6F009292),
+    Color(0xffffffff),
+    PatternType.checkers,
+    Color(0x6f009292),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xcF009292),
+    Color(0xffffffff),
+    PatternType.raindrops,
+    Color(0xcf009292),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFFFF6DB6),
+    Color(0xff000000),
+    PatternType.crosshatch,
+    Color(0xFFFF6DB6),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xaFFF6DB6),
+    Color(0xffffffff),
+    PatternType.checkers,
+    Color(0xaFFF6DB6),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0x6FFF6DB6),
+    Color(0xffffffff),
+    PatternType.raindrops,
+    Color(0x6FFF6DB6),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xcFFF6DB6),
+    Color(0xffffffff),
+    PatternType.texture,
+    Color(0xcFFF6DB6),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFF490092),
+    Color(0xffffffff),
+    PatternType.checkers,
+    Color(0xFF490092),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xAF490092),
+    Color(0xffffffff),
+    PatternType.raindrops,
+    Color(0xAF490092),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0x6F490092),
+    Color(0xffffffff),
+    PatternType.texture,
+    Color(0x6F490092),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xCF490092),
+    Color(0xffffffff),
+    PatternType.subtlepatch,
+    Color(0xCF490092),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFF006DDB),
+    Color(0xffffffff),
+    PatternType.raindrops,
+    Color(0xFF006DDB),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xAF006DDB),
+    Color(0xffffffff),
+    PatternType.texture,
+    Color(0xAF006DDB),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0x6F006DDB),
+    Color(0xffffffff),
+    PatternType.subtlepatch,
+    Color(0x6F006DDB),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xcF006DDB),
+    Color(0xffffffff),
+    PatternType.dots,
+    Color(0xcF006DDB),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFFB66DFF),
+    Color(0xff000000),
+    PatternType.texture,
+    Color(0xFFB66DFF),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xAFB66DFF),
+    Color(0xff000000),
+    PatternType.subtlepatch,
+    Color(0xAFB66DFF),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0x6FB66DFF),
+    Color(0xffffffff),
+    PatternType.dots,
+    Color(0x6FB66DFF),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xcFB66DFF),
+    Color(0xff000000),
+    PatternType.crosshatch,
+    Color(0xcFB66DFF),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFF920000),
+    Color(0xffffffff),
+    PatternType.subtlepatch,
+    Color(0xFF920000),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xAF920000),
+    Color(0xffffffff),
+    PatternType.dots,
+    Color(0xAF920000),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0x6F920000),
+    Color(0xffffffff),
+    PatternType.crosshatch,
+    Color(0x6F920000),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xcF920000),
+    Color(0xffffffff),
+    PatternType.checkers,
+    Color(0xcF920000),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFF24FF24),
+    Color(0xff000000),
+    PatternType.dots,
+    Color(0xFF24FF24),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xAF24FF24),
+    Color(0xff000000),
+    PatternType.crosshatch,
+    Color(0xAF24FF24),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0x6F24FF24),
+    Color(0xffffffff),
+    PatternType.checkers,
+    Color(0x6F24FF24),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xcF24FF24),
+    Color(0xff000000),
+    PatternType.raindrops,
+    Color(0xcF24FF24),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xFFFFFF6D),
+    Color(0xff000000),
+    PatternType.crosshatch,
+    Color(0xFFFFFF6D),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xAFFFFFF6D),
+    Color(0xff000000),
+    PatternType.checkers,
+    Color(0xAFFFFFF6D),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0x6FFFFFF6D),
+    Color(0xff000000),
+    PatternType.raindrops,
+    Color(0x6FFFFFF6D),
+    Color(0xFF000000),
+  ),
+  (
+    Color(0xcFFFFFF6D),
+    Color(0xff000000),
+    PatternType.texture,
+    Color(0xcFFFFFF6D),
+    Color(0xFF000000),
+  ),
 ];
 
 var darkGraphColorsOld = [
@@ -208,7 +484,7 @@ Future<void> main() async {
                 domEvalMin,
                 lineWidth,
                 DataFileType,
-                addPatterns
+                addPatterns,
               ),
         ),
         ChangeNotifierProvider(create: (_) => SearchData()),
@@ -259,7 +535,9 @@ class MyApp extends StatelessWidget {
 }
 
 enum brightModes { light, dark, system }
-enum GraphDrawType{line, wedge, outline, fill}
+
+enum GraphDrawType { line, wedge, outline, fill }
+
 // ChangeNotifier for theme state
 class HSettings with ChangeNotifier {
   brightModes _mode = brightModes.light;
@@ -392,7 +670,7 @@ class HSettings with ChangeNotifier {
     }
   }
 
-  void set drawType(GraphDrawType newType){
+  void set drawType(GraphDrawType newType) {
     _drawType = newType;
     notifyListeners();
   }
@@ -464,12 +742,13 @@ class HSettings with ChangeNotifier {
       _lineWidth = newWidth;
     }
   }
+
   void set addPatterns(bool val) {
     _addPatterns = val;
     _prefs.setBool("Hmmtax_patterns", val);
     notifyListeners();
-  } 
-  
+  }
+
   ThemeData get themeData => _updateTheme();
   double get scale => _scale;
   String get font => _font;
@@ -688,34 +967,38 @@ class GraphData with ChangeNotifier {
   void deleteNode(PlatformInt64 nodeId) {
     if (!_graph.containsKey(nodeId) || _deletedNodes.contains(nodeId)) {
       // node either doesn't exist or was already deleted
-      return;   
+      return;
     }
     Node nodeToDelete = _graph[nodeId]!;
     Node parentNode = _graph[nodeToDelete.parent]!;
     _deletedNodes.add(nodeId); // Record that we've deleted this node
 
     // Need to remove nodeId from parent's children
-      // This is really ugly, but is necessary because we keep the children
-      // as an Int64List for efficiency, which is not growable.
+    // This is really ugly, but is necessary because we keep the children
+    // as an Int64List for efficiency, which is not growable.
     List<BigInt> growableList = parentNode.children.toList();
     growableList.remove(BigInt.from(nodeId));
     parentNode.children = Int64List.fromList(
-        growableList.map((e) => e.toInt()).toList(),
-      );
+      growableList.map((e) => e.toInt()).toList(),
+    );
     var removedHits = nodeToDelete.hitsBelow;
-      // Now need to update hitsBelow for fromNode and all its parents
+    // Now need to update hitsBelow for fromNode and all its parents
     parentNode.hitsBelow -= removedHits;
-    while (parentNode.parent != parentNode.taxid) { // Node with itself as parent is root
-        BigInt childId = BigInt.from(parentNode.taxid);
-        parentNode = _graph[parentNode.parent]!;
-        List<BigInt> listCopy = parentNode.children.toList();  //horrible hack because of type issues comparing to contents of int64List
-        if(listCopy.contains(childId)){ // child wasn't removed from graph
-          parentNode.hitsBelow -= removedHits;
-        } else {
-          break; // parent chain broken, stop updating
-        }
+    while (parentNode.parent != parentNode.taxid) {
+      // Node with itself as parent is root
+      BigInt childId = BigInt.from(parentNode.taxid);
+      parentNode = _graph[parentNode.parent]!;
+      List<BigInt> listCopy =
+          parentNode.children
+              .toList(); //horrible hack because of type issues comparing to contents of int64List
+      if (listCopy.contains(childId)) {
+        // child wasn't removed from graph
+        parentNode.hitsBelow -= removedHits;
+      } else {
+        break; // parent chain broken, stop updating
       }
-     /* if(parentNode.parent == parentNode.taxid){
+    }
+    /* if(parentNode.parent == parentNode.taxid){
         // we made it to the root of the graph, need to handle the root node
         parentNode.hitsBelow -= removedHits;
       }*/
@@ -732,39 +1015,48 @@ class GraphData with ChangeNotifier {
     Node parentNode = _graph[nodeToRestore.parent]!;
     //print("Restored nodes parent was ${nodeToRestore.parent}, ${parentNode.name}");
     // Need to add nodeId back to parent's children
-      // This is really ugly, but is necessary because we keep the children
-      // as an Int64List for efficiency, which is not growable.
+    // This is really ugly, but is necessary because we keep the children
+    // as an Int64List for efficiency, which is not growable.
     List<BigInt> growableList = parentNode.children.toList();
     //print(growableList);
     growableList.add(BigInt.from(nodeId));
     //print(growableList);
     parentNode.children = Int64List.fromList(
-        growableList.map((e) => e.toInt()).toList(),
-      );
+      growableList.map((e) => e.toInt()).toList(),
+    );
     //print("${parentNode.children}");
     var restoredHits = nodeToRestore.hitsBelow;
-      // Now need to update hitsBelow for fromNode and all its parents
+    // Now need to update hitsBelow for fromNode and all its parents
     parentNode.hitsBelow += restoredHits;
-    while (parentNode.parent != parentNode.taxid) { // Node with itself as parent is root
-        BigInt childId = BigInt.from(parentNode.taxid);
-        parentNode = _graph[parentNode.parent]!;
-        List<BigInt> listCopy = parentNode.children.toList();  //horrible hack because of type issues comparing to contents of int64List
-        if(listCopy.contains(childId)){ // child wasn't removed from graph
-          parentNode.hitsBelow += restoredHits;
-        } else {
-     //print("Exiting early because ${parentNode.children} didn't contain ${childId} at node ${parentNode.taxid}");
-          _deletedNodes.remove(nodeId);
-          notifyListeners();
-          return parentNode.taxid; // return the nodId of the first parent that was deleted
-        }
+    while (parentNode.parent != parentNode.taxid) {
+      // Node with itself as parent is root
+      BigInt childId = BigInt.from(parentNode.taxid);
+      parentNode = _graph[parentNode.parent]!;
+      List<BigInt> listCopy =
+          parentNode.children
+              .toList(); //horrible hack because of type issues comparing to contents of int64List
+      if (listCopy.contains(childId)) {
+        // child wasn't removed from graph
+        parentNode.hitsBelow += restoredHits;
+      } else {
+        //print("Exiting early because ${parentNode.children} didn't contain ${childId} at node ${parentNode.taxid}");
+        _deletedNodes.remove(nodeId);
+        notifyListeners();
+        return parentNode
+            .taxid; // return the nodId of the first parent that was deleted
       }
-      //print(_deletedNodes);
-      _deletedNodes.remove(nodeId); // Record that we've restored this node
-      //print(_deletedNodes);
-      notifyListeners();
-      return -1; // -1 is an unusual success value, but we never use negative taxids
     }
-  void clearDeletedNodes(){_deletedNodes = [];}
+    //print(_deletedNodes);
+    _deletedNodes.remove(nodeId); // Record that we've restored this node
+    //print(_deletedNodes);
+    notifyListeners();
+    return -1; // -1 is an unusual success value, but we never use negative taxids
+  }
+
+  void clearDeletedNodes() {
+    _deletedNodes = [];
+  }
+
   void incrementIndex() {
     if (_historyIndex < _history.length - 1) {
       // There's history to go forward through
@@ -842,7 +1134,6 @@ class GraphData with ChangeNotifier {
   }
 }
 
-
 // ChangeNotifier for input files
 class FileData with ChangeNotifier {
   String _annotationsFile = "";
@@ -851,6 +1142,7 @@ class FileData with ChangeNotifier {
   bool _domtbloutFilesSet = false;
   String _annFileDir = ".";
   String _domtbloutFileDir = ".";
+  String _exportFile = "";
   String get annotationsFile => _annotationsFile;
   List<String> get domtbloutFiles => _domtbloutFiles;
   bool get annFileSet => _annFileSet;
@@ -863,6 +1155,12 @@ class FileData with ChangeNotifier {
     } else {
       return "Change";
     }
+  }
+
+  String get exportFile => _exportFile;
+  void set exportFile(String newExportFile) {
+    _exportFile = newExportFile;
+    notifyListeners();
   }
 
   // Don't notify listeners after these functions,
@@ -911,7 +1209,6 @@ class FileData with ChangeNotifier {
     }
     notifyListeners();
   }
-
 }
 
 // Wrapper that selects the correct menu bar for the platform
@@ -919,6 +1216,69 @@ class MenuWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return (Platform.isMacOS) ? MacMenu() : TopLevel();
   }
+}
+
+// about dialog function
+void showMyAboutDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Theme(
+        data: Theme.of(context).copyWith(
+          dialogTheme: DialogThemeData(
+            backgroundColor: Theme.of(context).colorScheme.onPrimary,
+            titleTextStyle: Theme.of(context).textTheme.titleLarge!.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+              //contentsTextStyle: Theme.of(context).textTheme.titleLarge!
+              //    .copyWith(color: Theme.of(context).colorScheme.onPrimary),
+            ),
+          ),
+        ),
+        child: SimpleDialog(
+          title: const Text("About Hmmtax"),
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                "Version 0.1.0\n",
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                FilledButton(
+                  onPressed: () {
+                    showLicensePage(
+                      context: context,
+                      applicationName: "Hmmtax",
+                    );
+                  },
+                  child: Text(
+                    "Show Licenses",
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(
+                    "Close",
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }
 
 // Mac menus3
@@ -955,6 +1315,8 @@ class _MacMenuBarState extends State<MacMenu> {
     ],
   );
   Widget build(BuildContext context) {
+    final currentLocation =
+        _router.routerDelegate.currentConfiguration.uri.toString();
     return PlatformMenuBar(
       menus: <PlatformMenuItem>[
         PlatformMenu(
@@ -963,13 +1325,22 @@ class _MacMenuBarState extends State<MacMenu> {
             PlatformMenuItem(
               label: "About Hmmtax",
               onSelected: () {
-                showAboutDialog(
-                  context: context,
-                  applicationName: "Hmmtax",
-                  applicationVersion: "0.0.1",
-                );
+                showMyAboutDialog(context);
               },
             ),
+            if (_router.routerDelegate.currentConfiguration.uri.toString() !=
+                    '/' &&
+                _router.routerDelegate.currentConfiguration.uri.toString() !=
+                    '/settings' &&
+                _router.routerDelegate.currentConfiguration.uri.toString() !=
+                    "/graph")
+              PlatformMenuItem(
+                label: "Export Page Contents to CSV",
+                onSelected: () {
+                  print("Exporting");
+                  showExportDialog(context);
+                },
+              ),
             PlatformMenuItem(
               label: 'Quit',
               shortcut: const SingleActivator(
@@ -1102,6 +1473,8 @@ class NonMacMenuBar extends StatefulWidget {
 class _NonMacMenuBarState extends State<NonMacMenuBar> {
   @override
   Widget build(BuildContext context) {
+    final currentLocation =
+        GoRouter.of(context).routerDelegate.currentConfiguration.uri.toString();
     return MenuAnchor(
       menuChildren: <Widget>[
         MenuItemButton(
@@ -1109,17 +1482,28 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
             backgroundColor: Theme.of(context).colorScheme.onPrimary,
           ),
           onPressed: () {
-            showAboutDialog(
-              context: context,
-              applicationName: 'Hmmtax: A taxonomy viewer for HMMER',
-              applicationVersion: '0.0.1',
-            );
+            showMyAboutDialog(context);
           },
           child: Text(
             "About",
             style: TextStyle(color: Theme.of(context).colorScheme.primary),
           ),
         ),
+        if (currentLocation != '/' &&
+            currentLocation != '/settings' &&
+            currentLocation != "/graph")
+          MenuItemButton(
+            style: MenuItemButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.onPrimary,
+            ),
+            onPressed: () {
+              showExportDialog(context);
+            },
+            child: Text(
+              "Export Page Contents to CSV",
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            ),
+          ),
         MenuItemButton(
           style: MenuItemButton.styleFrom(
             backgroundColor: Theme.of(context).colorScheme.onPrimary,
@@ -1258,7 +1642,8 @@ class SearchData with ChangeNotifier {
   int _selectedStructure = -1;
   selectedby _selectedBy = selectedby.none;
   selectedby _previousSelectedBy = selectedby.none;
-  HashMap<String, (Color, Color, PatternType, Color, Color)> _domainColors = HashMap();
+  HashMap<String, (Color, Color, PatternType, Color, Color)> _domainColors =
+      HashMap();
   PlatformInt64 _selectedHit = -1;
   selectedby get selectedBy => _selectedBy;
   selectedby get previousSelectedBy => _previousSelectedBy;
@@ -1341,7 +1726,13 @@ class SearchData with ChangeNotifier {
     } else {
       // Defarut to black-and-white if we don't have a color for this domain
       // (this should never happen, but just in case)
-      final color = (Color(0xff000000), Color(0xffffffff), PatternType.subtlepatch, Color(0xff000000), Color(0xffffffff));
+      final color = (
+        Color(0xff000000),
+        Color(0xffffffff),
+        PatternType.subtlepatch,
+        Color(0xff000000),
+        Color(0xffffffff),
+      );
       return color;
     }
   }
