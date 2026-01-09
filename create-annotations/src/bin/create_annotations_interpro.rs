@@ -322,7 +322,7 @@ fn remove_overlaps_interpro(domains: &Vec<Domain>) -> Vec<Domain>{
     
     let mut our_domains = domains.clone();
     our_domains.sort_by(|a, b| {
-        if (a.alifrom - a.alito) > (b.alifrom - b.alito){
+        if (a.alito - a.alifrom) > (b.alito - b.alifrom){
             return Ordering::Greater;
         }
         else{
@@ -394,7 +394,7 @@ fn parse_interpro_xml(filename: &PathBuf)-> Result<HashMap<String, InterproInfo>
                             ip_short: "".to_string(),
                             ip_long: "".to_string(),
                             pfam_name: "".to_string(),
-                            i_type: "".to_string(),
+                            i_type: IEntryType::Other,
                             description: "".to_string(),
                         };
     
@@ -415,14 +415,23 @@ fn parse_interpro_xml(filename: &PathBuf)-> Result<HashMap<String, InterproInfo>
                             ip_short: "".to_string(),
                             ip_long: "".to_string(),
                             pfam_name: "".to_string(),
-                            i_type: "".to_string(),
+                            i_type: IEntryType::Other,
                             description: "".to_string(),
                         };
                         for attrib in attributes{
                             match attrib.name.local_name.as_str(){
                                 "id" => {ip_info.id = attrib.value},
                                 "short_name" => {ip_info.ip_short = attrib.value},
-                                "type" => {ip_info.i_type = attrib.value},
+                                "type" => {
+                                    ip_info.i_type = match attrib.value.as_str(){
+                                        "Homologous_superfamily" => IEntryType::Superfamily,
+                                        "Family" => IEntryType::Family,
+                                        "Domain" => IEntryType::Domain,
+                                        "Repeat" => IEntryType::Repeat,
+                                        "Site" => IEntryType::Site,
+                                        _ => IEntryType::Other,
+                                    };
+                                },
                                 _ => {},
                             }
                         }

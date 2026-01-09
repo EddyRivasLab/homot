@@ -50,29 +50,59 @@ void _addButton(
   double bottom,
   double left,
   double right,
-  String dName,
-  String dDesc,
-  String cName,
-  double sEval,
-  double dEval,
-  int sLen,
-  int hLen,
-  int sStart,
-  int sEnd,
-  int hStart,
-  int hEnd,
+  Domain domain,
   bool query,
-  bool fromBlast,
+  int seqLength,
+  double seqEvalue,
   BuildContext context,
 ) {
-  String tooltipText =
-      query
-          ? fromBlast
-              ? "Query: ${dName}\nSequence e-value: ${sEval.toStringAsExponential(2)}\nSequence length: ${sLen}\nDomain matched target positions ${sStart}-${sEnd}\nDomain matched query positions: ${hStart}-${hEnd}"
-              : "Query: ${dName}\nDomain e-value:${dEval.toStringAsExponential(2)}\nSequence e-value: ${sEval.toStringAsExponential(2)}\nSequence length: ${sLen}\nHMM length: ${hLen}\nDomain matched query positions ${sStart}-${sEnd}\nDomain matched HMM positions: ${hStart}-${hEnd}"
-          : "Domain: ${dName}\nDescription: ${dDesc} \nClan: ${cName}\nDomain e-value:${dEval.toStringAsExponential(2)}\nSequence e-value: ${sEval.toStringAsExponential(2)}\nSequence length: ${sLen}\nHMM length: ${hLen}\nDomain matched sequence positions ${sStart}-${sEnd}\nDomain matched HMM positions: ${hStart}-${hEnd}";
-
-  //print("addding button at top=$top bottom=$bottom left=$left right=$right\n" );
+  String tooltipText;
+ if (domain.source == AnnotationType.interpro){
+  tooltipText = "Pending";
+ }
+ else{
+    if (query) {
+      tooltipText = "Query: "+ domain.name;
+      if (!domain.fromBlast){
+        tooltipText += "\nDomain E-value: " + domain.domEvalue.toStringAsExponential(2);
+      }
+      tooltipText += "\nSequence e-value: " + seqEvalue.toStringAsExponential(2);
+      tooltipText += "\nTarget sequence length: " + seqLength.toString();
+      if(!domain.fromBlast){
+        tooltipText += "\nDomain HMM length: " + domain.hmmLength.toString();
+      }
+      tooltipText += "\nQuery matched sequence positions "+
+          domain.seqStart.toString() +
+          "-" +
+          domain.seqEnd.toString();
+      if (!domain.fromBlast){
+        tooltipText += "\nDomain matched HMM positions " +
+            domain.hmmStart.toString() +
+            "-" +
+            domain.hmmEnd.toString();
+      }
+    }
+    else{tooltipText = "Query: "+ domain.name;
+      if (!domain.fromBlast){
+        tooltipText += "\nDomain E-value: " + domain.domEvalue.toStringAsExponential(2);
+      }
+      tooltipText += "\nSequence e-value: " + seqEvalue.toStringAsExponential(2);
+      tooltipText += "\nTarget sequence length: " + seqLength.toString();
+      if(!domain.fromBlast){
+        tooltipText += "\nDomain HMM length: " + domain.hmmLength.toString();
+      }
+      tooltipText += "\nQuery matched sequence positions "+
+          domain.seqStart.toString() +
+          "-" +
+          domain.seqEnd.toString();
+      if (!domain.fromBlast){
+        tooltipText += "\nDomain matched HMM positions " +
+            domain.hmmStart.toString() +
+            "-" +
+            domain.hmmEnd.toString();
+      }
+    }
+  };
   buttons.add(
     Positioned(
       top: top,
@@ -100,6 +130,7 @@ typedef dCoord = ({int domain, int start, int end});
 class DrawDomains extends StatelessWidget {
   DrawDomains({
     super.key,
+    required this.context,
     required this.sequence,
     required this.length,
     required this.domains,
@@ -109,10 +140,10 @@ class DrawDomains extends StatelessWidget {
     required this.seqLength,
     required this.seqEvalue,
     required this.allDomains,
-    required this.addPatterns,
   });
 
   //final List<Domain> domains;
+  final BuildContext context;
   final String sequence;
   final int length;
   final List<Domain> domains;
@@ -122,18 +153,45 @@ class DrawDomains extends StatelessWidget {
   final int seqLength;
   final double seqEvalue;
   final bool allDomains;
-  final bool addPatterns;
 
   List<List<int>> _map_domains_to_rows(List<Domain> domains) {
     List<List<dCoord>> Lines = [[]];
     int whichDomain = 0;
+    final bool showSuperfamilies = Provider.of<HSettings>(context, listen: false).showInterproSuperfamily;
+    final bool showFamilies = Provider.of<HSettings>(context, listen: false).showInterproFamily;
+    final bool showDomains = Provider.of<HSettings>(context, listen: false).showInterproDomain;
+    final bool showRepeats = Provider.of<HSettings>(context, listen: false).showInterproRepeat;
+    final bool showSites = Provider.of<HSettings>(context, listen: false).showInterproSite;
+    final bool showOther = Provider.of<HSettings>(context, listen: false).showInterproOther;  
     for (var domain in domains) {
+      whichDomain += 1; // increment here so that this gets incremented even when we skip a domain
+      // means we have to subtract one from the domain number when we insert, though.
+      if (domain.source == AnnotationType.interpro){
+        // This is an InterPro domain; see if we should show it 
+        if (domain.iType == "Superfamily" && !showSuperfamilies) continue;
+        if (domain.iType == "Family" && !showFamilies) continue;
+        if (domain.iType == "Domain" && !showDomains) continue;
+        if (domain.iType == "Repeat" && !showRepeats) continue;
+        if (domain.iType == "Site" && !showSites) continue;
+        if (domain.iType == "Other" && !showOther) continue;
+        if (domain.iType != "Superfamily" &&
+            domain.iType != "Family" &&
+            domain.iType != "Domain" &&
+            domain.iType != "Repeat" &&
+            domain.iType != "Site"&&
+            domain.iType != "Other") {
+          // unknown type; skip it
+          print("Unknown InterPro type ${domain.iType} for domain ${domain.name}; skipping");
+          continue;
+        }
+      }
       bool foundSpot = false;
+      //print("Placing domain ${domain.name} at ${domain.seqStart}-${domain.seqEnd} ");
       for (var i = 0; i < Lines.length; i++) {
         // first, see if the domain fits at the beginning of the row
         if (Lines[i].isEmpty || domain.seqEnd < Lines[i][0].start) {
           Lines[i].insert(0, (
-            domain: whichDomain,
+            domain: whichDomain-1,
             start: domain.seqStart,
             end: domain.seqEnd,
           ));
@@ -144,7 +202,7 @@ class DrawDomains extends StatelessWidget {
         if (domain.seqStart > Lines[i][Lines[i].length - 1].end) {
           // fits at the end of the row
           Lines[i].add((
-            domain: whichDomain,
+            domain: whichDomain-1,
             start: domain.seqStart,
             end: domain.seqEnd,
           ));
@@ -157,7 +215,7 @@ class DrawDomains extends StatelessWidget {
               domain.seqEnd < Lines[i][j + 1].start) {
             // fits between items j and J+1
             Lines[i].insert(j + 1, (
-              domain: whichDomain,
+              domain: whichDomain-1,
               start: domain.seqStart,
               end: domain.seqEnd,
             ));
@@ -169,10 +227,9 @@ class DrawDomains extends StatelessWidget {
       // if we get here without finding a spot, we need to start a new row
       if (!foundSpot) {
         Lines.add([
-          (domain: whichDomain, start: domain.seqStart, end: domain.seqEnd),
+          (domain: whichDomain-1, start: domain.seqStart, end: domain.seqEnd),
         ]);
       }
-      whichDomain += 1;
     }
     List<List<int>> retval = [];
     for (var i = 0; i < Lines.length; i++) {
@@ -188,7 +245,7 @@ class DrawDomains extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //  print("DRawDomains called with length = $length and width = $width");
+    //  print("DrawDomains called with length = $length and width = $width");
     double textHeight, textWidth;
     (textWidth, textHeight) = _calc_legend_dimensions(
       Theme.of(context).textTheme,
@@ -258,7 +315,6 @@ class DrawDomains extends StatelessWidget {
       colorScheme: Theme.of(context).colorScheme,
       buttons: buttons,
       allDomains: allDomains,
-      addPatterns: addPatterns,
     );
     return Stack(
       children:
@@ -307,19 +363,10 @@ List<Widget> CreateButtons(
         (((i) * lineSpace + (lineSpace / 2)) * heightPerLine) + heightPerLine,
         start,
         start + domainWidth,
-        domain.name,
-        domain.description,
-        domain.clan,
-        seqEvalue,
-        domain.domEvalue,
-        seqLength,
-        domain.hmmLength,
-        domain.seqStart,
-        domain.seqEnd,
-        domain.hmmStart,
-        domain.hmmEnd,
+        domain,
         false,
-        domain.fromBlast,
+        seqLength,
+        seqEvalue,
         context,
       );
     }
@@ -337,19 +384,10 @@ List<Widget> CreateButtons(
             heightPerLine,
         start,
         start + domainWidth,
-        query.name,
-        query.description,
-        query.clan,
-        seqEvalue,
-        query.domEvalue,
-        seqLength,
-        query.hmmLength,
-        query.seqStart,
-        query.seqEnd,
-        query.hmmStart,
-        query.hmmEnd,
+        query,
         true,
-        query.fromBlast,
+        seqLength,
+        seqEvalue,
         context,
       );
     }
@@ -373,7 +411,7 @@ class DomainPainter extends CustomPainter {
   final ColorScheme colorScheme;
   List<Widget> buttons;
   final bool allDomains;
-  final bool addPatterns;
+
 
   DomainPainter({
     required this.context,
@@ -391,10 +429,10 @@ class DomainPainter extends CustomPainter {
     required this.colorScheme,
     required this.buttons,
     required this.allDomains,
-    required this.addPatterns,
   });
 
   _drawDomains(
+    BuildContext context,
     Canvas canvas,
     TouchyCanvas myCanvas,
     Paint paint,
@@ -403,11 +441,11 @@ class DomainPainter extends CustomPainter {
     List<List<int>> domainRows,
     TextTheme textTheme,
     List<Widget> buttons,
-    bool addPatterns,
     Size size,
   ) {
     List<double> lastEnds = List<double>.filled(domainRows.length, widthOffset);
-
+    bool addPatterns = Provider.of<HSettings>(context, listen: false).addPatterns;
+    bool pfamNames = Provider.of<HSettings>(context, listen: false).showNamesFrom == ShowNamesFrom.pfam;
     for (var i = 0; i < domainRows.length; i++) {
       for (var j = 0; j < domainRows[i].length; j++) {
         final domain = domains[domainRows[i][j]];
@@ -427,6 +465,7 @@ class DomainPainter extends CustomPainter {
           textTheme,
           buttons,
           addPatterns,
+          pfamNames,
           size
         );
         lastEnds[i] = end;
@@ -465,6 +504,7 @@ class DomainPainter extends CustomPainter {
     TextTheme textTheme,
     List<Widget> buttons,
     bool addPatterns,
+    bool pfamNames,
     Size size,
   ) {
     // set this up once in case we need it
@@ -591,7 +631,7 @@ class DomainPainter extends CustomPainter {
     );
     String name = "";
     double textOffset = position.dx + (width / 2);
-    String evalString = domain.domEvalue.toStringAsExponential(2);
+    String evalString = (domain.fromBlast || domain.source == AnnotationType.interpro) ? "":" ("+domain.domEvalue.toStringAsExponential(2)+")";
     Color textFG = searchdata.get_colors(domain.name).$2;
     Color textBG = Color(0x00000000); // transparent
     if(addPatterns){ // text becomes white on black background for visibility
@@ -599,7 +639,7 @@ class DomainPainter extends CustomPainter {
       textBG = Color(0xFF000000); // black
     }
     // see if all the data we'd like to display fits in the domain
-    name = domain.name + " (" + evalString + ")";
+    name = (domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "") ? domain.pfamName: domain.name + evalString;
     painter.text =
         painter.text = TextSpan(
           text: name,
@@ -615,7 +655,7 @@ class DomainPainter extends CustomPainter {
       painter.paint(canvas, textPosition);
     } else {
       //see if the domain name fits
-      name = domain.name;
+      name = domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "" ? domain.pfamName : domain.name;
       painter.text = TextSpan(
         text: name,
         style: textTheme.bodyMedium!.copyWith(
@@ -632,7 +672,7 @@ class DomainPainter extends CustomPainter {
         int numChars = domain.name.length;
         while (painter.width > (width - heightPerLine) && numChars > 0) {
           numChars -= 1;
-          name = domain.name.substring(0, numChars);
+          name = name.substring(0, numChars);
           painter.text = TextSpan(
             text: name,
             style: textTheme.bodyMedium!.copyWith(
@@ -689,6 +729,7 @@ class DomainPainter extends CustomPainter {
     );
     // draw the structure/annotated domains
     _drawDomains(
+      context,
       canvas,
       myCanvas,
       paint,
@@ -697,13 +738,13 @@ class DomainPainter extends CustomPainter {
       domainRows,
       textTheme,
       buttons,
-      addPatterns,
       size
     );
     // draw the queries
 
     // add the representation of the hit(s) to the sequence
     _drawDomains(
+      context,
       canvas,
       myCanvas,
       paint,
@@ -712,7 +753,6 @@ class DomainPainter extends CustomPainter {
       queryRows,
       textTheme,
       buttons,
-      addPatterns,
       size
     );
   }
@@ -727,6 +767,7 @@ double requiredHitWidth(
   bool showSequence,
   BuildContext context,
 ) {
+  bool pfamNames = Provider.of<HSettings>(context, listen: false).showNamesFrom == ShowNamesFrom.pfam;
   //textWidth here is the width of the legend text
   TextPainter painter;
   painter = TextPainter(
@@ -743,7 +784,7 @@ double requiredHitWidth(
   for (var domain in hit.queries) {
     // figure out how long the domain needs to be to fit the text we'll put in it
     String evalString = domain.domEvalue.toStringAsExponential(2);
-    String name = domain.name + " (" + evalString + ")";
+    String name = (domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "") ? domain.pfamName: domain.name + evalString;
     painter.text = TextSpan(
       text: name,
       style: Theme.of(context).textTheme.bodyMedium,
@@ -806,7 +847,6 @@ class DrawHit extends StatefulWidget {
     this.fullWidth = true,
     this.showSequence = false,
     this.sequence = "",
-    this.addPatterns = false,
   });
   final Hit hit;
   final bool allDomains;
@@ -814,7 +854,6 @@ class DrawHit extends StatefulWidget {
   final SearchData searchdata;
   final bool showSequence;
   final String sequence;
-  final bool addPatterns;
   State<DrawHit> createState() => _DrawHitState();
 }
 
@@ -852,6 +891,7 @@ class _DrawHitState extends State<DrawHit> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DrawDomains(
+                context: context,
                 sequence: widget.hit.sequence,
                 length: widget.hit.seqLength,
                 domains:
@@ -864,7 +904,6 @@ class _DrawHitState extends State<DrawHit> {
                 seqLength: widget.hit.seqLength,
                 seqEvalue: widget.hit.seqEvalue,
                 allDomains: widget.allDomains,
-                addPatterns: widget.addPatterns,
               ),
               if (widget.showSequence)
                 Text(
@@ -895,6 +934,7 @@ class _DrawHitState extends State<DrawHit> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           DrawDomains(
+            context: context,
             sequence: widget.hit.sequence,
             length: widget.hit.seqLength,
             domains:
@@ -907,7 +947,6 @@ class _DrawHitState extends State<DrawHit> {
             seqLength: widget.hit.seqLength,
             seqEvalue: widget.hit.seqEvalue,
             allDomains: widget.allDomains,
-            addPatterns: widget.addPatterns,
           ),
           if (widget.showSequence)
             Text(
@@ -1038,7 +1077,6 @@ class _DrawCategory extends State<DrawCategory>{
               hit: searchdata.hits[category.hits[0].toInt()],
               searchdata: searchdata,
               fullWidth: fullWidth,
-              addPatterns: hsettings.addPatterns,
             ),
           ],
         );

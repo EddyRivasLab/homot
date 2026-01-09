@@ -281,89 +281,34 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                           "Theme",
                         ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            ChoiceChip(
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.surface,
-                              checkmarkColor:
-                                  Theme.of(context).colorScheme.onSurface,
-                              selectedColor:
-                                  Theme.of(context).colorScheme.surface,
-                              side: BorderSide(
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                              label: Text(
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyMedium!.copyWith(
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
-                                ),
-                                "Light",
-                              ),
-                              selected: hsettings.mode == brightModes.light,
-                              onSelected: (bool selected) {
-                                if (selected == true) {
-                                  hsettings.mode = brightModes.light;
-                                }
-                              },
-                            ),
-                            ChoiceChip(
-                              label: Text(
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyMedium!.copyWith(
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
-                                ),
-                                "Dark",
-                              ),
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.surface,
-                              checkmarkColor:
-                                  Theme.of(context).colorScheme.onSurface,
-                              selectedColor:
-                                  Theme.of(context).colorScheme.surface,
-                              side: BorderSide(
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                              selected: hsettings.mode == brightModes.dark,
-                              onSelected: (bool selected) {
-                                if (selected == true) {
-                                  hsettings.mode = brightModes.dark;
-                                }
-                              },
-                            ),
-                            ChoiceChip(
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.surface,
-                              checkmarkColor:
-                                  Theme.of(context).colorScheme.onSurface,
-                              selectedColor:
-                                  Theme.of(context).colorScheme.surface,
-                              side: BorderSide(
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                              label: Text(
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyMedium!.copyWith(
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
-                                ),
-                                "System",
-                              ),
-                              selected: hsettings.mode == brightModes.system,
-                              onSelected: (bool selected) {
-                                if (selected == true) {
-                                  hsettings.mode = brightModes.system;
-                                }
-                              },
-                            ),
-                          ],
-                        ),
+                         RadioGroup<brightModes>(
+                      groupValue: hsettings.mode,
+                      onChanged: (brightModes? value){
+                        if (value != null){
+                          hsettings.mode = value;
+                        }
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                        IntrinsicWidth( 
+                          child: RadioListTile<brightModes>(
+                          title: Text('Light'),
+                          value: brightModes.light,
+                        ),),
+                        IntrinsicWidth( child:
+                        RadioListTile<brightModes>(
+                          title: Text('Dark'),
+                          value: brightModes.dark,
+                        ),),
+                        IntrinsicWidth( 
+                          child: RadioListTile<brightModes>(
+                          title: Text('System'),
+                          value: brightModes.system,
+                        ),),
+                      ],),
+                         ),
+                      
                       ],
                     ),
                   ),
@@ -534,23 +479,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                       ],
                     ),
-                    Row(children: [Checkbox(
-                  value: hsettings.addPatterns,
-                  onChanged: (bool? newValue) {
-                    hsettings.addPatterns = newValue ??false;
-                    },
-                    ),
-                   Text(
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          "Add Patterns to Graph/Domain Displays",
-                        ), 
                     ],
                     ),
-                    ],),
                   ),
                   Card(
                     color: Theme.of(context).colorScheme.surface,
@@ -564,92 +494,33 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                           "Search Result File Type",
                         ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            ChoiceChip(
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.surface,
-                              checkmarkColor:
-                                  Theme.of(context).colorScheme.onSurface,
-                              selectedColor:
-                                  Theme.of(context).colorScheme.surface,
-                              side: BorderSide(
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                              label: Text(
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyMedium!.copyWith(
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
-                                ),
-                                "HMMER domtblout",
-                              ),
-                              selected:
-                                  hsettings.dataType == DataFileType.domTblOut,
-                              onSelected: (bool selected) {
-                                if (selected == true) {
-                                  hsettings.dataType = DataFileType.domTblOut;
-                                }
-                              },
-                            ),
-                            ChoiceChip(
-                              label: Text(
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyMedium!.copyWith(
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
-                                ),
-                                "BLAST tabular",
-                              ),
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.surface,
-                              checkmarkColor:
-                                  Theme.of(context).colorScheme.onSurface,
-                              selectedColor:
-                                  Theme.of(context).colorScheme.surface,
-                              side: BorderSide(
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                              selected:
-                                  hsettings.dataType == DataFileType.blast,
-                              onSelected: (bool selected) {
-                                if (selected == true) {
-                                  hsettings.dataType = DataFileType.blast;
-                                }
-                              },
-                            ),
-                            ChoiceChip(
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.surface,
-                              checkmarkColor:
-                                  Theme.of(context).colorScheme.onSurface,
-                              selectedColor:
-                                  Theme.of(context).colorScheme.surface,
-                              side: BorderSide(
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                              label: Text(
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyMedium!.copyWith(
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
-                                ),
-                                "Infer from file contents",
-                              ),
-                              selected:
-                                  hsettings.dataType == DataFileType.infer,
-                              onSelected: (bool selected) {
-                                if (selected == true) {
-                                  hsettings.dataType = DataFileType.infer;
-                                }
-                              },
-                            ),
-                          ],
-                        ),
+                         RadioGroup<DataFileType>(
+                      groupValue: hsettings.dataType,
+                      onChanged: (DataFileType? value){
+                        if (value != null){
+                          hsettings.dataType = value;
+                        }
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                        IntrinsicWidth( 
+                          child: RadioListTile<DataFileType>(
+                          title: Text('HMMER domtblout'),
+                          value: DataFileType.domTblOut,
+                        ),),
+                        IntrinsicWidth( child:
+                        RadioListTile<DataFileType>(
+                          title: Text('BLAST tabular'),
+                          value: DataFileType.blast,
+                        ),),
+                        IntrinsicWidth( 
+                          child: RadioListTile<DataFileType>(
+                          title: Text('Infer from file contents'),
+                          value: DataFileType.infer,
+                        ),),
+                      ],),
+                         ),
                       ],
                     ),
                   ),
@@ -845,6 +716,182 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                   ),
+                  Card(
+                    color: Theme.of(context).colorScheme.surface,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                      Text(style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium!.copyWith(
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface),
+                          "Interpro Annotations (No Effect if Database Annotated From Another Source)"),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          IntrinsicWidth(child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium!.copyWith(
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                                "Show Annotations of Type(s)",
+                              ),
+                            CheckboxListTile(
+                                title: Text(
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium!.copyWith(
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                  "Superfamily",
+                                ),
+                                value: hsettings.showInterproSuperfamily,
+                                onChanged: (bool? value) {
+                                  if (value != null) {
+                                    hsettings.showInterproSuperfamily = value;
+                                  }
+                                },
+                              ),
+                              CheckboxListTile(
+                                title: Text(
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium!.copyWith(
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                  "Family",
+                                ),
+                                value: hsettings.showInterproFamily,
+                                onChanged: (bool? value) {
+                                  if (value != null) {
+                                    hsettings.showInterproFamily = value;
+                                  }
+                                },
+                              ),
+                              CheckboxListTile(
+                                title: Text(
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium!.copyWith(
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                  "Domain",
+                                ),
+                                value: hsettings.showInterproDomain,
+                                onChanged: (bool? value) {
+                                  if (value != null) {
+                                    hsettings.showInterproDomain = value;
+                                  }
+                                },
+                              ),
+
+                              CheckboxListTile(
+                                title: Text(
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium!.copyWith(
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                  "Repeat",
+                                ),
+                                value: hsettings.showInterproRepeat,
+                                onChanged: (bool? value) {
+                                  if (value != null) {
+                                    hsettings.showInterproRepeat = value;
+                                  }
+                                },
+                              ),
+                              CheckboxListTile(
+                                title: Text(
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium!.copyWith(
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                  "Site",
+                                ),
+                                value: hsettings.showInterproSite,
+                                onChanged: (bool? value) {
+                                  if (value != null) {
+                                    hsettings.showInterproSite = value;
+                                  }
+                                },
+                                
+                              ),
+                              CheckboxListTile(
+                                title: Text(
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium!.copyWith(
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                  "Other",
+                                ),
+                                value: hsettings.showInterproOther,
+                                onChanged: (bool? value) {
+                                  if (value != null) {
+                                    hsettings.showInterproOther = value;
+                                  }
+                                },
+                              ),
+                            ],
+                          ),),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium!.copyWith(
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                                "Show Domain Names From",
+                              ),
+                              RadioGroup<ShowNamesFrom>(
+                                groupValue: hsettings.showNamesFrom,
+                                onChanged: (ShowNamesFrom? value){
+                                  if (value != null){
+                                    hsettings.showNamesFrom = value;
+                                  }
+                                },
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                  IntrinsicWidth( 
+                                    child: RadioListTile<ShowNamesFrom>(
+                                    title: Text('Pfam (If Available())'),
+                                    value: ShowNamesFrom.pfam,
+                                  ),),
+                                  IntrinsicWidth( 
+                                    child: RadioListTile<ShowNamesFrom>(
+                                    title: Text('Interpro'),
+                                    value: ShowNamesFrom.interpro,
+                                  ),),
+                                ],),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                                            ],) 
+                    ),
                 ],
               ),
             ],
@@ -1941,7 +1988,6 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
                           hit: searchdata.hits[index],
                           searchdata: searchdata,
                           fullWidth: fullWidth[index],
-                          addPatterns: hsettings.addPatterns,
                         ),
                       ],
                     ),
@@ -2045,8 +2091,7 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                         DrawHit(
                           hit: searchdata.hits[hitIndices[index].toInt()],
                           searchdata: searchdata,
-                          fullWidth: fullWidth[index],
-                          addPatterns: hsettings.addPatterns,
+                          fullWidth: fullWidth[index]
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -2157,7 +2202,6 @@ class _SequencePageState extends State<SequencePage> {
                       fullWidth: fullWidth,
                       showSequence: true,
                       sequence: theHit.sequence,
-                      addPatterns: hsettings.addPatterns,
                     ),
                     Align(
                       alignment: Alignment(1.0, 0.0),

@@ -12,14 +12,14 @@ pub struct InterproInfo{
     pub ip_short: String,
     pub ip_long: String,
     pub pfam_name: String,
-    pub i_type: String,
+    pub i_type: IEntryType,
     pub description: String, 
 }
 
 impl InterproInfo{
     pub fn format(&self) -> String {
-      format!("InterproInfo: id: {}, ip_short: {}, ip_long: {}, pfam_name: {}, i_type: {}, description: {}", 
-    self.id, self.ip_short, self.ip_long, self.pfam_name, self.i_type, self.description)
+      format!("InterproInfo: id: {}, ip_short: {}, ip_long: {}, pfam_name: {}, description: {}", 
+    self.id, self.ip_short, self.ip_long, self.pfam_name, self.description)
     }
 }
 
@@ -55,7 +55,7 @@ pub struct Dmap{
     pub ip_short: String,
     pub ip_long: String,
     pub pfam_name: String,
-    pub i_type: String,
+    pub i_type: IEntryType,
 }
 
 impl From<&Dmap> for Slice{
@@ -71,6 +71,7 @@ impl From<&UserValue> for Dmap{
     }
 }
 
+// Enum that holds the source of the annotation data
 #[derive(Clone, Serialize, Deserialize)]
 pub enum AnnotationType{Hmmer, Interpro, Other}
 
@@ -82,10 +83,28 @@ impl From<&AnnotationType> for Slice{
 
 impl From<&UserValue> for AnnotationType{
     fn from(value: &UserValue) -> Self{
-        let item: AnnotationType = rmp_serde::from_slice(&value).expect("Deserialization error for Dmap");
+        let item: AnnotationType = rmp_serde::from_slice(&value).expect("Deserialization error for AnnotationType");
         item
     }
 }
+
+// Enum that holds the type of entry for an Interpro Annotation
+#[derive(Clone, Serialize, Deserialize)]
+pub enum IEntryType{Superfamily, Family, Domain, Repeat, Site, Other}
+
+impl From<&IEntryType> for Slice{
+    fn from(val: &IEntryType) ->Self{
+        rmp_serde::to_vec(&val).expect("Serialization error for IEntryType").into()
+    }
+}
+
+impl From<&UserValue> for IEntryType{
+    fn from(value: &UserValue) -> Self{
+        let item: IEntryType = rmp_serde::from_slice(&value).expect("Deserialization error for IEntryType");
+        item
+    }
+}
+
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Domain{

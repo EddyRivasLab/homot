@@ -190,6 +190,15 @@ Future<void> main() async {
   int mode = await prefs.getInt("Hmmtax_mode") ?? 3;
   int DataFileType = await prefs.getInt("Hmmtax_datatype") ?? 3;
   bool addPatterns = await prefs.getBool("Hmmtax_patterns") ?? false;
+  bool showInterproSuperfamily = await prefs.getBool("Hmmtax_show_superfamily") ?? true;
+  bool showInterproFamily = await prefs.getBool("Hmmtax_show_family") ?? true;
+  bool showInterproDomain = await prefs.getBool("Hmmtax_show_domain") ?? true;
+  bool showInterproRepeat = await prefs.getBool("Hmmtax_show_repeat") ?? true;
+  bool showInterproSite = await prefs.getBool("Hmmtax_show_site") ?? true;
+  bool showInterproOther = await prefs.getBool("Hmmtax_show_other") ?? true;
+  bool temp = await prefs.getBool("Hmmtax_interpro_names_from_pfam") ?? true;
+  ShowNamesFrom namesFrom = temp ? ShowNamesFrom.pfam : ShowNamesFrom.interpro;
+
   runApp(
     MultiProvider(
       providers: [
@@ -208,7 +217,14 @@ Future<void> main() async {
                 domEvalMin,
                 lineWidth,
                 DataFileType,
-                addPatterns
+                addPatterns,
+                showInterproSuperfamily,
+                showInterproFamily,
+                showInterproDomain,
+                showInterproRepeat,
+                showInterproSite,
+                showInterproOther,
+                namesFrom,
               ),
         ),
         ChangeNotifierProvider(create: (_) => SearchData()),
@@ -260,6 +276,9 @@ class MyApp extends StatelessWidget {
 
 enum brightModes { light, dark, system }
 enum GraphDrawType{line, wedge, outline, fill}
+
+enum ShowNamesFrom{pfam, interpro}
+
 // ChangeNotifier for theme state
 class HSettings with ChangeNotifier {
   brightModes _mode = brightModes.light;
@@ -274,6 +293,14 @@ class HSettings with ChangeNotifier {
   double _domEvalMin = 0.0;
   double _lineWidth = 2.0;
   bool _addPatterns = false;
+  bool _showInterproSuperfamily = true;
+  bool _showInterproFamily = true;
+  bool _showInterproDomain = true;
+  bool _showInterproRepeat = true;
+  bool _showInterproSite = true;
+  bool _showInterproOther = true;
+  ShowNamesFrom _namesFrom = ShowNamesFrom.pfam;
+
   GraphDrawType _drawType = GraphDrawType.line;
   late SharedPreferencesAsync _prefs;
   List<(Color, Color, PatternType, Color, Color)> get graphColors {
@@ -297,6 +324,13 @@ class HSettings with ChangeNotifier {
     double lineWidth,
     int dataType,
     bool addPatterns,
+    bool showInterproSuperfamily,
+    bool showInterproFamily,
+    bool showInterproDomain,
+    bool showInterproRepeat,
+    bool showInterproSite,
+    bool showInterproOther,
+    ShowNamesFrom namesFrom,
   ) {
     _prefs = prefs;
     _font = font;
@@ -307,6 +341,14 @@ class HSettings with ChangeNotifier {
     _domEvalMin = domEvalMin;
     _lineWidth = lineWidth;
     _addPatterns = addPatterns;
+    _showInterproSuperfamily = showInterproSuperfamily;
+    _showInterproDomain = showInterproDomain;
+    _showInterproFamily = showInterproFamily;
+    _showInterproRepeat = showInterproRepeat; 
+    _showInterproSite = showInterproSite; 
+    _showInterproOther = showInterproOther;
+    _namesFrom = namesFrom;
+
     switch (mode) {
       case 1:
         _mode = brightModes.light;
@@ -469,7 +511,45 @@ class HSettings with ChangeNotifier {
     _prefs.setBool("Hmmtax_patterns", val);
     notifyListeners();
   } 
-  
+  void set showInterproSuperfamily(bool val) {
+    _showInterproSuperfamily = val;
+    _prefs.setBool("Hmmtax_show_superfamily", val);
+    notifyListeners();
+  } 
+  void set showInterproFamily(bool val) {
+    _showInterproFamily = val;
+    _prefs.setBool("Hmmtax_show_family", val);
+    notifyListeners();
+  }
+  void set showInterproDomain(bool val) {
+    _showInterproDomain = val;
+    _prefs.setBool("Hmmtax_show_domain", val);
+    notifyListeners();
+  }
+  void set showInterproRepeat(bool val) {
+    _showInterproRepeat = val;
+    _prefs.setBool("Hmmtax_show_repeat", val);
+    notifyListeners();
+  }
+  void set showInterproSite(bool val) {
+    _showInterproSite = val;
+    _prefs.setBool("Hmmtax_show_site", val);
+    notifyListeners();
+  }
+  void set showInterproOther(bool val) {
+    _showInterproOther = val;
+    _prefs.setBool("Hmmtax_show_other", val);
+    notifyListeners();
+  }
+  void set showNamesFrom(ShowNamesFrom val){
+    _namesFrom = val;
+    if (val == ShowNamesFrom.pfam){
+      _prefs.setBool("Hmmtax_interpro_names_from_pfam", true);
+    } else {
+      _prefs.setBool("Hmmtax_interpro_names_from_pfam", false);
+    }     
+    notifyListeners();
+  }
   ThemeData get themeData => _updateTheme();
   double get scale => _scale;
   String get font => _font;
@@ -481,6 +561,14 @@ class HSettings with ChangeNotifier {
   double get lineWidth => _lineWidth;
   DataFileType get dataType => _dataType;
   bool get addPatterns => _addPatterns;
+  bool get showInterproSuperfamily => _showInterproSuperfamily;
+  bool get showInterproFamily => _showInterproFamily;
+  bool get showInterproDomain => _showInterproDomain;
+  bool get showInterproRepeat => _showInterproRepeat;
+  bool get showInterproSite => _showInterproSite;
+  bool get showInterproOther => _showInterproOther;
+  ShowNamesFrom get showNamesFrom => _namesFrom;
+
   GraphDrawType get drawType => _drawType;
 }
 
