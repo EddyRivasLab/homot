@@ -12,7 +12,7 @@ use std::time::{Instant};
 use std::cmp::Reverse;
 use rayon::prelude::*;
 use std::sync::{Arc, Mutex};
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 pub enum AnnotationType{Hmmer, Interpro, Other}
 
 impl From<&AnnotationType> for Slice{
@@ -305,7 +305,9 @@ fn count_hits(graph: &mut HashMap<i64, Node>, id: i64) -> i64 {
 
 
 #[frb(serialize)]
-pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32, eval_min: f32, dom_eval_max:f32, dom_eval_min: f32, fileType: DataFileType) -> SearchResults{
+pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32, eval_min: f32, dom_eval_max:f32, dom_eval_min: f32, fileType: DataFileType, 
+    interpro_show_superfamily: bool, interpro_show_family: bool, interpro_show_domain: bool, interpro_show_repeat: bool, interpro_show_site: bool, 
+    interpro_show_other: bool, interpro_show_pfam_names: bool) -> SearchResults{
    // println!("Starting fetch_graph");
 
     let mut results = SearchResults{
@@ -383,13 +385,14 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
 
     let mut hits:Vec<Hit> = Vec::new();
     let mut hit_map:DashMap<String, Hit> = DashMap::with_shard_amount(1024);
-    let mut root: i64;
+    let root: i64;
     let mut num_domtbl_hits: i64 = 0;
     let now = Instant::now();
     // load hits from the data files
     for domtbloutfile in domtblout_files{
        // println!("searching {}", domtbloutfile);
-        match read_hits_from_file(&domtbloutfile,  &mut hit_map, eval_min, eval_max, dom_eval_min, dom_eval_max, &db, &domain_map, &fileType){  
+        match read_hits_from_file(&domtbloutfile,  &mut hit_map, eval_min, eval_max, dom_eval_min, dom_eval_max, &db, 
+            &domain_map, &fileType){  
             Ok(v) => {
                         num_domtbl_hits += v;
             }
@@ -434,7 +437,8 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
     // check that everyone agrees on how many hits there are
     assert!(num_domtbl_hits == total_hits);
     assert!(total_hits as usize == hits.len());
-    (results.structures, results.hit_structures) = compute_signatures(&hits);
+    (results.structures, results.hit_structures) = compute_signatures(&hits, &interpro_show_superfamily, &interpro_show_family,
+         &interpro_show_domain, &interpro_show_repeat, &interpro_show_site, &interpro_show_other, &interpro_show_pfam_names);
     assert!(results.hit_structures.len() == hits.len());
     let temp:HitResults = find_hits_below_node(root, &graph, &results.hit_structures);
     results.succeeded = true;
@@ -450,7 +454,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
 
 // Wrapper that calls the right read_hits function based on file type
 fn read_hits_from_file(filename: &str, hits: &mut DashMap<String, Hit>, min_seq_evalue: f32, max_seq_evalue: f32, min_dom_evalue: f32, max_dom_evalue: f32, 
-annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap>, fileType: &DataFileType) -> Result<i64, String>{
+    annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap>, fileType: &DataFileType) -> Result<i64, String>{
 
 
     let file = match File::open(filename){
@@ -493,7 +497,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
     // domain_map should be safe as a HashMap because it doesn't get modified in this code
 
     let hit_count = AtomicI64::new(0);
-    let mut errMsg = Arc::new(Mutex::new(String::new()));
+    let errMsg = Arc::new(Mutex::new(String::new()));
     // Parse the lines in the domtblout file
 // old serial iterator
   /*   for l in reader.lines() {
@@ -634,7 +638,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
 
             // get the annotated sequence from the db that corresponds to the target
             let res1 = match annotation_db.get(&target_name){
-                Err(why) => {
+                Err(_why) => {
                     //errmsg =format!("Error fetching sequence {} from annotation database, reason was: {}", target_name, why);
                     None
                 }
@@ -643,7 +647,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
             let seq_ann: AnnotatedSequence = match res1{
                 Some(d) => match rmp_serde::from_slice(&d){
                     Ok(d) => d,
-                    Err(msg) => {
+                    Err(_msg) => {
                      //errmsg = format!("Deserialization error for Annotated Sequence, reason was: {}" , &msg.to_string());
                     AnnotatedSequence{
                         name: target_name.clone(),
@@ -656,7 +660,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                     }
                     },
                 },
-                None => {let mut fake_sequence = AnnotatedSequence{
+                None => {let fake_sequence = AnnotatedSequence{
                         name: target_name.clone(),
                         sequence: str::repeat("X", seq_end as usize),
                         length: seq_end, // This is a fake sequence, not in the database
@@ -934,7 +938,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
 
             // get the annotated sequence from the db that corresponds to the target
             let res1 = match annotation_db.get(&target_name){
-                Err(why) => {
+                Err(_why) => {
                     //errmsg =format!("Error fetching sequence {} from annotation database, reason was: {}", target_name, why);
                     None
                 }
@@ -943,7 +947,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
             let seq_ann: AnnotatedSequence = match res1{
                 Some(d) => match rmp_serde::from_slice(&d){
                     Ok(d) => d,
-                    Err(msg) => {
+                    Err(_msg) => {
                      //errmsg = format!("Deserialization error for Annotated Sequence, reason was: {}" , &msg.to_string());
                     AnnotatedSequence{
                         name: target_name.clone(),
@@ -1226,7 +1230,8 @@ fn create_domain_list(hits: &Vec<Hit>) -> Vec<String>{
 // Generates a string representing the domain structure of a sequence
 // Requires that the domains in its input vector are sorted in ascending 
 // order by start position within the sequence
-fn domains_to_structure(domains: &Vec<Domain>)->String{
+fn domains_to_structure(domains: &Vec<Domain>, interpro_show_superfamily: &bool, interpro_show_family: &bool, interpro_show_domain: &bool, interpro_show_repeat: &bool, interpro_show_site: &bool, 
+    interpro_show_other: &bool, interpro_show_pfam_names: &bool)->String{
     if domains.len() == 0{
         // sequence contained no standard domains
         return "None".to_string();
@@ -1237,26 +1242,56 @@ fn domains_to_structure(domains: &Vec<Domain>)->String{
     let mut sorted_domains:Vec<Domain> = domains.clone();
     sorted_domains.sort_by_key(|d| d.seq_start);
     for domain in sorted_domains{
+        if domain.source == AnnotationType::Interpro { 
+            // see if we want to include this type of interpro data
+            if (domain.i_type == "Superfamily")&&(!*interpro_show_superfamily){
+                continue;
+            }
+            if (domain.i_type == "Family")&&(!*interpro_show_family){
+                continue;
+            }
+            if (domain.i_type == "Domain")&&(!*interpro_show_domain){
+                continue;
+            }
+            if (domain.i_type == "Repeat")&&(!*interpro_show_repeat){
+                continue;
+            }
+            if (domain.i_type == "Site")&&(!*interpro_show_site){
+                continue;
+            }
+            if (domain.i_type != "Other")&&(!interpro_show_other){
+                continue;
+            }
+        }
         if structure != ""{
             // There's already at least one domain in it
             structure.push_str(", ");
         }
+        if(*interpro_show_pfam_names) && (domain.source == AnnotationType::Interpro) && (!domain.pfam_name.is_empty()){
+            structure.push_str(&domain.pfam_name);
+        }
+        else{
         structure.push_str(&domain.name);
+        }
     }
+    print!(" {}\n", structure);
     structure    
 }
 
 // Given a list of hits, finds the set of domain signatures for those hits and creates a string 
 // describing each domain signature.  Returns those signatures.
 // Assigns each hit to a signature, represented as an index into the array of signatures and returns that. 
-fn compute_signatures(hits: &Vec<Hit>) -> (Vec<String>, Vec<u32>){
+fn compute_signatures(hits: &Vec<Hit>, interpro_show_superfamily: &bool, interpro_show_family: &bool, interpro_show_domain: &bool, interpro_show_repeat: &bool, interpro_show_site: &bool, 
+    interpro_show_other: &bool, interpro_show_pfam_names: &bool) -> (Vec<String>, Vec<u32>){
     let mut hit_map:HashMap<String, u32> = HashMap::new();
     let mut structures:Vec<String> = Vec::new();
     let mut hit_structures:Vec<u32> = Vec::new();
     let mut current_signature:u32= 0;
 
     for hit in hits{
-        let structure = domains_to_structure(&hit.structure_domains);
+        print!("{}", hit.name);
+        let structure = domains_to_structure(&hit.structure_domains, &interpro_show_superfamily, &interpro_show_family, &interpro_show_domain, 
+            &interpro_show_repeat, &interpro_show_site, &interpro_show_other, &interpro_show_pfam_names);
         match hit_map.get(&structure){
             Some(sig_number) => { // We already have a category for this signature, so assign the hit to that category
                 hit_structures.push(*sig_number);

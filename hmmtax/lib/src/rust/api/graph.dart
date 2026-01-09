@@ -8,7 +8,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `build_graph_from_hits`, `compute_signatures`, `count_hits`, `create_domain_id_map`, `create_domain_list`, `domains_to_structure`, `read_hits_from_blast`, `read_hits_from_domtblout`, `read_hits_from_file`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AnnotatedSequence`, `DbDomain`, `Dmap`, `ResultsOverview`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 Future<SearchResults> fetchGraph({
   required String annfile,
@@ -18,6 +18,13 @@ Future<SearchResults> fetchGraph({
   required double domEvalMax,
   required double domEvalMin,
   required DataFileType fileType,
+  required bool interproShowSuperfamily,
+  required bool interproShowFamily,
+  required bool interproShowDomain,
+  required bool interproShowRepeat,
+  required bool interproShowSite,
+  required bool interproShowOther,
+  required bool interproShowPfamNames,
 }) => RustLib.instance.api.crateApiGraphFetchGraph(
   annfile: annfile,
   domtbloutFiles: domtbloutFiles,
@@ -26,6 +33,13 @@ Future<SearchResults> fetchGraph({
   domEvalMax: domEvalMax,
   domEvalMin: domEvalMin,
   fileType: fileType,
+  interproShowSuperfamily: interproShowSuperfamily,
+  interproShowFamily: interproShowFamily,
+  interproShowDomain: interproShowDomain,
+  interproShowRepeat: interproShowRepeat,
+  interproShowSite: interproShowSite,
+  interproShowOther: interproShowOther,
+  interproShowPfamNames: interproShowPfamNames,
 );
 
 HitResults findHitsBelowNode({

@@ -1397,7 +1397,6 @@ class _MacMenuBarState extends State<MacMenu> {
       ),
       GoRoute(path: '/allevalue', builder: (context, state) => AllEvaluePage()),
       GoRoute(path: '/sequence', builder: (context, state) => SequencePage()),
-      GoRoute(path: '/svg', builder: (context, state) => SvgPage()),
     ],
   );
   Widget build(BuildContext context) {

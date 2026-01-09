@@ -92,6 +92,13 @@ abstract class RustLibApi extends BaseApi {
     required double domEvalMax,
     required double domEvalMin,
     required DataFileType fileType,
+    required bool interproShowSuperfamily,
+    required bool interproShowFamily,
+    required bool interproShowDomain,
+    required bool interproShowRepeat,
+    required bool interproShowSite,
+    required bool interproShowOther,
+    required bool interproShowPfamNames,
   });
 
   HitResults crateApiGraphFindHitsBelowNode({
@@ -167,6 +174,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required double domEvalMax,
     required double domEvalMin,
     required DataFileType fileType,
+    required bool interproShowSuperfamily,
+    required bool interproShowFamily,
+    required bool interproShowDomain,
+    required bool interproShowRepeat,
+    required bool interproShowSite,
+    required bool interproShowOther,
+    required bool interproShowPfamNames,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -179,6 +193,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_f_32(domEvalMax, serializer);
           sse_encode_f_32(domEvalMin, serializer);
           sse_encode_data_file_type(fileType, serializer);
+          sse_encode_bool(interproShowSuperfamily, serializer);
+          sse_encode_bool(interproShowFamily, serializer);
+          sse_encode_bool(interproShowDomain, serializer);
+          sse_encode_bool(interproShowRepeat, serializer);
+          sse_encode_bool(interproShowSite, serializer);
+          sse_encode_bool(interproShowOther, serializer);
+          sse_encode_bool(interproShowPfamNames, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -199,6 +220,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           domEvalMax,
           domEvalMin,
           fileType,
+          interproShowSuperfamily,
+          interproShowFamily,
+          interproShowDomain,
+          interproShowRepeat,
+          interproShowSite,
+          interproShowOther,
+          interproShowPfamNames,
         ],
         apiImpl: this,
       ),
@@ -215,6 +243,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       "domEvalMax",
       "domEvalMin",
       "fileType",
+      "interproShowSuperfamily",
+      "interproShowFamily",
+      "interproShowDomain",
+      "interproShowRepeat",
+      "interproShowSite",
+      "interproShowOther",
+      "interproShowPfamNames",
     ],
   );
 

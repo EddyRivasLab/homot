@@ -54,11 +54,25 @@ void _addButton(
   bool query,
   int seqLength,
   double seqEvalue,
+  bool usePfamNames,
   BuildContext context,
 ) {
   String tooltipText;
  if (domain.source == AnnotationType.interpro){
-  tooltipText = "Pending";
+  tooltipText = domain.iType+ ":";
+  if (domain.iType == "Domain" && usePfamNames && domain.pfamName != ""){
+    tooltipText += " "+ domain.pfamName;
+  }
+  else{
+    tooltipText += " "+ domain.name;
+  }
+  tooltipText += "\nDescription: " + domain.description;
+  tooltipText += "\nTarget sequence length: " + seqLength.toString();
+
+  tooltipText += "\n"+domain.iType+ " occupied sequence positions "+
+      domain.seqStart.toString() +
+      "-" +
+      domain.seqEnd.toString();
  }
  else{
     if (query) {
@@ -82,7 +96,8 @@ void _addButton(
             domain.hmmEnd.toString();
       }
     }
-    else{tooltipText = "Query: "+ domain.name;
+    else{tooltipText = "Domain: "+ domain.name;
+      tooltipText += "\nDescription: " + domain.description;
       if (!domain.fromBlast){
         tooltipText += "\nDomain E-value: " + domain.domEvalue.toStringAsExponential(2);
       }
@@ -168,11 +183,11 @@ class DrawDomains extends StatelessWidget {
       // means we have to subtract one from the domain number when we insert, though.
       if (domain.source == AnnotationType.interpro){
         // This is an InterPro domain; see if we should show it 
-        if (domain.iType == "Superfamily" && !showSuperfamilies) continue;
+        if (domain.iType == "Superfamily"&& !showSuperfamilies) continue;
         if (domain.iType == "Family" && !showFamilies) continue;
         if (domain.iType == "Domain" && !showDomains) continue;
         if (domain.iType == "Repeat" && !showRepeats) continue;
-        if (domain.iType == "Site" && !showSites) continue;
+        if (domain.iType == "Site"  && !showSites) continue;
         if (domain.iType == "Other" && !showOther) continue;
         if (domain.iType != "Superfamily" &&
             domain.iType != "Family" &&
@@ -367,6 +382,7 @@ List<Widget> CreateButtons(
         false,
         seqLength,
         seqEvalue,
+        Provider.of<HSettings>(context, listen: false).showNamesFrom == ShowNamesFrom.pfam,
         context,
       );
     }
@@ -388,6 +404,7 @@ List<Widget> CreateButtons(
         true,
         seqLength,
         seqEvalue,
+        Provider.of<HSettings>(context, listen: false).showNamesFrom == ShowNamesFrom.pfam,
         context,
       );
     }

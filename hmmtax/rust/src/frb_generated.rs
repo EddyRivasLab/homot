@@ -134,6 +134,13 @@ fn wire__crate__api__graph__fetch_graph_impl(
             let api_dom_eval_max = <f32>::sse_decode(&mut deserializer);
             let api_dom_eval_min = <f32>::sse_decode(&mut deserializer);
             let api_fileType = <crate::api::graph::DataFileType>::sse_decode(&mut deserializer);
+            let api_interpro_show_superfamily = <bool>::sse_decode(&mut deserializer);
+            let api_interpro_show_family = <bool>::sse_decode(&mut deserializer);
+            let api_interpro_show_domain = <bool>::sse_decode(&mut deserializer);
+            let api_interpro_show_repeat = <bool>::sse_decode(&mut deserializer);
+            let api_interpro_show_site = <bool>::sse_decode(&mut deserializer);
+            let api_interpro_show_other = <bool>::sse_decode(&mut deserializer);
+            let api_interpro_show_pfam_names = <bool>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, ()>((move || {
@@ -145,6 +152,13 @@ fn wire__crate__api__graph__fetch_graph_impl(
                         api_dom_eval_max,
                         api_dom_eval_min,
                         api_fileType,
+                        api_interpro_show_superfamily,
+                        api_interpro_show_family,
+                        api_interpro_show_domain,
+                        api_interpro_show_repeat,
+                        api_interpro_show_site,
+                        api_interpro_show_other,
+                        api_interpro_show_pfam_names,
                     ))?;
                     Ok(output_ok)
                 })())

@@ -428,8 +428,8 @@ fn parse_interpro_xml(filename: &PathBuf)-> Result<HashMap<String, InterproInfo>
                                         "Family" => IEntryType::Family,
                                         "Domain" => IEntryType::Domain,
                                         "Repeat" => IEntryType::Repeat,
-                                        "Site" => IEntryType::Site,
-                                        _ => IEntryType::Other,
+                                        "Conserved_site" => IEntryType::Site,
+                                        _ => {eprintln!("Unknown InterPro type: {}", attrib.value); IEntryType::Other},
                                     };
                                 },
                                 _ => {},

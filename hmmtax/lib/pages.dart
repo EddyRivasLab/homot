@@ -139,6 +139,14 @@ class _MainPageState extends State<MainPage> {
                               domEvalMax: hsettings.domEvalMax,
                               domEvalMin: hsettings.domEvalMin,
                               fileType: hsettings.dataType,
+                              interproShowSuperfamily:
+                                  hsettings.showInterproSuperfamily,
+                              interproShowFamily: hsettings.showInterproFamily,
+                              interproShowDomain: hsettings.showInterproDomain,
+                              interproShowRepeat: hsettings.showInterproRepeat, 
+                              interproShowSite: hsettings.showInterproSite,
+                              interproShowOther: hsettings.showInterproOther,
+                              interproShowPfamNames: (hsettings.showNamesFrom == ShowNamesFrom.pfam),
                             ));
                             ScaffoldMessenger.of(context).clearSnackBars();
                             // Update the overview data
@@ -2173,8 +2181,8 @@ class _SequencePageState extends State<SequencePage> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.sizeOf(context).width;
     return Material(
-      child: Consumer2<SearchData, HSettings>(
-        builder: (context, searchdata, hsettings, child) {
+      child: Consumer3<SearchData, GraphData, HSettings>(
+        builder: (context, searchdata, graphdata, hsettings, child) {
           Hit theHit = searchdata.hits[searchdata.selectedHit.toInt()];
           showExpand =
               requiredHitWidth(theHit, true, true, context) > screenWidth;
@@ -2189,12 +2197,57 @@ class _SequencePageState extends State<SequencePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                      "Sequence e-value: ${theHit.seqEvalue.toStringAsExponential(4)}",
-                    ),
+                   Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                          Text(
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium!.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          "Sequence: " +
+                              theHit.name +
+                              "\nE-Value: " +
+                              theHit.seqEvalue
+                                  .toStringAsExponential(4)+"\nTaxon: "+graphdata.graph[theHit.taxid]!.name,
+                        ),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            showExpand
+                                ? RotatedBox(
+                                  quarterTurns: 1,
+                                  child: IconButton.outlined(
+                                    iconSize: 24 * hsettings.scale,
+                                  
+                                    onPressed: () {
+                                      fullWidth= !fullWidth;
+                                      setState(() {});
+                                    },
+                                    icon:
+                                        fullWidth
+                                            ? Icon(
+                                              Icons.compress,
+                                              color:
+                                                  Theme.of(
+                                                    context,
+                                                  ).colorScheme.onPrimary,
+                                            )
+                                            : Icon(
+                                              Icons.expand,
+                                              color:
+                                                  Theme.of(
+                                                    context,
+                                                  ).colorScheme.onPrimary,
+                                            ),
+                                  ),
+                                )
+                                : SizedBox.shrink(),
+                          ],
+                        ),
+                          ],), 
                     DrawHit(
                       hit: theHit,
                       allDomains: true,
@@ -2203,99 +2256,11 @@ class _SequencePageState extends State<SequencePage> {
                       showSequence: true,
                       sequence: theHit.sequence,
                     ),
-                    Align(
-                      alignment: Alignment(1.0, 0.0),
-                      child: RotatedBox(
-                        quarterTurns: 1,
-                        child:
-                            showExpand
-                                ? IconButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        Theme.of(context).colorScheme.primary,
-                                  ),
-                                  onPressed: () {
-                                    fullWidth = !fullWidth;
-                                    setState(() {});
-                                  },
-                                  icon:
-                                      fullWidth
-                                          ? Icon(
-                                            Icons.compress,
-                                            color:
-                                                Theme.of(
-                                                  context,
-                                                ).colorScheme.onPrimary,
-                                          )
-                                          : Icon(
-                                            Icons.expand,
-                                            color:
-                                                Theme.of(
-                                                  context,
-                                                ).colorScheme.onPrimary,
-                                          ),
-                                )
-                                : SizedBox.shrink(),
-                      ),
-                    ),
+                    
                   ],
                 ),
               ),
             ),
-            bottomNavigationBar: MainNavBar(whereAmI: WhichPage.sequence),
-          );
-        },
-      ),
-    );
-  }
-}
-
-// Page that shows the details for a single sequence
-class SvgPage extends StatefulWidget {
-  const SvgPage({super.key});
-
-  @override
-  State<SvgPage> createState() => _SvgPageState();
-}
-
-class _SvgPageState extends State<SvgPage> {
-  final ScrollController _scrollController2 = ScrollController();
-  final String svgString = '''
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 166 202">
-  <defs>
-    <linearGradient id="triangleGradient">
-      <stop offset="20%" stop-color="#000000" stop-opacity=".55" />
-      <stop offset="85%" stop-color="#616161" stop-opacity=".01" />
-    </linearGradient>
-    <linearGradient id="rectangleGradient" x1="0%" x2="0%" y1="0%" y2="100%">
-      <stop offset="20%" stop-color="#000000" stop-opacity=".15" />
-      <stop offset="85%" stop-color="#616161" stop-opacity=".01" />
-    </linearGradient>
-  </defs>
-  <path fill="#42A5F5" fill-opacity=".8" d="M37.7 128.9 9.8 101 100.4 10.4 156.2 10.4" />
-  <path fill="#42A5F5" fill-opacity=".8" d="M156.2 94 100.4 94 79.5 114.9 107.4 142.8" />
-  <path fill="#0D47A1" d="M79.5 170.7 100.4 191.6 156.2 191.6 156.2 191.6 107.4 142.8" />
-  <g transform="matrix(0.7071, -0.7071, 0.7071, 0.7071, -77.667, 98.057)">
-    <rect width="39.4" height="39.4" x="59.8" y="123.1" fill="#42A5F5" />
-    <rect width="39.4" height="5.5" x="59.8" y="162.5" fill="url(#rectangleGradient)" />
-  </g>
-  <path d="M79.5 170.7 120.9 156.4 107.4 142.8" fill="url(#triangleGradient)" />
-</svg>
-''';
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      child: Consumer<SearchData>(
-        builder: (context, searchdata, child) {
-          return Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            appBar: HmmtaxAppBar(text: "SVG"),
-            body: Card(
-              margin: EdgeInsets.only(bottom: 8),
-              color: Theme.of(context).colorScheme.surface,
-              child: SvgPicture.string(svgString, width: 500, height: 500),
-            ),
-
             bottomNavigationBar: MainNavBar(whereAmI: WhichPage.sequence),
           );
         },
