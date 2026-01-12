@@ -528,17 +528,16 @@ void showExportDialog(BuildContext context) {
   myController.text = "Enter or choose output file name";
   final currentLocation =
       GoRouter.of(context).routerDelegate.currentConfiguration.uri.toString();
-  print("$currentLocation");
 
   showDialog(
     context: context,
     builder: (BuildContext context) {
-      return AlertDialog(
+        return AlertDialog(
         title: const Text("Export Page Contents to CsV"),
         backgroundColor: Theme.of(context).colorScheme.onPrimary,
         titleTextStyle: TextStyle(color: Theme.of(context).colorScheme.primary),
-        content: Consumer<FileData>(
-          builder: (context, filedata, child) {
+        content: Consumer2<FileData, SearchData>(
+          builder: (context, filedata, searchData, child) {
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -608,20 +607,36 @@ void showExportDialog(BuildContext context) {
           },
         ),
         actions: <Widget>[
+          Consumer2<FileData, SearchData>(
+            builder: (context, filedata, searchdata, child) =>
           ElevatedButton(
             style: MenuItemButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.onPrimary,
+              backgroundColor: filedata.exportFile != "" ?Theme.of(context).colorScheme.primary : Theme.of(context).disabledColor,
+            ),
+            onPressed: filedata.exportFile != "" ? () {
+              filedata.exportCurrentPage(currentLocation, searchdata);
+              Navigator.pop(context, 'Cancel');
+            } : null,
+            child: Text(
+              "Export",
+              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+            ),
+          ),),
+          ElevatedButton(
+            style: MenuItemButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
             ),
             onPressed: () {
               Navigator.pop(context, 'Cancel');
             },
             child: Text(
               "Cancel",
-              style: TextStyle(color: Theme.of(context).colorScheme.primary),
+              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
             ),
           ),
         ],
       );
     },
+  
   );
 }

@@ -22,6 +22,22 @@ import "package:go_router/go_router.dart";
 import 'package:touchable/touchable.dart';
 import 'package:patterns_canvas/patterns_canvas.dart';
 
+String _iType_to_string(IEntryType iType){
+  switch (iType){
+    case IEntryType.superfamily:
+      return "Superfamily";
+    case IEntryType.family:
+      return "Family";
+    case IEntryType.domain:
+      return "Domain";
+    case IEntryType.repeat:
+      return "Repeat";
+    case IEntryType.site:
+      return "Site";
+    case IEntryType.other:
+      return "Other";
+  }
+}
 (double, double) _calc_legend_dimensions(TextTheme textTheme, bool allDomains) {
   // The easiest way to get the dimensions of some
   // text seems to be to try rendering them and then measure the result.
@@ -59,7 +75,7 @@ void _addButton(
 ) {
   String tooltipText;
  if (domain.source == AnnotationType.interpro){
-  tooltipText = domain.iType+ ":";
+  tooltipText = _iType_to_string(domain.iType)+ ":";
   if (domain.iType == "Domain" && usePfamNames && domain.pfamName != ""){
     tooltipText += " "+ domain.pfamName;
   }
@@ -69,7 +85,7 @@ void _addButton(
   tooltipText += "\nDescription: " + domain.description;
   tooltipText += "\nTarget sequence length: " + seqLength.toString();
 
-  tooltipText += "\n"+domain.iType+ " occupied sequence positions "+
+  tooltipText += "\n"+_iType_to_string(domain.iType)+ " occupied sequence positions "+
       domain.seqStart.toString() +
       "-" +
       domain.seqEnd.toString();
@@ -183,23 +199,14 @@ class DrawDomains extends StatelessWidget {
       // means we have to subtract one from the domain number when we insert, though.
       if (domain.source == AnnotationType.interpro){
         // This is an InterPro domain; see if we should show it 
-        if (domain.iType == "Superfamily"&& !showSuperfamilies) continue;
-        if (domain.iType == "Family" && !showFamilies) continue;
-        if (domain.iType == "Domain" && !showDomains) continue;
-        if (domain.iType == "Repeat" && !showRepeats) continue;
-        if (domain.iType == "Site"  && !showSites) continue;
-        if (domain.iType == "Other" && !showOther) continue;
-        if (domain.iType != "Superfamily" &&
-            domain.iType != "Family" &&
-            domain.iType != "Domain" &&
-            domain.iType != "Repeat" &&
-            domain.iType != "Site"&&
-            domain.iType != "Other") {
-          // unknown type; skip it
-          print("Unknown InterPro type ${domain.iType} for domain ${domain.name}; skipping");
-          continue;
+        if (domain.iType == IEntryType.superfamily && !showSuperfamilies) continue;
+        if (domain.iType == IEntryType.family && !showFamilies) continue;
+        if (domain.iType == IEntryType.domain && !showDomains) continue;
+        if (domain.iType == IEntryType.repeat && !showRepeats) continue;
+        if (domain.iType == IEntryType.site && !showSites) continue;
+        if (domain.iType == IEntryType.other  && !showOther) continue;
         }
-      }
+
       bool foundSpot = false;
       //print("Placing domain ${domain.name} at ${domain.seqStart}-${domain.seqEnd} ");
       for (var i = 0; i < Lines.length; i++) {
@@ -287,7 +294,7 @@ class DrawDomains extends StatelessWidget {
           ipShort: "",
           ipLong: "",
           pfamName: "",
-          iType: "",
+          iType: IEntryType.other,
         ),
       );
     }

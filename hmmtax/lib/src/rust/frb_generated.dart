@@ -416,7 +416,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       ipShort: dco_decode_String(arr[13]),
       ipLong: dco_decode_String(arr[14]),
       pfamName: dco_decode_String(arr[15]),
-      iType: dco_decode_String(arr[16]),
+      iType: dco_decode_i_entry_type(arr[16]),
     );
   }
 
@@ -472,6 +472,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PlatformInt64 dco_decode_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dcoDecodeI64(raw);
+  }
+
+  @protected
+  IEntryType dco_decode_i_entry_type(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return IEntryType.values[raw as int];
   }
 
   @protected
@@ -693,7 +699,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_ipShort = sse_decode_String(deserializer);
     var var_ipLong = sse_decode_String(deserializer);
     var var_pfamName = sse_decode_String(deserializer);
-    var var_iType = sse_decode_String(deserializer);
+    var var_iType = sse_decode_i_entry_type(deserializer);
     return Domain(
       name: var_name,
       clan: var_clan,
@@ -768,6 +774,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getPlatformInt64();
+  }
+
+  @protected
+  IEntryType sse_decode_i_entry_type(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return IEntryType.values[inner];
   }
 
   @protected
@@ -1039,7 +1052,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.ipShort, serializer);
     sse_encode_String(self.ipLong, serializer);
     sse_encode_String(self.pfamName, serializer);
-    sse_encode_String(self.iType, serializer);
+    sse_encode_i_entry_type(self.iType, serializer);
   }
 
   @protected
@@ -1084,6 +1097,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putPlatformInt64(self);
+  }
+
+  @protected
+  void sse_encode_i_entry_type(IEntryType self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected

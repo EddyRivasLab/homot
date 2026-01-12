@@ -182,7 +182,7 @@ class _MainPageState extends State<MainPage> {
                               );
                             } else {
 
-                              print("${results.graph.length}");
+                       //       print("${results.graph.length}");
                               graphdata.clearGraph();
                               graphdata.setGraph(results.graph);
                               graphdata.setDepth(results.depth);
@@ -2082,7 +2082,9 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [Text(
                           style: Theme.of(
                             context,
                           ).textTheme.bodyMedium!.copyWith(
@@ -2096,22 +2098,15 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                                   .seqEvalue
                                   .toStringAsExponential(4),
                         ),
-                        DrawHit(
-                          hit: searchdata.hits[hitIndices[index].toInt()],
-                          searchdata: searchdata,
-                          fullWidth: fullWidth[index]
-                        ),
-                        Row(
+                       Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             showExpand[index]
                                 ? RotatedBox(
                                   quarterTurns: 1,
-                                  child: IconButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          Theme.of(context).colorScheme.primary,
-                                    ),
+                                  child: IconButton.outlined(
+                                    iconSize: 24 * hsettings.scale,
+                                  
                                     onPressed: () {
                                       fullWidth[index] = !fullWidth[index];
                                       setState(() {});
@@ -2135,11 +2130,8 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                                   ),
                                 )
                                 : SizedBox.shrink(),
-                            IconButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    Theme.of(context).colorScheme.primary,
-                              ),
+                            IconButton.outlined(
+                                    iconSize: 24 * hsettings.scale,
                               onPressed: () {
                                 searchdata.selectedHit = hitIndices[index].toInt();
                                 context.go("/sequence");
@@ -2150,6 +2142,12 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                               ),
                             ),
                           ],
+                        ),
+                          ],),
+                        DrawHit(
+                          hit: searchdata.hits[hitIndices[index].toInt()],
+                          searchdata: searchdata,
+                          fullWidth: fullWidth[index]
                         ),
                       ],
                     ),

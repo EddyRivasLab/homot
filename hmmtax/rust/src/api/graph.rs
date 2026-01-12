@@ -12,24 +12,9 @@ use std::time::{Instant};
 use std::cmp::Reverse;
 use rayon::prelude::*;
 use std::sync::{Arc, Mutex};
-#[derive(Clone, Serialize, Deserialize, PartialEq)]
-pub enum AnnotationType{Hmmer, Interpro, Other}
 
-impl From<&AnnotationType> for Slice{
-    fn from(val: &AnnotationType) ->Self{
-        rmp_serde::to_vec(&val).expect("Serialization error for AnnotationType").into()
-    }
-}
-
-impl From<&UserValue> for AnnotationType{
-    fn from(value: &UserValue) -> Self{
-        let item: AnnotationType = rmp_serde::from_slice(&value).expect("Deserialization error for Dmap");
-        item
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct Dmap{ // Information about each domain type
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Dmap{
     pub domain: u32,
     pub name: String,
     pub description: String,
@@ -40,17 +25,52 @@ pub struct Dmap{ // Information about each domain type
     pub ip_short: String,
     pub ip_long: String,
     pub pfam_name: String,
-    pub i_type: String,
+    pub i_type: IEntryType,
 }
+
 impl From<&Dmap> for Slice{
     fn from(val: &Dmap) ->Self{
         rmp_serde::to_vec(&val).expect("Serialization error for Dmap").into()
     }
 }
 
-impl From<&Slice> for Dmap{
+impl From<&UserValue> for Dmap{
     fn from(value: &UserValue) -> Self{
         let item: Dmap = rmp_serde::from_slice(&value).expect("Deserialization error for Dmap");
+        item
+    }
+}
+
+// Enum that holds the source of the annotation data
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub enum AnnotationType{Hmmer, Interpro, Other}
+
+impl From<&AnnotationType> for Slice{
+    fn from(val: &AnnotationType) ->Self{
+        rmp_serde::to_vec(&val).expect("Serialization error for AnnotationType").into()
+    }
+}
+
+impl From<&UserValue> for AnnotationType{
+    fn from(value: &UserValue) -> Self{
+        let item: AnnotationType = rmp_serde::from_slice(&value).expect("Deserialization error for AnnotationType");
+        item
+    }
+}
+
+// Enum that holds the type of entry for an Interpro Annotation
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub enum IEntryType{Superfamily, Family, Domain, Repeat, Site, Other}
+
+impl From<&IEntryType> for Slice{
+    fn from(val: &IEntryType) ->Self{
+        rmp_serde::to_vec(&val).expect("Serialization error for IEntryType").into()
+    }
+}
+
+impl From<&UserValue> for IEntryType{
+    fn from(value: &UserValue) -> Self{
+        let item: IEntryType = rmp_serde::from_slice(&value).expect("Deserialization error for IEntryType");
         item
     }
 }
@@ -104,7 +124,7 @@ pub struct Domain{
     pub ip_short: String,
     pub ip_long: String,
     pub pfam_name: String,
-    pub i_type: String,
+    pub i_type: IEntryType,
   }
 impl From<&Domain> for Slice{
     fn from(val: &Domain) ->Self{
@@ -402,7 +422,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
             },
         }
     }
-    println!{"{}ms to read domtblout files", now.elapsed().as_millis()};
+ //   println!{"{}ms to read domtblout files", now.elapsed().as_millis()};
     let now = Instant::now();
     // turn the hits into a sorted vector
     for item in hit_map.iter(){
@@ -410,7 +430,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
     }
     hits.sort_by(|a, b| a.seq_evalue.total_cmp(&(b.seq_evalue)));
 
-    println!("{}ms to create sorted vector of hits", now.elapsed().as_millis());
+  //  println!("{}ms to create sorted vector of hits", now.elapsed().as_millis());
 
     // create the list of domains hit so that we can assign colors
     results.domains_contained = create_domain_list(&hits);
@@ -428,10 +448,10 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
             },
         
     }
-    println!("{}ms to build graph from hits", now.elapsed().as_millis());
+ //   println!("{}ms to build graph from hits", now.elapsed().as_millis());
     let total_hits = count_hits(&mut graph, root);
 
-    println!("Hits in domtbl(s): {}, in graph: {}, in list of hits {} ",num_domtbl_hits, total_hits, hits.len());
+ //   println!("Hits in domtbl(s): {}, in graph: {}, in list of hits {} ",num_domtbl_hits, total_hits, hits.len());
 
 
     // check that everyone agrees on how many hits there are
@@ -629,7 +649,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                     ip_short: "".to_string(),
                     ip_long: "".to_string(),
                     pfam_name: "".to_string(),
-                    i_type: "".to_string(),     
+                    i_type: IEntryType::Other,     
             }; 
 
             // assume that the common case is that a search only finds one hit to each sequence, so go ahead and build the Hit
@@ -703,7 +723,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                         ip_short: "".to_string(),
                         ip_long: "".to_string(),
                         pfam_name: "".to_string(),
-                        i_type: "".to_string(),
+                        i_type: IEntryType::Other,
                     },
                     Some(v) => v.clone(),
                 };
@@ -743,7 +763,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                         ip_short: "".to_string(),
                         ip_long: "".to_string(),
                         pfam_name: "".to_string(),
-                        i_type: "".to_string(),
+                        i_type: IEntryType::Other,
                     },
                     Some(v) => v.clone(),
                 };
@@ -929,7 +949,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 ip_short: "".to_string(),
                 ip_long: "".to_string(),
                 pfam_name: "".to_string(),
-                i_type: "".to_string(),        
+                i_type: IEntryType::Other,        
             }; 
 
             // assume that the common case is that a search only finds one hit to each sequence, so go ahead and build the Hit
@@ -1003,7 +1023,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                         ip_short: "".to_string(),
                         ip_long: "".to_string(),
                         pfam_name: "".to_string(),
-                        i_type: "".to_string(),
+                        i_type: IEntryType::Other,
                     },
                     Some(v) => v.clone(),
                 };
@@ -1043,7 +1063,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                         ip_short: "".to_string(),
                         ip_long: "".to_string(),
                         pfam_name: "".to_string(),
-                        i_type: "".to_string(),
+                        i_type: IEntryType::Other,
                     },
                     Some(v) => v.clone(),
                 };
@@ -1242,27 +1262,29 @@ fn domains_to_structure(domains: &Vec<Domain>, interpro_show_superfamily: &bool,
     let mut sorted_domains:Vec<Domain> = domains.clone();
     sorted_domains.sort_by_key(|d| d.seq_start);
     for domain in sorted_domains{
+      //  println!(" Examining domain {} with stype {:?} for structure", domain.name, domain.i_type);
         if domain.source == AnnotationType::Interpro { 
             // see if we want to include this type of interpro data
-            if (domain.i_type == "Superfamily")&&(!*interpro_show_superfamily){
+            if (domain.i_type == IEntryType::Superfamily)&&(!*interpro_show_superfamily){
                 continue;
             }
-            if (domain.i_type == "Family")&&(!*interpro_show_family){
+            if (domain.i_type == IEntryType::Family)&&(!*interpro_show_family){
                 continue;
             }
-            if (domain.i_type == "Domain")&&(!*interpro_show_domain){
+            if (domain.i_type == IEntryType::Domain)&&(!*interpro_show_domain){
                 continue;
             }
-            if (domain.i_type == "Repeat")&&(!*interpro_show_repeat){
+            if (domain.i_type == IEntryType::Repeat)&&(!*interpro_show_repeat){
                 continue;
             }
-            if (domain.i_type == "Site")&&(!*interpro_show_site){
+            if (domain.i_type == IEntryType::Site)&&(!*interpro_show_site){
                 continue;
             }
-            if (domain.i_type != "Other")&&(!interpro_show_other){
+            if (domain.i_type == IEntryType::Other)&&(!interpro_show_other){
                 continue;
             }
         }
+       // println!(" Adding domain {} with type {:?} to structure", domain.name, domain.i_type);
         if structure != ""{
             // There's already at least one domain in it
             structure.push_str(", ");
@@ -1274,7 +1296,7 @@ fn domains_to_structure(domains: &Vec<Domain>, interpro_show_superfamily: &bool,
         structure.push_str(&domain.name);
         }
     }
-    print!(" {}\n", structure);
+  //  print!(" {}, show_superfamily={}, show_family={}, show_domain={}, show_repeat={}\n", structure, interpro_show_superfamily, interpro_show_family, interpro_show_domain, interpro_show_repeat);
     structure    
 }
 
@@ -1289,7 +1311,7 @@ fn compute_signatures(hits: &Vec<Hit>, interpro_show_superfamily: &bool, interpr
     let mut current_signature:u32= 0;
 
     for hit in hits{
-        print!("{}", hit.name);
+       // print!("{}", hit.name);
         let structure = domains_to_structure(&hit.structure_domains, &interpro_show_superfamily, &interpro_show_family, &interpro_show_domain, 
             &interpro_show_repeat, &interpro_show_site, &interpro_show_other, &interpro_show_pfam_names);
         match hit_map.get(&structure){

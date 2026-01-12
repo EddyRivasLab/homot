@@ -1295,6 +1295,49 @@ class FileData with ChangeNotifier {
     }
     notifyListeners();
   }
+
+  void exportCurrentPage(String currentpage, SearchData searchdata){
+    var outFile = File(_exportFile);
+    var outSink = outFile.openWrite(mode: FileMode.write);
+    switch(currentpage){
+      case "/allstructure":
+        _exportAllStructure(outSink, searchdata);
+        break;
+      case "/subtreestructure":
+        outSink.writeln("TaxID,Name,HMM Hits,HMM Start,HMM End,Domain Hits,Domain Start,Domain End,Eval Score");
+        break;
+      case "/allevalue":
+        outSink.writeln("TaxID,Name,Eval Score");
+        break;
+      case "/subtreeevalue":
+        outSink.writeln("TaxID,Name,Eval Score");
+        break;
+      case "/sequence":
+        outSink.writeln("TaxID,Name,Sequence");
+        break;
+      default:
+        outSink.writeln("No data to export");
+    }
+    outSink.close();
+  }
+
+  void _exportAllStructure(IOSink outSink, SearchData searchdata){
+    for (var category in searchdata.rootHits){
+      outSink.writeln("${category.hits.length} Hits with Signature ${searchdata.structures[category.signature]}");
+      for (var hit in category.hits)
+      {
+        _exportHit(searchdata.hits[hit.toInt()], outSink); 
+      }
+    }
+  }
+
+  void _exportHit(Hit hit, IOSink outSink){
+   var outString = "${hit.seqEvalue},${hit.name}, ${hit.queries[0].name}";
+   for (var domain in hit.domains){
+      outString += ", ${domain.name}, ${domain.domEvalue}, ${domain.seqStart}, ${domain.seqEnd}";
+   }
+   outSink.writeln(outString);
+  }
 }
 
 // Wrapper that selects the correct menu bar for the platform

@@ -304,6 +304,7 @@ pub fn write_annotated_db(domains: HashMap<String, Vec<Domain>>,
 
         // eliminate overlaps of the exact same domain, since that's the data we have in Interpro
         annotated.structure_domains = remove_overlaps_interpro(&annotated.domains);
+        
       //  println!("{} domains found for {}", annotated.domains.len(), annotated.name);
         db.insert(&annotated.name, &annotated).expect("Failed to insert domain into output db");
     }
@@ -429,6 +430,9 @@ fn parse_interpro_xml(filename: &PathBuf)-> Result<HashMap<String, InterproInfo>
                                         "Domain" => IEntryType::Domain,
                                         "Repeat" => IEntryType::Repeat,
                                         "Conserved_site" => IEntryType::Site,
+                                        "Binding_site" => IEntryType::Site,
+                                        "Active_site" => IEntryType::Site,
+                                        "PTM" => IEntryType::Site,
                                         _ => {eprintln!("Unknown InterPro type: {}", attrib.value); IEntryType::Other},
                                     };
                                 },

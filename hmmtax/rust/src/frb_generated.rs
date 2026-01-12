@@ -355,7 +355,7 @@ impl SseDecode for crate::api::graph::Domain {
         let mut var_ipShort = <String>::sse_decode(deserializer);
         let mut var_ipLong = <String>::sse_decode(deserializer);
         let mut var_pfamName = <String>::sse_decode(deserializer);
-        let mut var_iType = <String>::sse_decode(deserializer);
+        let mut var_iType = <crate::api::graph::IEntryType>::sse_decode(deserializer);
         return crate::api::graph::Domain {
             name: var_name,
             clan: var_clan,
@@ -439,6 +439,22 @@ impl SseDecode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_i64::<NativeEndian>().unwrap()
+    }
+}
+
+impl SseDecode for crate::api::graph::IEntryType {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::graph::IEntryType::Superfamily,
+            1 => crate::api::graph::IEntryType::Family,
+            2 => crate::api::graph::IEntryType::Domain,
+            3 => crate::api::graph::IEntryType::Repeat,
+            4 => crate::api::graph::IEntryType::Site,
+            5 => crate::api::graph::IEntryType::Other,
+            _ => unreachable!("Invalid variant for IEntryType: {}", inner),
+        };
     }
 }
 
@@ -790,6 +806,28 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::graph::HitResults>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::graph::IEntryType {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Superfamily => 0.into_dart(),
+            Self::Family => 1.into_dart(),
+            Self::Domain => 2.into_dart(),
+            Self::Repeat => 3.into_dart(),
+            Self::Site => 4.into_dart(),
+            Self::Other => 5.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::graph::IEntryType {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::graph::IEntryType>
+    for crate::api::graph::IEntryType
+{
+    fn into_into_dart(self) -> crate::api::graph::IEntryType {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::graph::Node {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -949,7 +987,7 @@ impl SseEncode for crate::api::graph::Domain {
         <String>::sse_encode(self.ip_short, serializer);
         <String>::sse_encode(self.ip_long, serializer);
         <String>::sse_encode(self.pfam_name, serializer);
-        <String>::sse_encode(self.i_type, serializer);
+        <crate::api::graph::IEntryType>::sse_encode(self.i_type, serializer);
     }
 }
 
@@ -1000,6 +1038,26 @@ impl SseEncode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_i64::<NativeEndian>(self).unwrap();
+    }
+}
+
+impl SseEncode for crate::api::graph::IEntryType {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::graph::IEntryType::Superfamily => 0,
+                crate::api::graph::IEntryType::Family => 1,
+                crate::api::graph::IEntryType::Domain => 2,
+                crate::api::graph::IEntryType::Repeat => 3,
+                crate::api::graph::IEntryType::Site => 4,
+                crate::api::graph::IEntryType::Other => 5,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
     }
 }
 
