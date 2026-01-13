@@ -536,8 +536,8 @@ void showExportDialog(BuildContext context) {
         title: const Text("Export Page Contents to CsV"),
         backgroundColor: Theme.of(context).colorScheme.onPrimary,
         titleTextStyle: TextStyle(color: Theme.of(context).colorScheme.primary),
-        content: Consumer2<FileData, SearchData>(
-          builder: (context, filedata, searchData, child) {
+        content: Consumer3<FileData, SearchData, HSettings>(
+          builder: (context, filedata, searchData, hsettings, child) {
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -607,14 +607,15 @@ void showExportDialog(BuildContext context) {
           },
         ),
         actions: <Widget>[
-          Consumer2<FileData, SearchData>(
-            builder: (context, filedata, searchdata, child) =>
+          Consumer3<FileData, HSettings, SearchData>(
+            builder: (context, filedata, hsettings, searchdata, child) =>
           ElevatedButton(
             style: MenuItemButton.styleFrom(
               backgroundColor: filedata.exportFile != "" ?Theme.of(context).colorScheme.primary : Theme.of(context).disabledColor,
             ),
             onPressed: filedata.exportFile != "" ? () {
-              filedata.exportCurrentPage(currentLocation, searchdata);
+              filedata.exportCurrentPage(currentLocation, searchdata, hsettings.showNamesFrom == ShowNamesFrom.pfam, hsettings.showInterproSuperfamily, hsettings.showInterproFamily,
+              hsettings.showInterproDomain, hsettings.showInterproRepeat, hsettings.showInterproSite, hsettings.showInterproOther, context);
               Navigator.pop(context, 'Cancel');
             } : null,
             child: Text(

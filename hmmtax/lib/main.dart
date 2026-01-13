@@ -1296,50 +1296,180 @@ class FileData with ChangeNotifier {
     notifyListeners();
   }
 
-  void exportCurrentPage(String currentpage, SearchData searchdata){
+  void exportCurrentPage(String currentpage, SearchData searchdata, bool pfamNames, bool showInterproSuperfamily, bool showInterproFamily, bool showInterproDomain,
+   bool showInterproRepeat, bool showInterproSite, bool showInterproOther, BuildContext context) async {
     var outFile = File(_exportFile);
     var outSink = outFile.openWrite(mode: FileMode.write);
     switch(currentpage){
       case "/allstructure":
-        _exportAllStructure(outSink, searchdata);
+        _exportAllStructure(searchdata, pfamNames, showInterproSuperfamily, showInterproFamily, showInterproDomain, showInterproRepeat, showInterproSite,
+         showInterproOther, outSink);
         break;
       case "/subtreestructure":
-        outSink.writeln("TaxID,Name,HMM Hits,HMM Start,HMM End,Domain Hits,Domain Start,Domain End,Eval Score");
+        _exportSubtreeStructure(searchdata, pfamNames, showInterproSuperfamily, showInterproFamily, showInterproDomain, showInterproRepeat, showInterproSite,
+         showInterproOther, outSink);
         break;
       case "/allevalue":
-        outSink.writeln("TaxID,Name,Eval Score");
+        _exportAllEval(searchdata, pfamNames, showInterproSuperfamily, showInterproFamily, showInterproDomain, showInterproRepeat, showInterproSite,
+         showInterproOther, outSink);
         break;
       case "/subtreeevalue":
-        outSink.writeln("TaxID,Name,Eval Score");
+        _exportSubtreeEval(searchdata, pfamNames, showInterproSuperfamily, showInterproFamily, showInterproDomain, showInterproRepeat, showInterproSite,
+         showInterproOther, outSink);
         break;
       case "/sequence":
-        outSink.writeln("TaxID,Name,Sequence");
+        _exportSequence(searchdata.hits[searchdata.selectedHit.toInt()], pfamNames, showInterproSuperfamily, showInterproFamily, showInterproDomain, showInterproRepeat, showInterproSite,
+         showInterproOther, outSink);
         break;
       default:
         outSink.writeln("No data to export");
     }
-    outSink.close();
+    try{
+      await outSink.flush();
+      await outSink.close();
+    } catch (e){
+      showDialog(context: context, builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Unable to Export Data"),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          titleTextStyle: TextStyle(
+            color: Theme.of(context).colorScheme.onError,
+            fontSize: 20.0,
+            fontWeight: FontWeight.bold,
+          ),
+          content: Text("Error was: $e"),
+          contentTextStyle: TextStyle(
+            color: Theme.of(context).colorScheme.onError,
+            fontSize: 16.0,
+          ),
+          actions: [
+            ElevatedButton(
+              style: MenuItemButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.onError,
+            ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(style: TextStyle(color: Theme.of(context).colorScheme.error),
+              "OK"),
+            ),
+          ],
+        );
+      });
+    } 
   }
 
-  void _exportAllStructure(IOSink outSink, SearchData searchdata){
+  String _header(){
+    return "Format: SeqEvalue, HitName, (QueryName, QueryStart, QueryEnd)*, ANNOTATIONS:, (DomainName, DomainEvalue, DomainStart, DomainEnd)*";
+  }
+
+  void _exportAllStructure(SearchData searchdata, bool pfamNames, bool showInterproSuperfamily, bool showInterproFamily, bool showInterproDomain,
+   bool showInterproRepeat, bool showInterproSite, bool showInterproOther, IOSink outSink){
+    outSink.writeln(_header());
     for (var category in searchdata.rootHits){
-      outSink.writeln("${category.hits.length} Hits with Signature ${searchdata.structures[category.signature]}");
-      for (var hit in category.hits)
-      {
-        _exportHit(searchdata.hits[hit.toInt()], outSink); 
-      }
+      _exportCategory(category, searchdata, pfamNames, showInterproSuperfamily, showInterproFamily, showInterproDomain, showInterproRepeat, showInterproSite,
+         showInterproOther, outSink);
+      outSink.writeln(""); // blank line between categories
+    }
+  }
+  void _exportSubtreeStructure(SearchData searchdata, bool pfamNames, bool showInterproSuperfamily, bool showInterproFamily, bool showInterproDomain,
+   bool showInterproRepeat, bool showInterproSite, bool showInterproOther, IOSink outSink){
+    outSink.writeln(_header());
+    for (var category in searchdata.currentHits){
+      _exportCategory(category, searchdata, pfamNames, showInterproSuperfamily, showInterproFamily, showInterproDomain, showInterproRepeat, showInterproSite,
+         showInterproOther, outSink);
+      outSink.writeln(""); // blank line between categories
     }
   }
 
-  void _exportHit(Hit hit, IOSink outSink){
-   var outString = "${hit.seqEvalue},${hit.name}, ${hit.queries[0].name}";
-   for (var domain in hit.domains){
-      outString += ", ${domain.name}, ${domain.domEvalue}, ${domain.seqStart}, ${domain.seqEnd}";
+  void _exportAllEval(SearchData searchdata, bool pfamNames, bool showInterproSuperfamily, bool showInterproFamily, bool showInterproDomain,
+   bool showInterproRepeat, bool showInterproSite, bool showInterproOther, IOSink outSink){
+    outSink.writeln(_header());
+    for (var hit in searchdata.hits){
+      _exportHit(hit, pfamNames, showInterproSuperfamily, showInterproFamily, showInterproDomain, showInterproRepeat, showInterproSite,
+         showInterproOther, outSink);
+    }
+  }
+void _exportSubtreeEval(SearchData searchdata, bool pfamNames, bool showInterproSuperfamily, bool showInterproFamily, bool showInterproDomain,
+   bool showInterproRepeat, bool showInterproSite, bool showInterproOther, IOSink outSink){
+    outSink.writeln(_header());
+    Int64List hitIndices = Int64List(0);
+    switch (searchdata.selectedBy) {
+      case selectedby.subtree:
+        hitIndices = searchdata.currentHitsByEvalue;
+        break;
+      case selectedby.subtree_structure:
+        hitIndices = searchdata.currentHits[searchdata.selectedStructure].hits;
+        break;
+      case selectedby.structure:
+        hitIndices = searchdata.rootHits[searchdata.selectedStructure].hits;
+        break;
+      default:
+        hitIndices = Int64List(0);
+          }
+    for (var hitIndex in hitIndices){
+      _exportHit(searchdata.hits[hitIndex.toInt()], pfamNames, showInterproSuperfamily, showInterproFamily, showInterproDomain, showInterproRepeat, showInterproSite,
+         showInterproOther, outSink);
+    }
+  }
+
+  void _exportCategory(SigCategory category, SearchData searchdata, bool pfamNames, bool showInterproSuperfamily, bool showInterproFamily, bool showInterproDomain,
+   bool showInterproRepeat, bool showInterproSite, bool showInterproOther, IOSink outSink){
+    var outString = "${category.hits.length} Hits with Signature ${searchdata.structures[category.signature]}";
+    outSink.writeln(outString);
+
+    for (var hit in category.hits)
+    { var theHit = searchdata.hits[hit.toInt()];
+      _exportHit(theHit, pfamNames, showInterproSuperfamily, showInterproFamily, showInterproDomain, showInterproRepeat, showInterproSite,
+         showInterproOther,outSink); 
+    }
+  }
+
+  void _exportHit(Hit hit, bool pfamNames, bool showInterproSuperfamily, bool showInterproFamily, bool showInterproDomain,
+   bool showInterproRepeat, bool showInterproSite, bool showInterproOther,IOSink outSink){
+   var outString = "${hit.seqEvalue},${hit.name}";
+   for (var query in hit.queries){
+      outString += ", ${query.name}, ${query.seqStart}, ${query.seqEnd}";
+   }
+    outString +=", ANNOTATIONS:";
+   for (var domain in hit.structureDomains){
+    if (domain.source != AnnotationType.interpro || (domain.iType == IEntryType.superfamily && showInterproSuperfamily) ||
+     (domain.iType == IEntryType.family && showInterproFamily) || (domain.iType == IEntryType.domain && showInterproDomain) || 
+     (domain.iType == IEntryType.repeat && showInterproRepeat) || (domain.iType == IEntryType.site && showInterproSite) || 
+     (domain.iType == IEntryType.other && showInterproOther)){
+      if(domain.source == AnnotationType.interpro &&pfamNames && domain.pfamName.isNotEmpty){
+        outString += ", ${domain.pfamName}";
+      } else {
+        outString += ", ${domain.name}";
+      }
+      outString += ", ${domain.domEvalue}, ${domain.seqStart}, ${domain.seqEnd}";
+     }
    }
    outSink.writeln(outString);
   }
 }
-
+  void _exportSequence(Hit hit, bool pfamNames, bool showInterproSuperfamily, bool showInterproFamily, bool showInterproDomain,
+   bool showInterproRepeat, bool showInterproSite, bool showInterproOther,IOSink outSink){
+   var outString = "${hit.seqEvalue},${hit.name}";
+   for (var query in hit.queries){
+      outString += ", ${query.name}, ${query.seqStart}, ${query.seqEnd}";
+   }
+    outString +=", ANNOTATIONS:";
+   for (var domain in hit.domains){
+    if (domain.source != AnnotationType.interpro || (domain.iType == IEntryType.superfamily && showInterproSuperfamily) ||
+     (domain.iType == IEntryType.family && showInterproFamily) || (domain.iType == IEntryType.domain && showInterproDomain) || 
+     (domain.iType == IEntryType.repeat && showInterproRepeat) || (domain.iType == IEntryType.site && showInterproSite) || 
+     (domain.iType == IEntryType.other && showInterproOther)){
+      if(domain.source == AnnotationType.interpro &&pfamNames && domain.pfamName.isNotEmpty){
+        outString += ", ${domain.pfamName}";
+      } else {
+        outString += ", ${domain.name}";
+      }
+      outString += ", ${domain.domEvalue}, ${domain.seqStart}, ${domain.seqEnd}";
+     }
+   }
+   outSink.writeln(outString);
+  }
 // Wrapper that selects the correct menu bar for the platform
 class MenuWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
@@ -1456,19 +1586,6 @@ class _MacMenuBarState extends State<MacMenu> {
                 showMyAboutDialog(context);
               },
             ),
-            if (_router.routerDelegate.currentConfiguration.uri.toString() !=
-                    '/' &&
-                _router.routerDelegate.currentConfiguration.uri.toString() !=
-                    '/settings' &&
-                _router.routerDelegate.currentConfiguration.uri.toString() !=
-                    "/graph")
-              PlatformMenuItem(
-                label: "Export Page Contents to CSV",
-                onSelected: () {
-                  print("Exporting");
-                  showExportDialog(context);
-                },
-              ),
             PlatformMenuItem(
               label: 'Quit',
               shortcut: const SingleActivator(
