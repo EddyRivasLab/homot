@@ -323,7 +323,7 @@ fn remove_overlaps_interpro(domains: &Vec<Domain>) -> Vec<Domain>{
     
     let mut our_domains = domains.clone();
     our_domains.sort_by(|a, b| {
-        if (a.alito - a.alifrom) > (b.alito - b.alifrom){
+        if (a.alito - a.alifrom) < (b.alito - b.alifrom){
             return Ordering::Greater;
         }
         else{
@@ -340,26 +340,26 @@ fn remove_overlaps_interpro(domains: &Vec<Domain>) -> Vec<Domain>{
                 let mut small_overlap = false;
                  if candidate.alito >= existing.alifrom && candidate.alito <= saturating_add(existing.alifrom, overlap_width){
                     // small overlap with start of existing domain
-                   /* println!("Shrinking domain {} {} from {}-{} to {}-{} due to small overlap with {} {} {}-{}", 
+/*                    println!("Shrinking domain {} {} from {}-{} to {}-{} due to small overlap with {} {} {}-{}", 
                     domain.domain, domain.clan, domain.alifrom, domain.alito, domain.alifrom, saturating_sub(existing.alifrom, 1), 
-                    existing.domain, existing.clan, existing.alifrom, existing.alito); */
+                    existing.domain, existing.clan, existing.alifrom, existing.alito);*/
                     if candidate.alito > saturating_sub(existing.alifrom, 1){
                         candidate.alito = saturating_sub(existing.alifrom, 1);
                     }
                     small_overlap = true;
                 }
                 if candidate.alifrom <= existing.alito && candidate.alifrom >= saturating_sub(existing.alito, overlap_width){
-                    /*println!("Shrinking domain {} {} from {}-{} to {}-{} due to small overlap with {} {} {}-{}", 
+/*                    println!("Shrinking domain {} {} from {}-{} to {}-{} due to small overlap with {} {} {}-{}", 
                     domain.domain, domain.clan, domain.alifrom, domain.alito, saturating_add(existing.alito, 1), domain.alito, 
-                    existing.domain, existing.clan, existing.alifrom, existing.alito);*/
+                    existing.domain, existing.clan, existing.alifrom, existing.alito); */
                     if candidate.alifrom < saturating_add(existing.alito, 1){
                         candidate.alifrom = saturating_add(existing.alito, 1);
                     }
                     small_overlap = true;
                 }
-                if  small_overlap || (candidate.alifrom <=candidate.alito){
+                if  !small_overlap || (candidate.alifrom <=candidate.alito){
                     // large overlap or domain has shrunk to nothing, so reject the domain
-                   /* println!("Rejecting domain {} {} {}-{} due to large overlap with {} {} {}-{}", 
+/*                    println!("Rejecting domain {} {} {}-{} due to large overlap with {} {} {}-{}", 
                     domain.domain, domain.clan, domain.alifrom, domain.alito, 
                     existing.domain, existing.clan, existing.alifrom, existing.alito);*/
                     overlaps = true;
