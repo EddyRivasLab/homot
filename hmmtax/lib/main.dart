@@ -551,7 +551,7 @@ class MyApp extends StatelessWidget {
 }
 
 enum brightModes { light, dark, system }
-enum GraphDrawType{line, wedge, outline, fill}
+enum GraphDrawType{line, outline, fill}
 
 enum ShowNamesFrom{pfam, interpro}
 

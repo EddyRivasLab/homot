@@ -52,6 +52,59 @@ class GraphPainter extends CustomPainter {
     this.graphRadius,
     this.hSettings,
   );
+  bool _will_text_fit(
+    Canvas canvas,
+    TextTheme textTheme,
+    String text,
+    double angle,
+    double startRadius,
+    double endRadius,
+    double regionAngle,
+    Offset center,
+    Color textColor,
+    Color bgColor,
+    bool moveInward, // move the label in as far as possible 
+  ) {
+    // The easiest way to get the dimensions of some
+    // text seems to be to try rendering them and then measure the result.
+    TextPainter testPainter = TextPainter(
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+    );
+    testPainter.textScaler = TextScaler.linear(1 / graphData.scale);
+
+    testPainter.text = TextSpan(
+      text: text,
+      style: textTheme.bodyMedium!.copyWith(color: textColor, backgroundColor: bgColor),
+    );
+    testPainter
+        .layout(); // laying out the text computes how much space it will take if drawn
+
+    // Figure out how much space is available for the text.  Need to take into account
+    // that text may not start at the startRadius in order to make things work right near graph origin
+    if (regionAngle > pi) {
+      regionAngle =
+          pi; // assume that text height isn't an issue if angle wider than 180 degrees
+    }
+    final double availLength = endRadius - startRadius;
+    final double availHeight =
+        2 *
+        (startRadius + availLength - testPainter.width) *
+        sin(regionAngle / 2);
+    // available height for text is the chord of the arc at the small end of the wedge for the node
+    // if availLength < testPainter.width, this will give weird answers, but we won't draw any text
+    // in that case, so it doesn't matter
+
+    if (availLength < testPainter.width || availHeight < testPainter.height) {
+      // can't fit the text, so don't draw it
+      //    print("availLength = $availLength, availHeight = $availHeight, text width = ${testPainter.width}, text height = ${testPainter.height}");
+      //    print("startRadius = $startRadius, endRadius = $endRadius, regionAngle = $regionAngle");
+      //    print("text = $text");
+      return false;
+    }
+    return true;
+  }
+
 
   bool _write_if_fits(
     Canvas canvas,
@@ -206,6 +259,10 @@ class GraphPainter extends CustomPainter {
       startRadius + ((maxLevel - startLevel) * radPerLevel),
     );
 
+    if (myRadius >= (graphRadius - ((hSettings.lineWidth/2) / (graphData.scale)))) { // make sure outer border fits
+      myRadius = graphRadius - ((hSettings.lineWidth/2) / (graphData.scale));
+    }
+
     var myAngle = (node.myArcStart + node.myArcEnd) / 2;
     var myOffset = Offset(
       center.dx + (myRadius * cos(myAngle)),
@@ -248,7 +305,7 @@ class GraphPainter extends CustomPainter {
       }
 
       final String nodeText = node.name + "\n" + node.hitsBelow.toString();
-      final bool textFit = _write_if_fits(
+      final bool textFit = _will_text_fit(
         myCanvas,
         Theme.of(context).textTheme,
         nodeText,
@@ -269,55 +326,39 @@ class GraphPainter extends CustomPainter {
                               ..strokeWidth = hSettings.lineWidth / graphData.scale
                               ..color = nodeColor,);
             break;
-
-          case GraphDrawType.wedge:
-            var wedgeRect = Rect.fromCircle(center: center, radius: myRadius);
-            myCanvas.drawArc(
-              wedgeRect,
-              node.myArcStart,
-              node.myArcEnd - node.myArcStart,
-              false,
-              paint
-                ..style = PaintingStyle.stroke
-                ..color = nodeColor
-                ..strokeWidth = hSettings.lineWidth / graphData.scale,
-              );
-              double arcMiddle = node.myArcStart + (node.myArcEnd - node.myArcStart)/2;
-              Offset edgeStart = Offset( center.dx + (myRadius * cos(node.myArcEnd)), center.dy + (myRadius * sin(node.myArcEnd)));
-              Offset edgeEnd = Offset(center.dx + (parentRadius * cos(arcMiddle)), center.dy + (parentRadius * sin(arcMiddle)));
-              myCanvas.drawLine(edgeStart, edgeEnd, paint
-                              ..strokeWidth = hSettings.lineWidth / graphData.scale
-                              ..color = nodeColor,);
-              edgeStart = Offset( center.dx + (myRadius * cos(node.myArcStart)), center.dy + (myRadius * sin(node.myArcStart)));
-              myCanvas.drawLine(edgeStart, edgeEnd, paint
-                              ..strokeWidth = hSettings.lineWidth / graphData.scale
-                              ..color = nodeColor,);
-              break;
           case GraphDrawType.outline:
-              var innerRect = Rect.fromCircle(center: center, radius: parentRadius);
+          // Approximation: shrink the arc angles by half the line width at both inner and outer radius
+            var innerDelta = (hSettings.lineWidth/(2* graphData.scale)) / (2* parentRadius); // approximate shift as fraction of circumference
+            var newArcStartInner= node.myArcStart + innerDelta;
+            var newArcEndInner = node.myArcEnd - innerDelta;
+            var outerDelta = (hSettings.lineWidth/(2* graphData.scale)) / (2* myRadius); // approximate shift as fraction of circumference
+            var newArcStartOuter= node.myArcStart + outerDelta;
+            var newArcEndOuter = node.myArcEnd - outerDelta;
+
+            var innerRect = Rect.fromCircle(center: center, radius: parentRadius);
               var outerRect = Rect.fromCircle(center: center, radius: myRadius);
               var piePath = Path();
               piePath.moveTo(
-                center.dx + (parentRadius * cos(node.myArcStart)),
-                center.dy + (parentRadius * sin(node.myArcStart)),
+                center.dx + (parentRadius * cos(newArcStartInner)),
+                center.dy + (parentRadius * sin(newArcStartInner)),
               );
               piePath.addArc(
                 innerRect,
-                node.myArcStart,
-                node.myArcEnd - node.myArcStart,
+                newArcStartInner,
+                newArcEndInner - newArcStartInner,
               );
               piePath.lineTo(
-                center.dx + (myRadius * cos(node.myArcEnd)),
-                center.dy + (myRadius * sin(node.myArcEnd)),
+                center.dx + (myRadius * cos(newArcEndOuter)),
+                center.dy + (myRadius * sin(newArcEndOuter)),
               );
               piePath.addArc(
                 outerRect,
-                node.myArcEnd,
-                -(node.myArcEnd - node.myArcStart),
+                newArcEndOuter,
+                -(newArcEndOuter - newArcStartOuter),
               );
               piePath.lineTo(
-                center.dx + (parentRadius * cos(node.myArcStart)),
-                center.dy + (parentRadius * sin(node.myArcStart)),
+                center.dx + (parentRadius * cos(newArcStartInner)),
+                center.dy + (parentRadius * sin(newArcStartInner)),
               );
               myCanvas.drawPath(
                 piePath,
@@ -364,6 +405,19 @@ class GraphPainter extends CustomPainter {
                 ); 
             break;
         }
+        _write_if_fits( // Draw the text here so that it appears on top of any decoration
+        myCanvas,
+        Theme.of(context).textTheme,
+        nodeText,
+        myAngle,
+        parentRadius,
+        myRadius,
+        (node.myArcEnd - node.myArcStart),
+        center,
+        Theme.of(context).colorScheme.onSurface,
+        Color(0x00000000), // transparent background for text
+        false
+      );
       }
       if (!textFit && node.ranknum != startLevel) {
         // There isn't enough space to fit the data for the node, so turn it into a pie wedge out to the edge of
@@ -471,22 +525,21 @@ class GraphPainter extends CustomPainter {
 
         double arcStart =
             node.myArcStart +
-            (graph[node.children[0].toInt()]!.hitsBelow) * arcPerChild / 2; 
+            (graph[node.children[0].toInt()]!.hitsBelow) * arcPerChild; 
         double arcEnd =
             node.myArcEnd; -
             (graph[node.children[node.children.length - 1].toInt()]!
                     .hitsBelow) *
-                arcPerChild /
-                2;
-        double sweep = arcEnd - arcStart;
+                arcPerChild;
+        double sweep = node.myArcEnd - node.myArcStart;
         myCanvas.drawArc(
           rect,
-          arcStart,
+          node.myArcStart,
           sweep,
           false,
           paint
             ..style = PaintingStyle.stroke
-            ..color = nodeColor
+            ..color = fillColor
             ..strokeWidth = hSettings.lineWidth / graphData.scale,
         );
       }

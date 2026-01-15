@@ -421,11 +421,6 @@ class _SettingsPageState extends State<SettingsPage> {
                           title: Text('Lines'),
                           value: GraphDrawType.line,
                         ),),
-                        IntrinsicWidth( child:
-                        RadioListTile<GraphDrawType>(
-                          title: Text('Wedges'),
-                          value: GraphDrawType.wedge,
-                        ),),
                         IntrinsicWidth( 
                           child: RadioListTile<GraphDrawType>(
                           title: Text('Arc Segments'),
