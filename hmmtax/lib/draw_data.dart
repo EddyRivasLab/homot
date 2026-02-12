@@ -82,6 +82,18 @@ void _addButton(
   else{
     tooltipText += " "+ domain.name;
   }
+  if(domain.ipShort != ""){
+    tooltipText += "\nInterPro Short Name: " + domain.ipShort;
+  }
+  else{
+    tooltipText += "\nInterPro Short Name: none";
+  }
+  if(domain.ipLong != ""){
+    tooltipText += "\nInterPro Long Name: " + domain.ipLong;
+  }
+  else{
+    tooltipText += "\nInterPro Long Name: none";
+  }
   tooltipText += "\nDescription: " + domain.description;
   tooltipText += "\nTarget sequence length: " + seqLength.toString();
 
@@ -470,6 +482,7 @@ class DomainPainter extends CustomPainter {
     List<double> lastEnds = List<double>.filled(domainRows.length, widthOffset);
     bool addPatterns = Provider.of<HSettings>(context, listen: false).addPatterns;
     bool pfamNames = Provider.of<HSettings>(context, listen: false).showNamesFrom == ShowNamesFrom.pfam;
+    ShowInterproIdEnum showInterproIdAs = Provider.of<HSettings>(context, listen: false).showInterproIdAs;
     for (var i = 0; i < domainRows.length; i++) {
       for (var j = 0; j < domainRows[i].length; j++) {
         final domain = domains[domainRows[i][j]];
@@ -490,6 +503,7 @@ class DomainPainter extends CustomPainter {
           buttons,
           addPatterns,
           pfamNames,
+          showInterproIdAs,
           size
         );
         lastEnds[i] = end;
@@ -529,6 +543,7 @@ class DomainPainter extends CustomPainter {
     List<Widget> buttons,
     bool addPatterns,
     bool pfamNames,
+    ShowInterproIdEnum showInterproIdAs,
     Size size,
   ) {
     // set this up once in case we need it
@@ -663,7 +678,45 @@ class DomainPainter extends CustomPainter {
       textBG = Color(0xFF000000); // black
     }
     // see if all the data we'd like to display fits in the domain
-    name = (domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "") ? domain.pfamName: domain.name + evalString;
+    if(domain.source == AnnotationType.interpro){
+      // InterPro domain; see how to display the name
+      switch (domain.iType){
+        case IEntryType.domain:
+          if (pfamNames && domain.pfamName != ""){
+            name = domain.pfamName + evalString;
+          }
+          else{
+            switch (showInterproIdAs){
+              case ShowInterproIdEnum.id:
+                name = domain.name + evalString;
+                break;
+              case ShowInterproIdEnum.short_name:
+                name = domain.ipShort != "" ? domain.ipShort + evalString : domain.name + evalString;
+                break;
+              case ShowInterproIdEnum.long_name:
+                name = domain.ipLong != "" ? domain.ipLong + evalString : domain.name + evalString;
+                break;
+            }
+          }
+          break;
+        default: 
+          switch (showInterproIdAs){
+              case ShowInterproIdEnum.id:
+                name = domain.name + evalString;
+                break;
+              case ShowInterproIdEnum.short_name:
+                name = domain.ipShort != "" ? domain.ipShort + evalString : domain.name + evalString;
+                break;
+              case ShowInterproIdEnum.long_name:
+                name = domain.ipLong != "" ? domain.ipLong + evalString : domain.name + evalString;
+                break;
+            }
+        }
+    }
+    else{
+      name = domain.name + evalString;
+    }
+    //name = (domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "") ? domain.pfamName: domain.name + evalString;
     painter.text =
         painter.text = TextSpan(
           text: name,
@@ -679,7 +732,7 @@ class DomainPainter extends CustomPainter {
       painter.paint(canvas, textPosition);
     } else {
       //see if the domain name fits
-      name = domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "" ? domain.pfamName : domain.name;
+    //  name = domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "" ? domain.pfamName : domain.name;
       painter.text = TextSpan(
         text: name,
         style: textTheme.bodyMedium!.copyWith(
@@ -693,7 +746,7 @@ class DomainPainter extends CustomPainter {
         painter.paint(canvas, textPosition);
       } else {
         //Cram in what we can
-        int numChars = domain.name.length;
+        int numChars = name.length;
         while (painter.width > (width - heightPerLine) && numChars > 0) {
           numChars -= 1;
           name = name.substring(0, numChars);

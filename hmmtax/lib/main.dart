@@ -472,6 +472,18 @@ Future<void> main() async {
   bool showInterproRepeat = await prefs.getBool("Hmmtax_show_repeat") ?? true;
   bool showInterproSite = await prefs.getBool("Hmmtax_show_site") ?? true;
   bool showInterproOther = await prefs.getBool("Hmmtax_show_other") ?? true;
+  int temp2 = await prefs.getInt("Hmmtax_interpro_show_id_as") ?? 0;
+  ShowInterproIdEnum showInterproIDAs;
+  switch (temp2) {
+    case 0:
+      showInterproIDAs = ShowInterproIdEnum.id;
+    case 1:
+      showInterproIDAs = ShowInterproIdEnum.short_name;
+    case 2:
+      showInterproIDAs = ShowInterproIdEnum.long_name;
+    default:
+      showInterproIDAs = ShowInterproIdEnum.id;
+  }
   bool temp = await prefs.getBool("Hmmtax_interpro_names_from_pfam") ?? true;
   ShowNamesFrom namesFrom = temp ? ShowNamesFrom.pfam : ShowNamesFrom.interpro;
 
@@ -500,6 +512,7 @@ Future<void> main() async {
                 showInterproRepeat,
                 showInterproSite,
                 showInterproOther,
+                showInterproIDAs,
                 namesFrom,
               ),
         ),
@@ -554,6 +567,7 @@ enum brightModes { light, dark, system }
 enum GraphDrawType{line, outline, fill}
 
 enum ShowNamesFrom{pfam, interpro}
+enum ShowInterproIdEnum{id, short_name, long_name}
 
 // ChangeNotifier for theme state
 class HSettings with ChangeNotifier {
@@ -576,6 +590,7 @@ class HSettings with ChangeNotifier {
   bool _showInterproSite = true;
   bool _showInterproOther = true;
   ShowNamesFrom _namesFrom = ShowNamesFrom.pfam;
+  ShowInterproIdEnum _showInterproIDAs = ShowInterproIdEnum.id;
 
   GraphDrawType _drawType = GraphDrawType.line;
   late SharedPreferencesAsync _prefs;
@@ -606,7 +621,9 @@ class HSettings with ChangeNotifier {
     bool showInterproRepeat,
     bool showInterproSite,
     bool showInterproOther,
+    ShowInterproIdEnum showInterproIDAs,
     ShowNamesFrom namesFrom,
+
   ) {
     _prefs = prefs;
     _font = font;
@@ -623,6 +640,7 @@ class HSettings with ChangeNotifier {
     _showInterproRepeat = showInterproRepeat; 
     _showInterproSite = showInterproSite; 
     _showInterproOther = showInterproOther;
+    _showInterproIDAs = showInterproIDAs;
     _namesFrom = namesFrom;
 
     switch (mode) {
@@ -818,6 +836,12 @@ class HSettings with ChangeNotifier {
     _prefs.setBool("Hmmtax_show_other", val);
     notifyListeners();
   }
+
+  void set showInterproIdAs(ShowInterproIdEnum val) {
+    _showInterproIDAs = val;
+    _prefs.setInt("Hmmtax_interpro_show_id_as", val.index);
+    notifyListeners();
+  }
   void set showNamesFrom(ShowNamesFrom val){
     _namesFrom = val;
     if (val == ShowNamesFrom.pfam){
@@ -844,6 +868,7 @@ class HSettings with ChangeNotifier {
   bool get showInterproRepeat => _showInterproRepeat;
   bool get showInterproSite => _showInterproSite;
   bool get showInterproOther => _showInterproOther;
+  ShowInterproIdEnum get showInterproIdAs => _showInterproIDAs;
   ShowNamesFrom get showNamesFrom => _namesFrom;
 
   GraphDrawType get drawType => _drawType;

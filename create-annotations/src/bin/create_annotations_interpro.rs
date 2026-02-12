@@ -305,7 +305,7 @@ pub fn write_annotated_db(domains: HashMap<String, Vec<Domain>>,
         // eliminate overlaps of the exact same domain, since that's the data we have in Interpro
         annotated.structure_domains = remove_overlaps_interpro(&annotated.domains);
         
-      //  println!("{} domains found for {}", annotated.domains.len(), annotated.name);
+        //println!("{} domains and {} structure domains found for {}", annotated.domains.len(), annotated.structure_domains.len(), annotated.name);
         db.insert(&annotated.name, &annotated).expect("Failed to insert domain into output db");
     }
     //Make sure everything made it out to disk
@@ -317,6 +317,9 @@ fn remove_overlaps_interpro(domains: &Vec<Domain>) -> Vec<Domain>{
     let mut structure: Vec<Domain> = Vec::new();
 
     if domains.len() < 2{// can't have an overlap with 0 or 1 domain
+        for domain in domains{
+            structure.push(domain.clone());
+        }
         return structure;
     }
     let overlap_width = 5;

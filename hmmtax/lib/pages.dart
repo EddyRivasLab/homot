@@ -732,7 +732,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                             Theme.of(
                                               context,
                                             ).colorScheme.onSurface),
-                          "Interpro Annotations (No Effect if Database Annotated From Another Source)"),
+                          "InterPro Annotations (No Effect if Database Annotated From Another Source)"),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -865,6 +865,47 @@ class _SettingsPageState extends State<SettingsPage> {
                                   color:
                                       Theme.of(context).colorScheme.onSurface,
                                 ),
+                                "Show InterPro Annotations As",
+                              ),
+                              RadioGroup<ShowInterproIdEnum>(
+                                groupValue: hsettings.showInterproIdAs,
+                                onChanged: (ShowInterproIdEnum? value){
+                                  if (value != null){
+                                    hsettings.showInterproIdAs = value;
+                                  }
+                                },
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                  IntrinsicWidth( 
+                                    child: RadioListTile<ShowInterproIdEnum>(
+                                    title: Text('InterPro ID'),
+                                    value: ShowInterproIdEnum.id,
+                                  ),),
+                                  IntrinsicWidth( 
+                                    child: RadioListTile<ShowInterproIdEnum>(
+                                    title: Text('InterPro Short Name (If Available)'),
+                                    value: ShowInterproIdEnum.short_name,
+                                  ),),
+                                  IntrinsicWidth( 
+                                    child: RadioListTile<ShowInterproIdEnum>(
+                                  title: Text('InterPro Long Name (If Available)'),
+                                    value: ShowInterproIdEnum.long_name,
+                                  ),),
+                                ],),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium!.copyWith(
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
                                 "Show Domain Names From",
                               ),
                               RadioGroup<ShowNamesFrom>(
@@ -879,12 +920,12 @@ class _SettingsPageState extends State<SettingsPage> {
                                   children: [
                                   IntrinsicWidth( 
                                     child: RadioListTile<ShowNamesFrom>(
-                                    title: Text('Pfam (If Available())'),
+                                    title: Text('Pfam (If Available)'),
                                     value: ShowNamesFrom.pfam,
                                   ),),
                                   IntrinsicWidth( 
                                     child: RadioListTile<ShowNamesFrom>(
-                                    title: Text('Interpro'),
+                                    title: Text('InterPro'),
                                     value: ShowNamesFrom.interpro,
                                   ),),
                                 ],),
