@@ -18,10 +18,8 @@ import 'package:hmmtax/main.dart';
 import 'package:hmmtax/utility.dart';
 import 'package:hmmtax/graph_painter.dart';
 import 'package:hmmtax/draw_data.dart';
-import 'package:hmmtax/printing.dart';
 import 'package:hmmtax/src/rust/api/graph.dart';
 import 'package:provider/provider.dart';
-import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'package:input_quantity/input_quantity.dart';
 import 'package:system_fonts/system_fonts.dart';
@@ -31,7 +29,6 @@ import 'package:matrix4_transform/matrix4_transform.dart';
 import 'package:vector_math/vector_math_64.dart' hide Colors;
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 // Widget to enter information about what files to read
 class MainPage extends StatefulWidget {

@@ -15,8 +15,6 @@ import 'package:hmmtax/src/rust/api/graph.dart';
 import 'package:hmmtax/src/rust/frb_generated.dart';
 import 'package:hmmtax/main.dart';
 import 'package:hmmtax/utility.dart';
-import 'package:hmmtax/printing.dart';
-
 import 'package:provider/provider.dart';
 import "package:go_router/go_router.dart";
 import 'package:touchable/touchable.dart';

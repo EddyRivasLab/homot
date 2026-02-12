@@ -4,8 +4,6 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:hmmtax/src/rust/api/simple.dart';
 import 'package:hmmtax/src/rust/frb_generated.dart';
 import 'package:hmmtax/src/rust/api/graph.dart';
-import 'package:hmmtax/printing.dart';
-
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import "dart:math";
 import 'package:touchable/touchable.dart';
