@@ -1,0 +1,68 @@
+\documentclass[notoc,justified,openany]{tufte-book}    % `notoc` suppresses TL custom TOC, reverts to standard LaTeX
+\usepackage{graphicx}
+\usepackage{xspace}
+\usepackage{hyperref}
+\hyphenation{HMMER}
+\newcommand{\hmmer}{{HMMER}\xspace}  % \hmmer is a command that expands to "HMMER" with a trailing space
+\newcommand{\homot }{{Homot}\xspace}  % \homot  is a command that expands to "homot" with a trailing space
+\newcommand{\Homot}{{Homot}\xspace}
+\newcommand{\uniprot}{{UniProt}\xspace}
+\newcommand{\userguide}{HMMER User's Guide}
+\input{titlepage_homot}                    % definitions for \maketitle 
+\bibliographystyle{unsrtnat-brief}   % customized natbib unsrtnat. Abbrev 3+ authors to ``et al.'' 
+
+\begin{document}
+\setcounter{tocdepth}{2}             % 0=chapters 1=sections 2=subsections 3=subsubsections? 4=paragraphs
+
+\maketitle
+
+\input{copyright}
+
+
+\pagebreak
+\hspace{0pt}
+\vfill
+\emph{\Homot is dedicated to the memory of Tom Jones: biologist, friend, and Player of Games. Tom was one of the inspirations for the development of \homot, but passed away before it was completed.  We hope that \homot will help others bring the curiosity, thoughtfulness, and joy to biology that Tom showed every day.}
+\vfill
+\hspace{0pt}
+
+\chapter{Introduction}
+\homot\sidenote{\homot was inspired by, and is heavily based on, the tools developed by the European Bioinformatics Institute for their web-based HMMER server \url{https://www.ebi.ac.uk/Tools/hmmer/home}. We are indebted to them for their work, and offer \homot as a complement to, not competition with, their tools.} is a graphical tool for the analysis and exploration of homology search results.  It displays search results in three ways: sorted by hit quality (e-value), distributed across a taxonomic tree, and grouped by structure (the set of domains or other annotated regions that a sequnece contains).  These views allow users to quickly grasp the breadth of the homologs a search has identified and zoom in on the results of greatest interest without having to pour through the thousands of results that searching a modern genomic database typically returns.
+
+\homot takes two inputs: the output of a homology search run against a set of sequences that have been annotated for use with \homot, and an "annotations database" containing the annotations for that set of sequences.  \homot can display the results of HMMER (hmmsearch or phmmer), BLAST, or any other tool that can format its output to be compatible with HMMER's domtblout or BLAST's tabular output formats.  We provide annotations for a small set of genomic databases on Harvard's Dataverse at (FILL THIS IN).  \homot's source-code distribution also includes tools that users can use to annotate their own genomic databases, although this process can be somewhat complex.
+
+
+\chapter{Installation}
+
+
+
+\chapter{Usage}
+
+
+\chapter{Annotating Sequence Databases}
+We provide two utilities to create annotations for files of protein sequence data.  The first, \mono{create\_annotations\_interpro}, annotates \uniprot \url{https://www.uniprot.org/} using the annotations that Interpro \url{https://www.ebi.ac.uk/interpro/} generates for those databases.  It is straightforward and fairly simple to run, but is limited to databases that Interpro annotates.  The second, \mono{create\_annotations\_hmmer}, annotates arbitrary databases against the domains defined by Pfam \url{http://pfam.xfam.org/} or other sets of HMMs, but requires significantly more preparation to use.  Both are included in the source-code distribution of \homot, which is available at (SITE GOES HERE).  
+
+Building these tools from source is fairly simple.  Both are written in the Rust language \url{www.rustup.rs}, and require that to be installed.  Once Rust has been installed on your system, clone the \homot Git repository, change into the \mono{create-annotations} directory inside of it, and run "cargo build --release".  Cargo should download all of the required dependencies for you, build the two tools, and deposit them in the \mono{create-annotations/target/release} directory of the repository.  
+
+
+\section{Data Required to Create Annotations}
+Creating an annotations database requires a number of input files.  The first is the FASTA database to be annotated.  Our annotation tools expect each sequence in the database to specify its NCBI taxon ID using the "OX=taxid" format defined by \uniprot.  \uniprot databases will contain that information, but databases from other sources may have to be modified to add it.  If this information is not available, an annotations database can still be created, and the structure display functions of \homot will still work, but the taxonomic display will not (all sequnces will be placed at the taxonomy's root node).  Another note about taxonomic IDs is that the NCBI taxonomy changes very quickly and \uniprot does not say which version of the taxonomy was used when creating a given version of their databases, so there will generally be a small number (hundreds out of many millions) of sequences in a \uniprot database whose taxon IDs no longer exist.  \homot handles this by placing any such sequences at the root of the taxonomic tree.
+
+By default, our annotation tools compress the NCBI's hierarchy (34 levels at the time of this writing) into the canonical hierarchy of domain, kingdom, phylum, class, order, family, genus, species, with "no rank" for nodes at the very root of the hierarchy.  Passing the \mono{-n} option to the annotation tool will prevent this, leaving the hierarchy at its full depth.
+
+Both annotation tools use the NCBI taxonomy \url{https://www.ncbi.nlm.nih.gov/taxonomy} to place results on the tree of life.  To do this, they expect the taxonomy definition files \mono{names.dmp}, \mono{nodes.dmp}, \mono{merged.dmp}, and \mono{delnodes.dmp} to be located in the same directory.  These files can be obtained by downloading the file \mono{taxdump.tar.Z} from the NCBI's FTP site at \url{https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/}, and un-compressing and un-tarring that file.
+
+Annotating a \uniprot database with Interpro annotations requires the \mono{interpro.xml} and \mono{protein2ipr.dat} files for the appropriate release of Interpro, which can be downloaded from \url{https://ftp.ebi.ac.uk/pub/databases/interpro/}, and should be placed in the same directory.  Each Interpro annotation release corresponds to a \uniprot release, so it should be possible to locate the Interpro annotations that match any given database.
+
+Annotating a sequence database with Pfam domains requires the \mono{{Pfam-A.clans.tsv}} and \mono{{Pfam-A.hmm}} files for the appropriate Pfam release, which can be downloaded from \url{https://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/}.  Again, both files should be placed in the same directory.  
+
+\section{Annotating \uniprot Databases with Interpro Annotations}
+Once all of the required data files have been assembled, a \uniprot database can be annotated with the Interpro annotations using the command "create\_annotations\_interpro <seqfile> <interprodir> <ncbidir> <outfile>", where <seqfile> is the FASTA file to be annotated, <interprodir> is the directory containing the Interpro datafiles, <ncbidir> is the directory containing the NCBI taxonomy information, and <outfile> is the desired name for the annotations database.  Annotating a FASTA file contaning 200 million sequences this way takes less than an hour on a 2025 Mac Studio computer.
+
+\section{Annotating Databases with Pfam Domains}
+Annotating a sequence database with Pfam domains is more complex, but more flexible.  In addition to the input files described above \mono{create\_annotations\_hmmer} requries a directory of \hmmer domtblout files, one per domain that Pfam defines, which contain the hits to that domain from the sequences in the database.  The easiest way to generate these files is to separate the {Pfam-A.hmm} files into individual {HMM} files, one per domain, and then to run a HMMER search on each of those files using commands similar to "hmmsearch --cut\_ga --domtblout=domtbldir/domain.domtblout sequences.fasta", where the --cut\_ga option instructs hmmsearch to use the Pfam reporting thresholds contained in the {HMM} file.  One requirement here is that the domtblout files be named with the name of the domain they represent, as \mono{create\_annotations\_hmmer} uses that when creating the annotations.
+
+Once that has been done, which can take a significant amount of time depending on the number of machines available to run all of the HMMER searches, the database can be annotated using the command "create\_annotations\_hmmer <seqfile> <domtbloutdir> <pfamdir> <ncbidir> <outfile>", where seqfile is the FASTA file to be annotated, domtbloutdir is the directory containing the above domtblout files, pfamdir is the directory containing the pfam data files, ncbidir is the directory containing the ncbi datafiles, and outdir is the name of the annotations database.  This can take a significant amount of time and RAM to run, depending on the size of the FASTA file being annotated.
+
+This process can be adapted to annotate a database with hits to an arbitrary set of {HMM}s by generating domtblout files by searching the database against each HMM as above, collecting the {HMM} files into one "{Pfam-A.hmm}" file and creating a \mono{{Pfam-A.clans.tsv}} that is empty or contains relationship specifications for the {HMM}s being searched. \mono{Create\_annotations\_hmmer} expects that many Pfam domains will not be members of clans, so any {HMM}s not contained in the \mono{{Pfam-A.clans.tsv}} file will simply be treated as clanless.  Once this has been done, the database can be annotated using the same command as for a Pfam annotation.
+\end{document}
