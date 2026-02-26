@@ -4,10 +4,10 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:hmmtax/main.dart';
-import 'package:hmmtax/utility.dart';
+import 'package:homot/main.dart';
+import 'package:homot/utility.dart';
 import 'package:touchable/touchable.dart';
-import 'package:hmmtax/src/rust/api/graph.dart';
+import 'package:homot/src/rust/api/graph.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:patterns_canvas/patterns_canvas.dart';
 

@@ -3,9 +3,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:hmmtax/src/rust/frb_generated.dart';
-import 'package:hmmtax/main.dart';
-import 'package:hmmtax/pages.dart';
+import 'package:homot/src/rust/frb_generated.dart';
+import 'package:homot/main.dart';
+import 'package:homot/pages.dart';
 
 import 'package:osler_icons/osler_icons.dart';
 import 'package:provider/provider.dart';
@@ -123,8 +123,8 @@ class _HmmotSystemFontSelectorState extends State<HmmotSystemFontSelector> {
   }
 }
 
-class HmmtaxAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const HmmtaxAppBar({super.key, required this.text});
+class homotAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const homotAppBar({super.key, required this.text});
 
   final String text;
   @override
@@ -220,7 +220,7 @@ class MainNavBar extends StatelessWidget {
                 ),
                 enabled: whereAmI != WhichPage.home,
                 tooltip: "",
-                label: 'Load Data',
+                label: 'Select Data',
               ),
               NavigationDestination(
                 icon: Icon(
@@ -248,7 +248,7 @@ class MainNavBar extends StatelessWidget {
                     (whereAmI != WhichPage.allstructure) &&
                     searchdata.resultsLoaded,
                 tooltip: "",
-                label: 'All Hits by Domain Structure',
+                label: 'All Hits by Structure',
               ),
               NavigationDestination(
                 icon: Icon(
@@ -278,7 +278,7 @@ class MainNavBar extends StatelessWidget {
                     (whereAmI != WhichPage.subgraphstructure) &&
                     graphdata.currentRoot != graphdata.graphRoot,
                 tooltip: "",
-                label: 'Selected Subtree by Domain Structure',
+                label: 'Selected Subtree by Structure',
               ),
               NavigationDestination(
                 icon: Icon(

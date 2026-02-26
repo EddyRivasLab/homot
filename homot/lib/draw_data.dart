@@ -11,10 +11,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:hmmtax/src/rust/api/graph.dart';
-import 'package:hmmtax/src/rust/frb_generated.dart';
-import 'package:hmmtax/main.dart';
-import 'package:hmmtax/utility.dart';
+import 'package:homot/src/rust/api/graph.dart';
+import 'package:homot/src/rust/frb_generated.dart';
+import 'package:homot/main.dart';
+import 'package:homot/utility.dart';
 import 'package:provider/provider.dart';
 import "package:go_router/go_router.dart";
 import 'package:touchable/touchable.dart';
@@ -288,8 +288,8 @@ class DrawDomains extends StatelessWidget {
     if (newDomains.isEmpty) {
       newDomains.add(
         Domain(
-          name: "No Domains",
-          description: "No domains found in this sequence",
+          name: "No Structure",
+          description: "No structure found for this sequence",
           clan: "No Clan",
           seqStart: 0,
           seqEnd: length,
@@ -774,12 +774,12 @@ class DomainPainter extends CustomPainter {
     );
     if (allDomains) {
       legendPainter.text = TextSpan(
-        text: "Annotated Domains:",
+        text: "Structure:",
         style: textTheme.bodyMedium!.copyWith(color: colorScheme.onSurface),
       );
     } else {
       legendPainter.text = TextSpan(
-        text: "Domain Structure:",
+        text: "Structure",
         style: textTheme.bodyMedium!.copyWith(color: colorScheme.onSurface),
       );
     }
@@ -1122,14 +1122,14 @@ class _DrawCategory extends State<DrawCategory>{
                                               color:
                                                   Theme.of(
                                                     context,
-                                                  ).colorScheme.onPrimary,
+                                                  ).colorScheme.onSurface,
                                             )
                                             : Icon(
                                               Icons.expand,
                                               color:
                                                   Theme.of(
                                                     context,
-                                                  ).colorScheme.onPrimary,
+                                                  ).colorScheme.onSurface,
                                             ),
                                   ),
                                 )
@@ -1143,7 +1143,7 @@ class _DrawCategory extends State<DrawCategory>{
                               },
                               icon: Icon(
                                 Icons.search,
-                                color: Theme.of(context).colorScheme.onPrimary,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                           ],

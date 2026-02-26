@@ -37,7 +37,69 @@
 
 
 \chapter{Usage}
+When a user starts \homot, they are presented with the "select data" page show in Figure \ref{fig:load_data}\sidenote{Macintosh version shown. Linux and Windows versions may differ slightly.}.  This page contains a number of elements that are consistent across all of \homot's pages.  In the upper left of the window, the three-horizontal-line "hamburger"\sidenote{Flutter/Google's term, not ours} icon can be clicked to display a menu that allows users to see information about \homot, quit the application, or, once data has been loaded into the application, export displayed data to a {CSV} file.  Clicking the "gear" icon in the window's upper-right corner takes the user to \homot's settings page (described later), where the user can configure \homot's display and other application parameters.  At the bottom of the page, a navigation bar allows the user to switch between the \homot's different pages.  Icons in the navigation bar are greyed out when it is not possible to switch to the page, either because the user is already on that page, as is the case for the "Select Data" icon, or because no data has been into the application or selected for display, as is the case for the other icons in the figure.
 
+\begin{figure*}
+\centering
+\includegraphics[width=\textwidth, angle=270]{inclusions/load_data.pdf}
+\caption{\homot's Select Data Page}
+\label{fig:load_data}
+\end{figure*}
+
+\homot requires two inputs in order to display search results: a file containing the results to be displayed, and an annotations database containing taxonomic and structure information about the database the search was run on.  To specify the annotations database that \homot should use, either type the location of the database into the corresponding text field or click the file folder icon at its right to bring up a file selector dialog and select the database.  Similarly, either type the location of the search results file you want to display in the "Search Results File(s)" field or click the file folder icon to bring up a file selector dialog that will allow you to locate the results file in your file system.
+
+\homot accepts search results in either HMMER's domtblout format or BLAST's tabular (output format 6) format, and should be able to display results from other tools that can generate output in one of those formats.  Users may view the results of a single search, or of multiple searches against the same database to compare them.  By default, \homot infers the type of results file from its contents, but a Because HMMER and BLAST provide different information in their outputs, there will be some variation in the information displayed depending on the type of input file used.  All of the examples in this userguide show results from HMMER searches.
+
+One note about annotation databases: an annotation database is a directory structure, not a flat file\sidenote{This is a result of our decision to use Rust's Fjall \url{https://docs.rs/fjall/latest/fjall/} key-value store to implement annotations databases.}.  When specifying the annotations database \homot should use, users should select the top-level directory of the database, not any of its sub-directories.
+
+Once the user has specified an annotations database and one or more results files to display, they should click on the "Load Data" button to read the specified files into \homot.  Reading the input files takes between a few seconds for searches with a few thousand results to a few minutes for searches with millions of results, although this will vary with the speed of a computer's disk system.  While data is loading, \homot pops up a "Loading Data" message in yellow at the bottom of the screen.  If any problems occur loading the specified data, a red pop-up will appear containing an error message.  Otherwise, when the data finishes loading, \homot will switch to the taxonomic display page and show the search results.
+
+\section{Taxonomic Display}
+Figure \ref{fig:taxonomy} shows \homot's taxonomic display of search results.  Results are displayed on a circular graph, with the root at the center and successive levels of the taxonomy at increasing distances from the center.  Each node of the taxonomic tree occupies a fraction of the circle proportional to the fraction of the search's results that lie on that branch of the tree, and is colored based on which child of the root node it descends from, although other display formats can be selected from the settings page.  In the figure, for example, the bacteria occupy the majority the circle, as they contain 957 of the 1164 homologs found by the search, and all bacterial results are colored pink.  When there is sufficient space in the display, \homot represents a graph node as a radial line outward from its parent node, labeled with the name of the node and the number of results that are children of the node or the node's children.  When that is not possible \homot represents the node as a radial wedge extending out to the edge of the graph and labeled with the node's name and number of result, as it did for the Thermoproteati node in the figure, or as a colored radial wedge if the name and number of results do not fit.  One consequence of this is that \homot's initial display of search results often looks like a simple pie graph, as it shows all of the levels of the taxonomic tree by default, and most monitors do not have enough resolution to display node names when showing that many nodes.  Using the control in the upper-left of the window to reduce the number of graph levels displayed, as was done for the graph in the figure, will typically allow names to be displayed and more detail to be shown.
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=\textwidth, angle=270]{inclusions/taxonomy.pdf}
+  \caption{Taxonomic Display of Search Results}
+  \label{fig:taxonomy}
+  \end{figure*}
+
+Left-clicking on a node in the graph makes that node the new root of the graph, allowing the user to show more detail about portions of the taxonomy that contain interesting results.  This also selects the results that are descendants of that node to be displayed on the "Selected Subtree by Structure" and "Selected hits by e-value" pages.  The control at the upper left of the window shows a history of the nodes that have been the center of the graph, and the user can return to a previously-selected center by clicking on its name in the control.  Right-clicking on a node brings up a pop-up that shows information about the node and allows the user to remove the node from the graph or view/restore nodes that have been removed from the graph.  Removing nodes from the graph can be useful when a node that contains a few results of interest takes up such a small fraction of the graph circle that it is hard to select.  In that case, removing one or more of the nodes that contain many results from the graph can expand the node of interest to the point where it can be easily selected.  Left-clicking anywhere outside the pop-up will close it, as will clicking the "close" button in the window.
+
+
+
+\section{Grouping results by Structure}
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=\textwidth, angle=270]{inclusions/structure.pdf}
+  \caption{\homot}
+  \label{fig:structure}
+  \end{figure*}
+
+\section{Display by E-Value}
+\begin{figure*}
+  \centering
+  \includegraphics[width=\textwidth, angle=270]{inclusions/evalue.pdf}
+  \caption{Sorting Resuts by E-Value}
+  \label{fig:evalue}
+  \end{figure*}
+
+\section{Showing Individual Sequence Results}
+\begin{figure*}
+  \centering
+  \includegraphics[width=\textwidth, angle=270]{inclusions/sequence.pdf}
+  \caption{Single-Sequence Results}
+  \label{fig:sequence}
+  \end{figure*}
+
+\section{Settings Screen}
+\begin{figure*}
+  \centering
+  \includegraphics[width=\textwidth, angle=270]{inclusions/settings.pdf}
+  \caption{\homot's Settings Page}
+  \label{fig:settings}
+  \end{figure*}
 
 \chapter{Annotating Sequence Databases}
 We provide two utilities to create annotations for files of protein sequence data.  The first, \mono{create\_annotations\_interpro}, annotates \uniprot \url{https://www.uniprot.org/} using the annotations that Interpro \url{https://www.ebi.ac.uk/interpro/} generates for those databases.  It is straightforward and fairly simple to run, but is limited to databases that Interpro annotates.  The second, \mono{create\_annotations\_hmmer}, annotates arbitrary databases against the domains defined by Pfam \url{http://pfam.xfam.org/} or other sets of HMMs, but requires significantly more preparation to use.  Both are included in the source-code distribution of \homot, which is available at (SITE GOES HERE).  

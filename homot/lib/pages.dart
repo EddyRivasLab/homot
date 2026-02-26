@@ -14,11 +14,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:hmmtax/main.dart';
-import 'package:hmmtax/utility.dart';
-import 'package:hmmtax/graph_painter.dart';
-import 'package:hmmtax/draw_data.dart';
-import 'package:hmmtax/src/rust/api/graph.dart';
+import 'package:homot/main.dart';
+import 'package:homot/utility.dart';
+import 'package:homot/graph_painter.dart';
+import 'package:homot/draw_data.dart';
+import 'package:homot/src/rust/api/graph.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
 import 'package:input_quantity/input_quantity.dart';
@@ -50,7 +50,7 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.primary,
-      appBar: HmmtaxAppBar(text: "Select Data"),
+      appBar: homotAppBar(text: "Select Data"),
       body: Consumer4<FileData, GraphData, SearchData, HSettings>(
         builder: (context, filedata, graphdata, searchdata, hsettings, child) {
           return Column(
@@ -266,7 +266,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.primary,
-      appBar: HmmtaxAppBar(text: "Settings"),
+      appBar: homotAppBar(text: "Settings"),
       body: Consumer<HSettings>(
         builder: (context, hsettings, child) {
           return Column(
@@ -1252,7 +1252,7 @@ class _GraphPageState extends State<GraphPage> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.primary,
-      appBar: HmmtaxAppBar(text: "Taxonomic Display"),
+      appBar: homotAppBar(text: "Taxonomic Display"),
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           var width = constraints.maxWidth;
@@ -1763,7 +1763,7 @@ class _GraphPageState extends State<GraphPage> {
   }
 }
 
-// Widget that displays all hits to the selected subtree by domain structure
+// Widget that displays all hits to the selected subtree by structure
 class SubtreeStructurePage extends StatefulWidget {
   const SubtreeStructurePage({super.key});
 
@@ -1788,8 +1788,8 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
           final hitCount = numHits == 0 || numHits > 1 ? "hits" : "hit";
           final strucText =
               theHits.length > 1
-                  ? "different domain structures"
-                  : "domain structure";
+                  ? "different structures"
+                  : "structure";
           if (fullWidth.length != theHits.length) {
             // something has changed, reset the fullwidth list
             fullWidth = List.filled(theHits.length, false);
@@ -1798,7 +1798,7 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
           final screenWidth = MediaQuery.sizeOf(context).width;
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
-            appBar: HmmtaxAppBar(
+            appBar: homotAppBar(
               text:
                   "${numHits} ${hitCount} found under ${graphdata.graph[graphdata.currentRoot]?.name}, with ${theHits.length} ${strucText}",
             ),
@@ -1845,7 +1845,7 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
   }
 }
 
-// Widget that displays all results by domain structure
+// Widget that displays all results by structure
 class AllStructurePage extends StatefulWidget {
   const AllStructurePage({super.key});
 
@@ -1872,12 +1872,12 @@ class _AllStructurePageState extends State<AllStructurePage> {
           final hitCount = numHits != 1? "hits" : "hit";
           final strucText =
               theHits.length != 1
-                  ? "different domain structures"
-                  : "domain structure";
+                  ? "different structures"
+                  : "structure";
           final screenWidth = MediaQuery.sizeOf(context).width;
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
-            appBar: HmmtaxAppBar(
+            appBar: homotAppBar(
               text:
                   "${numHits} ${hitCount} found, with ${theHits.length} ${strucText}",
             ),
@@ -1942,7 +1942,7 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
           final screenWidth = MediaQuery.sizeOf(context).width;
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
-            appBar: HmmtaxAppBar(text: "${searchdata.hits.length} hits found"),
+            appBar: homotAppBar(text: "${searchdata.hits.length} hits found"),
             body: Scrollbar(
               controller: _scrollController2,
               child: ListView.builder(
@@ -1999,14 +1999,14 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
                                               color:
                                                   Theme.of(
                                                     context,
-                                                  ).colorScheme.onPrimary,
+                                                  ).colorScheme.onSurface,
                                             )
                                             : Icon(
                                               Icons.expand,
                                               color:
                                                   Theme.of(
                                                     context,
-                                                  ).colorScheme.onPrimary,
+                                                  ).colorScheme.onSurface,
                                             ),
                                   ),
                                 )
@@ -2019,7 +2019,7 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
                               },
                               icon: Icon(
                                 Icons.search,
-                                color: Theme.of(context).colorScheme.onPrimary,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                           ],
@@ -2073,13 +2073,13 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
               hitIndices =
                   searchdata.currentHits[searchdata.selectedStructure].hits;
               title =
-                  "${hitIndices.length} hits found with domain structure ${searchdata.structures[searchdata.currentHits[searchdata.selectedStructure].signature]} under node ${graphdata.getNode(graphdata.currentRoot).name}";
+                  "${hitIndices.length} hits found with structure ${searchdata.structures[searchdata.currentHits[searchdata.selectedStructure].signature]} under node ${graphdata.getNode(graphdata.currentRoot).name}";
               break;
             case selectedby.structure:
               hitIndices =
                   searchdata.rootHits[searchdata.selectedStructure].hits;
               title =
-                  "${hitIndices.length} hits found with domain structure ${searchdata.structures[searchdata.rootHits[searchdata.selectedStructure].signature]}";
+                  "${hitIndices.length} hits found with structure ${searchdata.structures[searchdata.rootHits[searchdata.selectedStructure].signature]}";
               break;
             default:
               hitIndices = Int64List(0);
@@ -2094,7 +2094,7 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
           final screenWidth = MediaQuery.sizeOf(context).width;
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
-            appBar: HmmtaxAppBar(text: title),
+            appBar: homotAppBar(text: title),
             body: Scrollbar(
               controller: _scrollController2,
               child: ListView.builder(
@@ -2151,14 +2151,14 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                                               color:
                                                   Theme.of(
                                                     context,
-                                                  ).colorScheme.onPrimary,
+                                                  ).colorScheme.onSurface,
                                             )
                                             : Icon(
                                               Icons.expand,
                                               color:
                                                   Theme.of(
                                                     context,
-                                                  ).colorScheme.onPrimary,
+                                                  ).colorScheme.onSurface,
                                             ),
                                   ),
                                 )
@@ -2171,7 +2171,7 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                               },
                               icon: Icon(
                                 Icons.search,
-                                color: Theme.of(context).colorScheme.onPrimary,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                           ],
@@ -2219,7 +2219,7 @@ class _SequencePageState extends State<SequencePage> {
               requiredHitWidth(theHit, true, true, context) > screenWidth;
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
-            appBar: HmmtaxAppBar(text: "Sequence ${theHit.name}"),
+            appBar: homotAppBar(text: "Sequence ${theHit.name}"),
             body: SingleChildScrollView(
               controller: _scrollController2,
               child: Card(
@@ -2264,14 +2264,14 @@ class _SequencePageState extends State<SequencePage> {
                                               color:
                                                   Theme.of(
                                                     context,
-                                                  ).colorScheme.onPrimary,
+                                                  ).colorScheme.onSurface,
                                             )
                                             : Icon(
                                               Icons.expand,
                                               color:
                                                   Theme.of(
                                                     context,
-                                                  ).colorScheme.onPrimary,
+                                                  ).colorScheme.onSurface,
                                             ),
                                   ),
                                 )

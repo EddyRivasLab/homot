@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
-import 'package:hmmtax/src/rust/api/simple.dart';
-import 'package:hmmtax/src/rust/frb_generated.dart';
-import 'package:hmmtax/src/rust/api/graph.dart';
+import 'package:homot/src/rust/api/simple.dart';
+import 'package:homot/src/rust/frb_generated.dart';
+import 'package:homot/src/rust/api/graph.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import "dart:math";
 import 'package:touchable/touchable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
-import 'package:hmmtax/pages.dart';
-import 'package:hmmtax/graph_painter.dart';
-import 'package:hmmtax/utility.dart';
+import 'package:homot/pages.dart';
+import 'package:homot/graph_painter.dart';
+import 'package:homot/utility.dart';
 import "package:go_router/go_router.dart";
 import 'dart:io';
 import 'dart:collection';
@@ -454,23 +454,23 @@ Future<void> main() async {
   await RustLib.init();
   WidgetsFlutterBinding.ensureInitialized();
   final SharedPreferencesAsync prefs = SharedPreferencesAsync();
-  String font = await prefs.getString("Hmmtax_font") ?? "Roboto";
-  double evalMax = await prefs.getDouble("Hmmtax_evalMax") ?? 10.0;
-  double evalMin = await prefs.getDouble("Hmmtax_evalMin") ?? 0.0;
-  double domEvalMax = await prefs.getDouble("Hmmtax_domEvalMAx") ?? 10.0;
-  double domEvalMin = await prefs.getDouble("Hmmtax_domEvalMin") ?? 0.0;
-  double scale = await prefs.getDouble("Hmmtax_scale") ?? 1.0;
-  double lineWidth = await prefs.getDouble("Hmmtax_lineWidth") ?? 2.0;
-  int mode = await prefs.getInt("Hmmtax_mode") ?? 3;
-  int DataFileType = await prefs.getInt("Hmmtax_datatype") ?? 3;
-  bool addPatterns = await prefs.getBool("Hmmtax_patterns") ?? false;
-  bool showInterproSuperfamily = await prefs.getBool("Hmmtax_show_superfamily") ?? true;
-  bool showInterproFamily = await prefs.getBool("Hmmtax_show_family") ?? true;
-  bool showInterproDomain = await prefs.getBool("Hmmtax_show_domain") ?? true;
-  bool showInterproRepeat = await prefs.getBool("Hmmtax_show_repeat") ?? true;
-  bool showInterproSite = await prefs.getBool("Hmmtax_show_site") ?? true;
-  bool showInterproOther = await prefs.getBool("Hmmtax_show_other") ?? true;
-  int temp2 = await prefs.getInt("Hmmtax_interpro_show_id_as") ?? 0;
+  String font = await prefs.getString("homot_font") ?? "Roboto";
+  double evalMax = await prefs.getDouble("homot_evalMax") ?? 10.0;
+  double evalMin = await prefs.getDouble("homot_evalMin") ?? 0.0;
+  double domEvalMax = await prefs.getDouble("homot_domEvalMAx") ?? 10.0;
+  double domEvalMin = await prefs.getDouble("homot_domEvalMin") ?? 0.0;
+  double scale = await prefs.getDouble("homot_scale") ?? 1.0;
+  double lineWidth = await prefs.getDouble("homot_lineWidth") ?? 2.0;
+  int mode = await prefs.getInt("homot_mode") ?? 3;
+  int DataFileType = await prefs.getInt("homot_datatype") ?? 3;
+  bool addPatterns = await prefs.getBool("homot_patterns") ?? false;
+  bool showInterproSuperfamily = await prefs.getBool("homot_show_superfamily") ?? true;
+  bool showInterproFamily = await prefs.getBool("homot_show_family") ?? true;
+  bool showInterproDomain = await prefs.getBool("homot_show_domain") ?? true;
+  bool showInterproRepeat = await prefs.getBool("homot_show_repeat") ?? true;
+  bool showInterproSite = await prefs.getBool("homot_show_site") ?? true;
+  bool showInterproOther = await prefs.getBool("homot_show_other") ?? true;
+  int temp2 = await prefs.getInt("homot_interpro_show_id_as") ?? 0;
   ShowInterproIdEnum showInterproIDAs;
   switch (temp2) {
     case 0:
@@ -482,7 +482,7 @@ Future<void> main() async {
     default:
       showInterproIDAs = ShowInterproIdEnum.id;
   }
-  bool temp = await prefs.getBool("Hmmtax_interpro_names_from_pfam") ?? true;
+  bool temp = await prefs.getBool("homot_interpro_names_from_pfam") ?? true;
   ShowNamesFrom namesFrom = temp ? ShowNamesFrom.pfam : ShowNamesFrom.interpro;
 
   runApp(
@@ -531,9 +531,8 @@ class TopLevel extends StatelessWidget {
       builder: (context, hsettings, child) {
         return MaterialApp(
           theme: hsettings.themeData,
-
           debugShowCheckedModeBanner: false,
-          title: 'Hmmtax',
+          title: 'Homot',
           home: MediaQuery.withNoTextScaling(child: MacMenu()),
           initialRoute: '/',
           routes: {
@@ -735,11 +734,11 @@ class HSettings with ChangeNotifier {
     _mode = newmode;
     switch (newmode) {
       case brightModes.light:
-        _prefs.setInt("Hmmtax_mode", 1);
+        _prefs.setInt("homot_mode", 1);
       case brightModes.dark:
-        _prefs.setInt("Hmmtax_mode", 2);
+        _prefs.setInt("homot_mode", 2);
       case brightModes.system:
-        _prefs.setInt("Hmmtax_mode", 3);
+        _prefs.setInt("homot_mode", 3);
     }
     notifyListeners();
   }
@@ -748,48 +747,48 @@ class HSettings with ChangeNotifier {
     _dataType = newtype;
     switch (newtype) {
       case DataFileType.domTblOut:
-        _prefs.setInt("Hmmtax_datatype", 1);
+        _prefs.setInt("homot_datatype", 1);
       case DataFileType.blast:
-        _prefs.setInt("Hmmtax_datatype", 2);
+        _prefs.setInt("homot_datatype", 2);
       case DataFileType.infer:
-        _prefs.setInt("Hmmtax_datatype", 3);
+        _prefs.setInt("homot_datatype", 3);
     }
     notifyListeners();
   }
 
   void set font(String font) {
     _font = font;
-    _prefs.setString("Hmmtax_font", font);
+    _prefs.setString("homot_font", font);
     notifyListeners();
   }
 
   void set scale(double scale) {
     _scale = scale;
-    _prefs.setDouble("Hmmtax_scale", scale);
+    _prefs.setDouble("homot_scale", scale);
     notifyListeners();
   }
 
   void set evalMax(double newMax) {
     _evalMax = newMax;
-    _prefs.setDouble("Hmmtax_evalMax", newMax);
+    _prefs.setDouble("homot_evalMax", newMax);
     notifyListeners();
   }
 
   void set domEvalMax(double newMax) {
     _domEvalMax = newMax;
-    _prefs.setDouble("Hmmtax_domEvalMax", newMax);
+    _prefs.setDouble("homot_domEvalMax", newMax);
     notifyListeners();
   }
 
   void set evalMin(double newMin) {
     _evalMin = newMin;
-    _prefs.setDouble("Hmmtax_evalMin", newMin);
+    _prefs.setDouble("homot_evalMin", newMin);
     notifyListeners();
   }
 
   void set domEvalMin(double newMin) {
     _domEvalMin = newMin;
-    _prefs.setDouble("Hmmtax_domEvalMin", newMin);
+    _prefs.setDouble("homot_domEvalMin", newMin);
     notifyListeners();
   }
 
@@ -801,51 +800,51 @@ class HSettings with ChangeNotifier {
 
   void set addPatterns(bool val) {
     _addPatterns = val;
-    _prefs.setBool("Hmmtax_patterns", val);
+    _prefs.setBool("homot_patterns", val);
     notifyListeners();
   } 
   void set showInterproSuperfamily(bool val) {
     _showInterproSuperfamily = val;
-    _prefs.setBool("Hmmtax_show_superfamily", val);
+    _prefs.setBool("homot_show_superfamily", val);
     notifyListeners();
   } 
   void set showInterproFamily(bool val) {
     _showInterproFamily = val;
-    _prefs.setBool("Hmmtax_show_family", val);
+    _prefs.setBool("homot_show_family", val);
     notifyListeners();
   }
   void set showInterproDomain(bool val) {
     _showInterproDomain = val;
-    _prefs.setBool("Hmmtax_show_domain", val);
+    _prefs.setBool("homot_show_domain", val);
     notifyListeners();
   }
   void set showInterproRepeat(bool val) {
     _showInterproRepeat = val;
-    _prefs.setBool("Hmmtax_show_repeat", val);
+    _prefs.setBool("homot_show_repeat", val);
     notifyListeners();
   }
   void set showInterproSite(bool val) {
     _showInterproSite = val;
-    _prefs.setBool("Hmmtax_show_site", val);
+    _prefs.setBool("homot_show_site", val);
     notifyListeners();
   }
   void set showInterproOther(bool val) {
     _showInterproOther = val;
-    _prefs.setBool("Hmmtax_show_other", val);
+    _prefs.setBool("homot_show_other", val);
     notifyListeners();
   }
 
   void set showInterproIdAs(ShowInterproIdEnum val) {
     _showInterproIDAs = val;
-    _prefs.setInt("Hmmtax_interpro_show_id_as", val.index);
+    _prefs.setInt("homot_interpro_show_id_as", val.index);
     notifyListeners();
   }
   void set showNamesFrom(ShowNamesFrom val){
     _namesFrom = val;
     if (val == ShowNamesFrom.pfam){
-      _prefs.setBool("Hmmtax_interpro_names_from_pfam", true);
+      _prefs.setBool("homot_interpro_names_from_pfam", true);
     } else {
-      _prefs.setBool("Hmmtax_interpro_names_from_pfam", false);
+      _prefs.setBool("homot_interpro_names_from_pfam", false);
     }     
     notifyListeners();
   }
@@ -1383,7 +1382,7 @@ class FileData with ChangeNotifier {
   }
 
   String _header(){
-    return "Format: SeqEvalue, HitName, (QueryName, QueryStart, QueryEnd)*, ANNOTATIONS:, (DomainName, DomainEvalue, DomainStart, DomainEnd)*";
+    return "Format: SeqEvalue, HitName, (QueryName, QueryStart, QueryEnd)*, ANNOTATIONS:, (Name, Evalue, Start, End)*";
   }
 
   void _exportAllStructure(SearchData searchdata, bool pfamNames, bool showInterproSuperfamily, bool showInterproFamily, bool showInterproDomain,
@@ -1517,7 +1516,7 @@ void showMyAboutDialog(BuildContext context) {
           ),
         ),
         child: SimpleDialog(
-          title: const Text("About Hmmtax"),
+          title: const Text("About homot"),
           children: <Widget>[
             Padding(
               padding: const EdgeInsets.all(8.0),
@@ -1533,7 +1532,7 @@ void showMyAboutDialog(BuildContext context) {
                   onPressed: () {
                     showLicensePage(
                       context: context,
-                      applicationName: "Hmmtax",
+                      applicationName: "homot",
                     );
                   },
                   child: Text(
@@ -1601,10 +1600,10 @@ class _MacMenuBarState extends State<MacMenu> {
     return PlatformMenuBar(
       menus: <PlatformMenuItem>[
         PlatformMenu(
-          label: 'Hmmtax',
+          label: 'homot',
           menus: <PlatformMenuItem>[
             PlatformMenuItem(
-              label: "About Hmmtax",
+              label: "About homot",
               onSelected: () {
                 showMyAboutDialog(context);
               },
@@ -1621,7 +1620,7 @@ class _MacMenuBarState extends State<MacMenu> {
                   context: context,
                   builder: (BuildContext context) {
                     return AlertDialog(
-                      title: const Text("Quit Hmmtax?"),
+                      title: const Text("Quit homot?"),
                       backgroundColor: Theme.of(context).colorScheme.primary,
                       titleTextStyle: TextStyle(
                         color: Theme.of(context).colorScheme.onPrimary,
@@ -1781,7 +1780,7 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
               context: context,
               builder: (BuildContext context) {
                 return AlertDialog(
-                  title: const Text("Quit Hmmtax?"),
+                  title: const Text("Quit homot?"),
                   backgroundColor: Theme.of(context).colorScheme.onPrimary,
                   titleTextStyle: TextStyle(
                     color: Theme.of(context).colorScheme.primary,
@@ -1821,7 +1820,7 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
             );
           },
           child: Text(
-            'Quit Hmmtax',
+            'Quit homot',
             style: TextStyle(color: Theme.of(context).colorScheme.primary),
           ),
         ),
@@ -1856,19 +1855,19 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
             onPressed: () {
               showAboutDialog(
                 context: context,
-                applicationName: 'Hmmtax: A taxonomy viewer for HMMER',
+                applicationName: 'Homot: A taxonomy viewer for HMMER',
                 applicationVersion: '0.0.1',
               );
             },
           ),
           MenuEntry(
-            label: 'Quit Hmmtax',
+            label: 'Quit Homot',
             onPressed: () {
               showDialog(
                 context: context,
                 builder: (BuildContext context) {
                   return AlertDialog(
-                    title: const Text("Quit Hmmtax?"),
+                    title: const Text("Quit Homot?"),
                     actions: <Widget>[
                       TextButton(
                         onPressed: () {
