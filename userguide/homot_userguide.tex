@@ -7,9 +7,10 @@
 \newcommand{\homot }{{Homot}\xspace}  % \homot  is a command that expands to "homot" with a trailing space
 \newcommand{\Homot}{{Homot}\xspace}
 \newcommand{\uniprot}{{UniProt}\xspace}
+\newcommand{\interpro}{{InterPro}\xspace}
 \newcommand{\userguide}{HMMER User's Guide}
 \input{titlepage_homot}                    % definitions for \maketitle 
-\bibliographystyle{unsrtnat-brief}   % customized natbib unsrtnat. Abbrev 3+ authors to ``et al.'' 
+\bibliographystyle{unsr3tnat-brief}   % customized natbib unsrtnat. Abbrev 3+ authors to ``et al.'' 
 
 \begin{document}
 \setcounter{tocdepth}{2}             % 0=chapters 1=sections 2=subsections 3=subsubsections? 4=paragraphs
@@ -25,7 +26,7 @@
 \emph{\Homot is dedicated to the memory of Tom Jones: biologist, friend, and Player of Games. Tom was one of the inspirations for the development of \homot, but passed away before it was completed.  We hope that \homot will help others bring the curiosity, thoughtfulness, and joy to biology that Tom showed every day.}
 \vfill
 \hspace{0pt}
-
+\tableofcontents
 \chapter{Introduction}
 \homot\sidenote{\homot was inspired by, and is heavily based on, the tools developed by the European Bioinformatics Institute for their web-based HMMER server \url{https://www.ebi.ac.uk/Tools/hmmer/home}. We are indebted to them for their work, and offer \homot as a complement to, not competition with, their tools.} is a graphical tool for the analysis and exploration of homology search results.  It displays search results in three ways: sorted by hit quality (e-value), distributed across a taxonomic tree, and grouped by structure (the set of domains or other annotated regions that a sequnece contains).  These views allow users to quickly grasp the breadth of the homologs a search has identified and zoom in on the results of greatest interest without having to pour through the thousands of results that searching a modern genomic database typically returns.
 
@@ -39,12 +40,12 @@
 \chapter{Usage}
 When a user starts \homot, they are presented with the "select data" page show in Figure \ref{fig:load_data}\sidenote{Macintosh version shown. Linux and Windows versions may differ slightly.}.  This page contains a number of elements that are consistent across all of \homot's pages.  In the upper left of the window, the three-horizontal-line "hamburger"\sidenote{Flutter/Google's term, not ours} icon can be clicked to display a menu that allows users to see information about \homot, quit the application, or, once data has been loaded into the application, export displayed data to a {CSV} file.  Clicking the "gear" icon in the window's upper-right corner takes the user to \homot's settings page (described later), where the user can configure \homot's display and other application parameters.  At the bottom of the page, a navigation bar allows the user to switch between the \homot's different pages.  Icons in the navigation bar are greyed out when it is not possible to switch to the page, either because the user is already on that page, as is the case for the "Select Data" icon, or because no data has been into the application or selected for display, as is the case for the other icons in the figure.
 
-\begin{figure*}
+\begin{figure}[ht]
 \centering
 \includegraphics[width=\textwidth, angle=270]{inclusions/load_data.pdf}
 \caption{\homot's Select Data Page}
 \label{fig:load_data}
-\end{figure*}
+\end{figure}
 
 \homot requires two inputs in order to display search results: a file containing the results to be displayed, and an annotations database containing taxonomic and structure information about the database the search was run on.  To specify the annotations database that \homot should use, either type the location of the database into the corresponding text field or click the file folder icon at its right to bring up a file selector dialog and select the database.  Similarly, either type the location of the search results file you want to display in the "Search Results File(s)" field or click the file folder icon to bring up a file selector dialog that will allow you to locate the results file in your file system.
 
@@ -57,52 +58,71 @@ Once the user has specified an annotations database and one or more results file
 \section{Taxonomic Display}
 Figure \ref{fig:taxonomy} shows \homot's taxonomic display of search results.  Results are displayed on a circular graph, with the root at the center and successive levels of the taxonomy at increasing distances from the center.  Each node of the taxonomic tree occupies a fraction of the circle proportional to the fraction of the search's results that lie on that branch of the tree, and is colored based on which child of the root node it descends from, although other display formats can be selected from the settings page.  In the figure, for example, the bacteria occupy the majority the circle, as they contain 957 of the 1164 homologs found by the search, and all bacterial results are colored pink.  When there is sufficient space in the display, \homot represents a graph node as a radial line outward from its parent node, labeled with the name of the node and the number of results that are children of the node or the node's children.  When that is not possible \homot represents the node as a radial wedge extending out to the edge of the graph and labeled with the node's name and number of result, as it did for the Thermoproteati node in the figure, or as a colored radial wedge if the name and number of results do not fit.  One consequence of this is that \homot's initial display of search results often looks like a simple pie graph, as it shows all of the levels of the taxonomic tree by default, and most monitors do not have enough resolution to display node names when showing that many nodes.  Using the control in the upper-left of the window to reduce the number of graph levels displayed, as was done for the graph in the figure, will typically allow names to be displayed and more detail to be shown.
 
-\begin{figure*}
+\begin{figure}[ht]
   \centering
   \includegraphics[width=\textwidth, angle=270]{inclusions/taxonomy.pdf}
   \caption{Taxonomic Display of Search Results}
   \label{fig:taxonomy}
-  \end{figure*}
+  \end{figure}
 
 Left-clicking on a node in the graph makes that node the new root of the graph, allowing the user to show more detail about portions of the taxonomy that contain interesting results.  This also selects the results that are descendants of that node to be displayed on the "Selected Subtree by Structure" and "Selected hits by e-value" pages.  The control at the upper left of the window shows a history of the nodes that have been the center of the graph, and the user can return to a previously-selected center by clicking on its name in the control.  Right-clicking on a node brings up a pop-up that shows information about the node and allows the user to remove the node from the graph or view/restore nodes that have been removed from the graph.  Removing nodes from the graph can be useful when a node that contains a few results of interest takes up such a small fraction of the graph circle that it is hard to select.  In that case, removing one or more of the nodes that contain many results from the graph can expand the node of interest to the point where it can be easily selected.  Left-clicking anywhere outside the pop-up will close it, as will clicking the "close" button in the window.
 
 
 
 \section{Grouping results by Structure}
+In addition to placing results on a taxonomic tree, \homot can display search results grouped by \emph{structure}, a somewhat-reduced overview of a sequence's annotated regions.  This provides users with an overview of the different types of sequences that have homology to the query object, showing the breadth of the search results and allowing users to "zoom in" on categories of greatest interest.
 
-\begin{figure*}
+For databases annotated with Pfam domains, a sequence's structure is created with the goal of eliminating overlapping domains to create a structure that can be displayed on a single line.  When overlapping domains are contained in the same Pfam clan (the common case for overlapping domains), our annotation process selects only the domain with the best E-value to include in the structure unless the overlap is small, in which case, it shrinks the domain with the worse E-value to create non-overlapping entries to include in the structure.  When a sequence has overlapping hits to domains that are not in the same clan, we include both in the sequence's structure even though that creates a multi-line display, because overlapping hits to different domains are considered significant.  
+
+\begin{figure}
   \centering
   \includegraphics[width=\textwidth, angle=270]{inclusions/structure.pdf}
-  \caption{\homot}
+  \caption{Grouping Results by Structure}
   \label{fig:structure}
-  \end{figure*}
+  \end{figure}
+
+For databases annotated with \interpro annotations, \homot drops all but one of the annotations when there are overlapping annotations with the same ID and includes all other annotations in the structure.  This typically creates a structure that requires multiple lines to display, but is necessary because the different types of objects that \interpro annotates sequences with do not have a strong clan hierarchy.  The screen shown in the figure was created from a search run with against a database with \interpro annotations, with \homot to display the Pfam name for domains but the \interpro ID for non-domain objects.
+
+To group sequences by structure, \homot creates a "signature" for each sequence: a text string containing the name of each region the sequence has been annotated with, sorted by starting position in the sequence.  Sequences with the same signature are grouped together, so two sequences that contain regions A followed by B will be grouped together regardless of the distance between the two regions or how far the sequence extends past the two regions, but a sequence that contains region B followed by A will be grouped separately.  While this causes some similar sequences to be grouped separately, it was chosen because grouping by signature is easy to compute and creates groupings that align well with their graphical display.
 
 \section{Display by E-Value}
-\begin{figure*}
+\begin{figure}
   \centering
   \includegraphics[width=\textwidth, angle=270]{inclusions/evalue.pdf}
   \caption{Sorting Resuts by E-Value}
   \label{fig:evalue}
-  \end{figure*}
+  \end{figure}
 
 \section{Showing Individual Sequence Results}
-\begin{figure*}
+\begin{figure}
   \centering
   \includegraphics[width=\textwidth, angle=270]{inclusions/sequence.pdf}
   \caption{Single-Sequence Results}
   \label{fig:sequence}
-  \end{figure*}
+  \end{figure}
 
 \section{Settings Screen}
-\begin{figure*}
+Figure \ref{fig:settings} shows \homot's settings screen, which can be accessed by clicking on the gear icon in the upper right of any of \homot's other screens.  Settings are saved using Flutter's Persistant Storage module and are retained across runs of \homot.  The top setting on the screen control's \homot's visual theme, which can be set to light, dark, or to match the system's theme setting (for systems that have one).
+
+\begin{figure}
   \centering
   \includegraphics[width=\textwidth, angle=270]{inclusions/settings.pdf}
   \caption{\homot's Settings Page}
   \label{fig:settings}
-  \end{figure*}
+  \end{figure}
+
+Below that are settings that control the font \homot uses for text.  The left, "font family", setting allows the user to select the font \homot uses from the ones available to the operating system\sidenote{One idiosyncracy of the module \homot uses for this is that it does not display the font in use unless one has been selected in this run of \homot.  In spite of this, the font selected for \homot is correctly retained across runs of the tool.}.  Because \homot accesses the host computer's font resources, the fonts available to \homot will vary from computer to computer.  The right control, "Font Scale Factor", controls the size of the text \homot displays by scaling each text object by the specified factor.
+
+The next two fields control how \homot displays its taxonomy graph.  The first field of the two controls whether \homot displays nodes in the graph as lines (the format described earlier in this manual), arc segments (outlined sections of a torus), or filled arc segments.  The second allows the user to select the width of the lines \homot uses when drawing the graph, and to add textures to \homot's fill patterns, which may be helpful to users with limited color vision\sidenote{\homot's default color scheme is designed to be accesible to the color blind, but it is difficult to define a set of colors that is accessible to all of the different color insensitivites that exist.}
+
+After that are settings that allow the user to specify the format of the search results file \homot will read (HMMER domtblout, BLAST tabular, or inferred from the file contents) and the range of sequence and domain E-values that \homot will display.  Since \homot can only display results contained in the file(s) it reads, the set of results shown will be limited by the stricter of the limits specified in \homot's settings screen and the limits set in the search tool used to generate the result file(s).  Since changing \homot's display settings is typically faster than re-running a search, we recommend that users set their search tools to report a wide range of result E-values and then use \homot's settings to limit the results it displays rather than setting tight bounds on the results the search tool returns.  Also note that BLAST does not provide E-values for individual domains, only for full sequences, so setting E-value limits on individual domains only affects results loaded from HMMER domtblout files.
+
+The final group of settings control the display of annotations when a sequence database has been annotated using the \interpro annotations.  The leftmost column allows the user to select which of the categories of features \interpro annotates (superfamily, family, domain, repeat, site, and other) \homot should display.  Note that, while changing the values selected in this column will change the items \homot displays immediately, data must be reloaded for it to affect the structures that sequences are grouped by in \homot's structure view.
+
+The middle column selects the names that are displayed for \interpro annotations.  By default, \homot displays the \interpro ID ({IPRXXXXXX}) for each annotation, which is compact, but not that accessible to most users.  Alternately, users can select to display either the "short name" or "long name" fields from the \interpro annotation (assuming they are provided).  Finally, the rightmost column allows the user to select whether the \interpro annotation or the Pfam name is displayed for annotations of the "domain" type.  This selection takes priority over the value selected in the middle column for domain annotations if selected.
 
 \chapter{Annotating Sequence Databases}
-We provide two utilities to create annotations for files of protein sequence data.  The first, \mono{create\_annotations\_interpro}, annotates \uniprot \url{https://www.uniprot.org/} using the annotations that Interpro \url{https://www.ebi.ac.uk/interpro/} generates for those databases.  It is straightforward and fairly simple to run, but is limited to databases that Interpro annotates.  The second, \mono{create\_annotations\_hmmer}, annotates arbitrary databases against the domains defined by Pfam \url{http://pfam.xfam.org/} or other sets of HMMs, but requires significantly more preparation to use.  Both are included in the source-code distribution of \homot, which is available at (SITE GOES HERE).  
+We provide two utilities to create annotations for files of protein sequence data.  The first, \mono{create\_annotations\_interpro}, annotates \uniprot \url{https://www.uniprot.org/} using the annotations that \interpro \url{https://www.ebi.ac.uk/interpro/} generates for those databases.  It is straightforward and fairly simple to run, but is limited to databases that \interpro annotates.  The second, \mono{create\_annotations\_hmmer}, annotates arbitrary databases against the domains defined by Pfam \url{http://pfam.xfam.org/} or other sets of HMMs, but requires significantly more preparation to use.  Both are included in the source-code distribution of \homot, which is available at (SITE GOES HERE).  
 
 Building these tools from source is fairly simple.  Both are written in the Rust language \url{www.rustup.rs}, and require that to be installed.  Once Rust has been installed on your system, clone the \homot Git repository, change into the \mono{create-annotations} directory inside of it, and run "cargo build --release".  Cargo should download all of the required dependencies for you, build the two tools, and deposit them in the \mono{create-annotations/target/release} directory of the repository.  
 
@@ -114,12 +134,12 @@ By default, our annotation tools compress the NCBI's hierarchy (34 levels at the
 
 Both annotation tools use the NCBI taxonomy \url{https://www.ncbi.nlm.nih.gov/taxonomy} to place results on the tree of life.  To do this, they expect the taxonomy definition files \mono{names.dmp}, \mono{nodes.dmp}, \mono{merged.dmp}, and \mono{delnodes.dmp} to be located in the same directory.  These files can be obtained by downloading the file \mono{taxdump.tar.Z} from the NCBI's FTP site at \url{https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/}, and un-compressing and un-tarring that file.
 
-Annotating a \uniprot database with Interpro annotations requires the \mono{interpro.xml} and \mono{protein2ipr.dat} files for the appropriate release of Interpro, which can be downloaded from \url{https://ftp.ebi.ac.uk/pub/databases/interpro/}, and should be placed in the same directory.  Each Interpro annotation release corresponds to a \uniprot release, so it should be possible to locate the Interpro annotations that match any given database.
+Annotating a \uniprot database with \interpro annotations requires the \mono{interpro.xml} and \mono{protein2ipr.dat} files for the appropriate release of \interpro, which can be downloaded from \url{https://ftp.ebi.ac.uk/pub/databases/interpro/}, and should be placed in the same directory.  Each \interpro annotation release corresponds to a \uniprot release, so it should be possible to locate the \interpro annotations that match any given database.
 
 Annotating a sequence database with Pfam domains requires the \mono{{Pfam-A.clans.tsv}} and \mono{{Pfam-A.hmm}} files for the appropriate Pfam release, which can be downloaded from \url{https://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/}.  Again, both files should be placed in the same directory.  
 
-\section{Annotating \uniprot Databases with Interpro Annotations}
-Once all of the required data files have been assembled, a \uniprot database can be annotated with the Interpro annotations using the command "create\_annotations\_interpro <seqfile> <interprodir> <ncbidir> <outfile>", where <seqfile> is the FASTA file to be annotated, <interprodir> is the directory containing the Interpro datafiles, <ncbidir> is the directory containing the NCBI taxonomy information, and <outfile> is the desired name for the annotations database.  Annotating a FASTA file contaning 200 million sequences this way takes less than an hour on a 2025 Mac Studio computer.
+\section{Annotating \uniprot Databases with \interpro Annotations}
+Once all of the required data files have been assembled, a \uniprot database can be annotated with the \interpro annotations using the command "create\_annotations\_interpro <seqfile> <interprodir> <ncbidir> <outfile>", where <seqfile> is the FASTA file to be annotated, <interprodir> is the directory containing the \interpro datafiles, <ncbidir> is the directory containing the NCBI taxonomy information, and <outfile> is the desired name for the annotations database.  Annotating a FASTA file contaning 200 million sequences this way takes less than an hour on a 2025 Mac Studio computer.
 
 \section{Annotating Databases with Pfam Domains}
 Annotating a sequence database with Pfam domains is more complex, but more flexible.  In addition to the input files described above \mono{create\_annotations\_hmmer} requries a directory of \hmmer domtblout files, one per domain that Pfam defines, which contain the hits to that domain from the sequences in the database.  The easiest way to generate these files is to separate the {Pfam-A.hmm} files into individual {HMM} files, one per domain, and then to run a HMMER search on each of those files using commands similar to "hmmsearch --cut\_ga --domtblout=domtbldir/domain.domtblout sequences.fasta", where the --cut\_ga option instructs hmmsearch to use the Pfam reporting thresholds contained in the {HMM} file.  One requirement here is that the domtblout files be named with the name of the domain they represent, as \mono{create\_annotations\_hmmer} uses that when creating the annotations.
