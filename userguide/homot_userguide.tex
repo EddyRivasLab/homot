@@ -76,7 +76,7 @@ When a user starts \homot, they are presented with the "select data" page show i
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=\textwidth, angle=270]{inclusions/load_data.pdf}
+\includegraphics[height=\textwidth, angle=270]{inclusions/load_data.pdf}
 \caption{\homot's Select Data Page}
 \label{fig:load_data}
 \end{figure}
@@ -94,35 +94,61 @@ Figure \ref{fig:taxonomy} shows \homot's taxonomic display of search results.  R
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=\textwidth, angle=270]{inclusions/taxonomy.pdf}
+  \includegraphics[height=\textwidth, angle=270]{inclusions/taxonomy.pdf}
   \caption{Taxonomic Display of Search Results}
   \label{fig:taxonomy}
   \end{figure}
 
 Left-clicking on a node in the graph makes that node the new root of the graph, allowing the user to show more detail about portions of the taxonomy that contain interesting results.  This also selects the results that are descendants of that node to be displayed on the "Selected Subtree by Structure" and "Selected hits by e-value" pages.  The control at the upper left of the window shows a history of the nodes that have been the center of the graph, and the user can return to a previously-selected center by clicking on its name in the control.  Right-clicking on a node brings up a pop-up that shows information about the node and allows the user to remove the node from the graph or view/restore nodes that have been removed from the graph.  Removing nodes from the graph can be useful when a node that contains a few results of interest takes up such a small fraction of the graph circle that it is hard to select.  In that case, removing one or more of the nodes that contain many results from the graph can expand the node of interest to the point where it can be easily selected.  Left-clicking anywhere outside the pop-up will close it, as will clicking the "close" button in the window.
 
+\section{Graphical Display of Homologs}
+Figure \ref{fig:display} shows how \homot's screens other than the taxonomic display show homologs.  The figure shows a result from a \hmmer search that searched for homologs of Pfam's {2-Hacid\_dh\_C} {HMM} in \uniprot's {SwissProt} database that was annotated with the \interpro annotations, finding homology with the sequence {sp|B1L765|GYAR\_KORCO}.  
 
+\begin{figure*}[ht]
+  \centering
+  \includegraphics[height=\textwidth, angle=270]{inclusions/display.pdf}
+  \caption{Graphical Display of a Homolog}
+  \label{fig:display}
+  \end{figure*}
+
+The top-left of the display lists the name of the target sequence (the sequence in which homology was found to the query {HMM}), the e-value of the hit, and the taxon of the target sequence, if taxon information is available in the database searched.  To the right are two icons: an "expand" and a "magnifying glass".  Clicking the "magnifying glass" icon switches to a display with more detail, either of the homolog itself or the group of homologs the display represents.  The "expand" icon switches between the default display, which fits the homolog into the space available in the application window at the cost of potentially abbreviating or eliding some information, to one that shows the homolog's full detail with a horizontal scrollbar that controls which portion of the homolog is displayed, and is only shown for homologs that could not be fully displayed in the window's width.
+
+At the bottom of the display, the "Quer(ies)" line shows the region of the target sequence that had homology to the query object (or objects if multiple results files were loaded).  The target sequence is shown as a line, with position 0 at the left end of the display and the last residue in the sequence at the right, and the region of homology shown as a colored bar that lists the name of the query object and the e-value of the region's hit\sidenote{Region e-value is only available when displaying the results of \hmmer searches, as {BLAST} searches only provide full sequence e-values.}.  Note that the e-value shown for a region of homology may differ from the full sequence e-value shown in the upper left of the display, particularly when multiple regions of the target sequence have homology to the query object.
+
+Above that, the "Structure" region shows the position of the annotated regions that make up the sequence's structure.  (How a sequence's structure is computed is described later in this document.) Each region is labelled with the region's name and, where available, the e-value of the hit that caused the sequence to be annotated with the region.  For databases annotated with \interpro annotations, \homot's settings (described later) allow the user to choose from a number of different naming schemes for annotated regions.  For example, the display shown in the figure was getnerated from \homot configured to show the \interpro ID for annotated regions, except for regions of type domain, where it was configured to use the Pfam name for the domain.
+
+Mousing over any region in the Structure or Query(ies) portion of the display will bring up an overlay that contains more detail about the region.  Among other things, this can be useful when \homot is forced to abbreviate the text for a region.
+
+\homot selects the colors for each annotated or homologous region from a fixed pallette, such that a given region is displayed in the same color everywhere in the tool, so regions annotated as "IPR050223" would be displayed in purple everywhere they appeared in the run of \homot that generated Figure \ref{fig:display}.\sidenote{Due to the way regions are named, \homot cannot detect when a query object refers to the same domain as an \interpro annotation, which is why the {2-Hacid\_dh\_C} region is shown in orange in the sequence's structure but pink in the query.}. \homot attempts to fit the full text description of each annotated region in the display, but abbreviates when there is insufficent space.
+
+\homot draws the beginning and end of each region as either an arc, a jagged edge, or flat.  Flat beginnings/ends indicate that the region was too small to display any information given the width constraints of \homot's window.  Jagged beginnings/ends indicate that the region's annotation was the result of a comparison between a sequence and an {HMM} and that the region of the sequence that matched to the {HMM} began/ended somewhere in the middle of the {HMM}, instead of at its beginning or end.  Arc beginnings/ends indicate that either the region was not annotated as the result of a comparison between a sequence and an {HMM}, or that the region of the sequence that matched the {HMM} extended all the way to the {HMM}'s beginning or end. 
 
 \section{Grouping results by Structure}
-In addition to placing results on a taxonomic tree, \homot can display search results grouped by \emph{structure}, a somewhat-reduced overview of a sequence's annotated regions.  This provides users with an overview of the different types of sequences that have homology to the query object, showing the breadth of the search results and allowing users to "zoom in" on categories of greatest interest.
-
-For databases annotated with Pfam domains, a sequence's structure is created with the goal of eliminating overlapping domains to create a structure that can be displayed on a single line.  When overlapping domains are contained in the same Pfam clan (the common case for overlapping domains), our annotation process selects only the domain with the best E-value to include in the structure unless the overlap is small, in which case, it shrinks the domain with the worse E-value to create non-overlapping entries to include in the structure.  When a sequence has overlapping hits to domains that are not in the same clan, we include both in the sequence's structure even though that creates a multi-line display, because overlapping hits to different domains are considered significant.  
-
+In addition to placing results on a taxonomic tree, \homot can display search results grouped by \emph{structure}, a somewhat-reduced overview of a sequence's annotated regions.  This provides users with an overview of the different types of sequences that have homology to the query object, showing the breadth of the search results and allowing users to "zoom in" on categories of greatest interest.  Structure display can be accessed by selecting the "All Hits by Structure" button on \homot's bottom navigation bar after data has been loaded, or by selecting the "Selected Subtree by Structure" button after left-clicking on a node in the taxonomy to re-root the taxonomic display on that node.
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth, angle=270]{inclusions/structure.pdf}
+  \includegraphics[height=\textwidth, angle=270]{inclusions/structure.pdf}
   \caption{Grouping Results by Structure}
   \label{fig:structure}
   \end{figure}
 
+The top of the structure display shows the number of results the search found, either in total or in the selected subtree of the taxonomy, and the number of different structures those results had. Below that, the structures found are displayed in rounded-corner rectangles, one per structure, sorted from the structure with the most results to the one with the least.  Each rectangle shows the number of results with the structure, the text "signature" of the structure (described later), and a graphical display of an example hit (the one with the best e-value) with the structure.  Clicking the "magnifying glass" icon in the upper right of a structure's display will take the user to the "selected hits by e-value" screen, which will display all of the results with the specified structure, sorted by e-value.  
+
+\subsection{What is a Sequence's Structure?}
+For databases annotated with Pfam domains, a sequence's structure is created with the goal of eliminating overlapping domains to create a structure that can be displayed on a single line.  When overlapping domains are contained in the same Pfam clan (the common case for overlapping domains), our annotation process selects only the domain with the best E-value to include in the structure unless the overlap is small, in which case, it shrinks the domain with the worse E-value to create non-overlapping entries to include in the structure.  When a sequence has overlapping hits to domains that are not in the same clan, we include both in the sequence's structure even though that creates a multi-line display, because overlapping hits to different domains are considered significant.  
+
+
 For databases annotated with \interpro annotations, \homot drops all but one of the annotations when there are overlapping annotations with the same ID and includes all other annotations in the structure.  This typically creates a structure that requires multiple lines to display, but is necessary because the different types of objects that \interpro annotates sequences with do not have a strong clan hierarchy.  The screen shown in the figure was created from a search run with against a database with \interpro annotations, with \homot to display the Pfam name for domains but the \interpro ID for non-domain objects.
 
+
 To group sequences by structure, \homot creates a "signature" for each sequence: a text string containing the name of each region the sequence has been annotated with, sorted by starting position in the sequence.  Sequences with the same signature are grouped together, so two sequences that contain regions A followed by B will be grouped together regardless of the distance between the two regions or how far the sequence extends past the two regions, but a sequence that contains region B followed by A will be grouped separately.  While this causes some similar sequences to be grouped separately, it was chosen because grouping by signature is easy to compute and creates groupings that align well with their graphical display.
+
+
 
 \section{Display by E-Value}
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth, angle=270]{inclusions/evalue.pdf}
+  \includegraphics[height=\textwidth, angle=270]{inclusions/evalue.pdf}
   \caption{Sorting Resuts by E-Value}
   \label{fig:evalue}
   \end{figure}
@@ -130,7 +156,7 @@ To group sequences by structure, \homot creates a "signature" for each sequence:
 \section{Showing Individual Sequence Results}
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth, angle=270]{inclusions/sequence.pdf}
+  \includegraphics[height=\textwidth, angle=270]{inclusions/sequence.pdf}
   \caption{Single-Sequence Results}
   \label{fig:sequence}
   \end{figure}
@@ -140,7 +166,7 @@ Figure \ref{fig:settings} shows \homot's settings screen, which can be accessed 
 
 \begin{figure}
   \centering
-  \includegraphics[width=\textwidth, angle=270]{inclusions/settings.pdf}
+  \includegraphics[height=\textwidth, angle=270]{inclusions/settings.pdf}
   \caption{\homot's Settings Page}
   \label{fig:settings}
   \end{figure}
