@@ -8,6 +8,7 @@
 \newcommand{\Homot}{{Homot}\xspace}
 \newcommand{\uniprot}{{UniProt}\xspace}
 \newcommand{\interpro}{{InterPro}\xspace}
+\newcommand{\macos}{{macOS}\xspace}
 \newcommand{\userguide}{HMMER User's Guide}
 \input{titlepage_homot}                    % definitions for \maketitle 
 \bibliographystyle{unsr3tnat-brief}   % customized natbib unsrtnat. Abbrev 3+ authors to ``et al.'' 
@@ -35,7 +36,40 @@
 
 \chapter{Installation}
 
+\section{Building \homot from Source}
+\homot depends on a number of programming languages and development tools, making building it from source somewhat complex.  At minimum, building \homot from source requires the operating system's base set of development tools, the Rust programming language, and the Flutter framework. Here, we provide instructions for building \homot on \macos, Windows (Version 10 or later), and Linux.
 
+\subsection{Building \homot on \macos}
+To build \homot on \macos:
+\begin{enumerate}
+  \item{Install the Xcode development package from the App Store.}
+  \item{Install the Xcode command-line tools by running "xcode-select --install" in a terminal.}
+  \item{Install the Rust programming language by following the instructions at \url{www.rustup.rs}.}
+  \item{Install the Flutter framework by following the instructions at \url{http://docs.flutter.dev/install}.}
+  \item{Install the Cocoapods dependency manager, either by following the instructions at \url{https://cocoapods.org/} or by installing the Homebrew package manager from \url{https://brew.sh/} and running "brew install cocoapods".  We have found the Homebrew method to be more reliable, but either should work. Note that installing Cocoapods may require a newer version of Ruby than the one that ships with MacOS.  One way to do this is to install the Homebrew package manager and run "brew install ruby".}
+  \item{Clone the \homot Git repository from \url{https://github.com/EddyRivasLab/homot}, change into the \mono{homot/homot} directory, and run "flutter build macos".  This should download all of the other required dependencies, build \homot, and deposit the built application in the \mono{homot/build/macos/Build/Products/Release} directory.}
+\end{enumerate}
+
+Because of \macos' code signing policies, this will create a copy of \homot that can only be run on the computer it was built on.  To create a version of \homot that can be installed on other machines, you will need an Apple Developer account, which can be obtained at \url{https://developer.apple.com/}. Once you have this, open the file \mono{homot/homot/macos/Runner.xcodeproj} in Xcode, select the "Runner" project in the left-hand pane, and the "Signing and Capabilities" tab.  Under the "Signing (Profile)" section of that page, click the "Automatically manage signing" checkbox. Add your Apple Developer account to the project in the "Team" dropdown in that section.  Then, in the "\macos" subsection of the "Signing (Debug and Release)" section, select "Development" in the "Signing Certificate". Once this has been done, running "flutter clean" followed by "flutter build macos" in the terminal should create a version of \homot that can be installed on other \macos machines.  The built application will be located in the same directory as before.   
+
+To install \homot on other computers, you may wish to create a disk image containing the application.  To do this, create a new folder and copy the "homot.app" directory into it. This is necessary because \macos treats applications as files, even though they are actually directories, and disk images can only be created from directories.  Then, open the "Disk Utility" application, click on "File" in the menu bar, and select "New Image" followed by "Image from Folder".  In the dialog that appears, select the folder you created containing the "homot.app" directory, and click "Open".  In the next dialog, select a name for the disk image, and click "Save".  This will create a disk image containing the \homot application that can be installed on other \macos machines by double-clicking on the disk image and dragging the "homot.app" file to the Applications folder.
+
+\subsection{Building \homot on Windows}
+
+\subsection{Building \homot on Linux}
+The following instructions are for building \homot on Ubuntu Linux 24.04.4 {LTS}.  Building on other distributions should be similar, but package names and package installation methods may differ.
+
+\begin{enumerate}
+  \item{Install the build-essential package by running "sudo apt install build-essential" in a terminal.}
+  \item{Install the curl, cmake, ninja-build, clang, and libgtk-3-dev packages by running "sudo apt install curl cmake ninja-build clang libgtk-3-dev" in a terminal.}
+  \item{Install the Rust programming language by following the instructions at \url{www.rustup.rs}.}
+  \item{Install the Flutter framework by following the instructions at \url{http://docs.flutter.dev/install}.}
+  \item{Clone the \homot Git repository from \url{https://github.com/EddyRivasLab/homot}, change into the \mono{homot/homot} directory, and run "flutter build linux".  This should download all of the other required dependencies, build \homot, and deposit the built application in the \mono{homot/build/macos/linux/x64/release/bundle} directory.}
+\end{enumerate}
+
+Two notes for this process: first, if you are running linux on a non-x86 computer, the path to the built application may be different.  Flutter prints the path to the built application when the build process finishes, so you can check that to find out where \homot is located.  Second, in some tests, Flutter attempted to install \homot into /usr/local, which requires root permission.  Running "flutter clean" and then re-running "flutter build linux" fixed this issue for us.  Alternately, you can run the built command as root with sudo to allow it to install \homot into /usr/local, but we recommend the first method to avoid potential issues with running build commands as root.  
+
+Once \homot has been built, you can either run it from its original location by specifying the full path to the executable, add the path to \homot to your {PATH} environment variable, or create a symbolic link to the executable in a directory that is already in your {PATH}, such as /usr/local/bin.  This may require root permissions or the use of sudo.
 
 \chapter{Usage}
 When a user starts \homot, they are presented with the "select data" page show in Figure \ref{fig:load_data}\sidenote{Macintosh version shown. Linux and Windows versions may differ slightly.}.  This page contains a number of elements that are consistent across all of \homot's pages.  In the upper left of the window, the three-horizontal-line "hamburger"\sidenote{Flutter/Google's term, not ours} icon can be clicked to display a menu that allows users to see information about \homot, quit the application, or, once data has been loaded into the application, export displayed data to a {CSV} file.  Clicking the "gear" icon in the window's upper-right corner takes the user to \homot's settings page (described later), where the user can configure \homot's display and other application parameters.  At the bottom of the page, a navigation bar allows the user to switch between the \homot's different pages.  Icons in the navigation bar are greyed out when it is not possible to switch to the page, either because the user is already on that page, as is the case for the "Select Data" icon, or because no data has been into the application or selected for display, as is the case for the other icons in the figure.
