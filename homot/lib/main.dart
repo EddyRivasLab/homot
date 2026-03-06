@@ -6,7 +6,6 @@ import 'package:homot/src/rust/frb_generated.dart';
 import 'package:homot/src/rust/api/graph.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import "dart:math";
-import 'package:touchable/touchable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:homot/pages.dart';
