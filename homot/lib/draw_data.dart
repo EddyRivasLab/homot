@@ -17,7 +17,6 @@ import 'package:homot/main.dart';
 import 'package:homot/utility.dart';
 import 'package:provider/provider.dart';
 import "package:go_router/go_router.dart";
-import 'package:touchable/touchable.dart';
 import 'package:patterns_canvas/patterns_canvas.dart';
 
 String _iType_to_string(IEntryType iType){
@@ -468,7 +467,6 @@ class DomainPainter extends CustomPainter {
   _drawDomains(
     BuildContext context,
     Canvas canvas,
-    TouchyCanvas myCanvas,
     Paint paint,
     int startRow,
     List<Domain> domains,
@@ -490,7 +488,6 @@ class DomainPainter extends CustomPainter {
         //
         _draw_domain(
           canvas,
-          myCanvas,
           paint,
           Offset(start, ((startRow + i) * lineSpace) * heightPerLine),
           domainWidth,
@@ -530,7 +527,6 @@ class DomainPainter extends CustomPainter {
 
   _draw_domain(
     Canvas canvas,
-    TouchyCanvas myCanvas,
     Paint paint,
     Offset position,
     double width,
@@ -765,7 +761,6 @@ class DomainPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    var myCanvas = TouchyCanvas(context, canvas);
     // Draw domain structure of the sequence that the hit matched
     Paint paint = new Paint()..style = PaintingStyle.fill;
     TextPainter legendPainter = TextPainter(
@@ -806,7 +801,6 @@ class DomainPainter extends CustomPainter {
     _drawDomains(
       context,
       canvas,
-      myCanvas,
       paint,
       0,
       domains,
@@ -821,7 +815,6 @@ class DomainPainter extends CustomPainter {
     _drawDomains(
       context,
       canvas,
-      myCanvas,
       paint,
       queryStartRow,
       queries,

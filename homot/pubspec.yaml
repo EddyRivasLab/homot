@@ -33,7 +33,6 @@ dependencies:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
   rust_lib_hmmtax:
     path: rust_builder
   flutter_rust_bridge: 2.11.1
@@ -50,9 +49,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  touchable: ^1.0.0
   provider: ^6.1.4
-  flutter_launcher_icons: "^0.14.4"
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -61,6 +58,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   integration_test:
     sdk: flutter
+  inno_bundle: ^0.11.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -114,3 +112,41 @@ flutter_launcher_icons:
   linux:
     generate: true
     image_path: "assets/app_icon_1024.png"
+
+
+inno_bundle:
+  id: 4fbfd2d0-18d8-11f1-8c5b-1389f1233f1b
+  app_name: homot
+  version: 1.0.0
+  publisher: "Your Name"
+  description: "A Graphical Viewer for Homology Search Results."
+  icon_path: "assets/app_icon_1024.png"
+  languages: 
+    - arabic
+    - armenian
+    - brazilianportuguese
+    - bulgarian
+    - catalan
+    - corsican
+    - czech
+    - danish
+    - dutch
+    - english
+    - finnish
+    - french
+    - german
+    - hebrew
+    - hungarian
+    - italian
+    - japanese
+    - norwegian
+    - polish
+    - portuguese
+    - russian
+    - slovak
+    - slovenian
+    - spanish
+    - swedish
+    - tamil
+    - turkish
+    - ukrainian 

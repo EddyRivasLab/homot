@@ -24,7 +24,6 @@ import 'dart:io';
 import 'package:input_quantity/input_quantity.dart';
 import 'package:system_fonts/system_fonts.dart';
 import "package:go_router/go_router.dart";
-import 'package:touchable/touchable.dart';
 import 'package:matrix4_transform/matrix4_transform.dart';
 import 'package:vector_math/vector_math_64.dart' hide Colors;
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
