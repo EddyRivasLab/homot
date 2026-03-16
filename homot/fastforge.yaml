@@ -7,3 +7,4 @@ flavors:
             targets:
                 - deb
                 - rpm
+                - exe
