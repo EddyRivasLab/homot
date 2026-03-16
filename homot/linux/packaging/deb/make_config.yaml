@@ -1,0 +1,31 @@
+display_name: Homot
+package_name: homot
+maintainer:
+  name: Nick Carter
+  email: npcarter@fas.harvad.edu
+co_authors:
+  - name: Sean Eddy
+    email: seaneddy@fas.harvard.edu
+priority: optional
+section: x11
+installed_size: 6604
+essential: false
+icon: assets/app_icon_1024.png
+
+postinstall_scripts:
+  - echo "Installed homot"
+postuninstall_scripts:
+  - echo "Uninstalled Homot"
+
+keywords:
+  - Homology
+
+generic_name: Homology Browser
+
+categories:
+  - Science
+
+startup_notify: true
+# You can also specify [metainfo](https://freedesktop.org/software/appstream/docs/chap-Quickstart.html) file
+# which contains metadata of the app.
+# metainfo: linux/packaging/myappid.appdata.xml

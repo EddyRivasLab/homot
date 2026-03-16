@@ -1,0 +1,9 @@
+name: Homot
+output: dist/
+
+flavors:
+    production:
+        package:
+            targets:
+                - deb
+                - rpm

@@ -1,0 +1,44 @@
+name: homot
+base: core24
+version: "1.0"
+summary: Homot is an application for viewing and browsing homology search results
+description: |
+    Homot is an application for viewing and browsing homology search results.  It can read either HMMER 
+    domtblout files or BLAST tabular output files (or the output of any program that can generate one of
+    those formats).  See the full documentation at www.hmmer.org for more detail.
+grade: stable
+confinement: strict
+platforms:
+    amd64:
+apps:
+    homot:
+        command: homot
+        extensions: [gnome]  #gnome libraries required by flutter
+parts:
+    homot:
+        source: .
+        plugin: flutter
+        flutter-target: lib/main.dart
+        build-packages:
+            - clang
+            - cmake
+            - ninja-build
+            - pkg-config
+            - libgtk-3-dev
+            - libclang-dev
+        override-build: |
+            # Install Rust
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            export PATH="$HOME/.cargo/bin:$PATH"
+      
+            # Build Rust library (assuming it's in a /rust folder)
+            cd rust
+            cargo build --release
+            cd ..
+      
+            # Move compiled .so file to a place where flutter build can find it
+            mkdir -p linux/lib
+            cp  build/linux/x64/release/bundle/lib/*.so linux/lib/
+      
+            # Build Flutter
+            snapcraftctl build

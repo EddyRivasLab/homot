@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Homot
+Comment=Homology Observation Tool
+Exec=homot
+Icon=${SNAP}/meta/gui/homot.png # Replace name with your app name.
+Terminal=false
+Type=Application
+Categories=Science; # Adjust accordingly your snap category.
