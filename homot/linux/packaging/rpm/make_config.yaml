@@ -1,0 +1,23 @@
+icon: assets/app_icon_1024.png
+summary: Homology Observation Tool
+group: Application/
+vendor: Nick Carter
+packager: Nick Carter
+packagerEmail: npcarter@fas.harvard.edu
+license: BSD 3-clause
+url: https://github.com/eddyrivaslab/homot
+
+display_name: Homot
+
+keywords:
+  - Homology
+
+generic_name: Homology Observation Tool
+
+categories:
+  - Homology
+
+startup_notify: true
+# You can also specify [metainfo](https://freedesktop.org/software/appstream/docs/chap-Quickstart.html) file
+# which contains metadata of the app.
+# metainfo: linux/packaging/myappid.appdata.xml
