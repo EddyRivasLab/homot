@@ -2,7 +2,7 @@ PODS:
   - file_selector_macos (0.0.1):
     - FlutterMacOS
   - FlutterMacOS (1.0.0)
-  - rust_lib_hmmtax (0.0.1):
+  - rust_lib_homot (0.0.1):
     - FlutterMacOS
   - shared_preferences_foundation (0.0.1):
     - Flutter
@@ -11,7 +11,7 @@ PODS:
 DEPENDENCIES:
   - file_selector_macos (from `Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
-  - rust_lib_hmmtax (from `Flutter/ephemeral/.symlinks/plugins/rust_lib_hmmtax/macos`)
+  - rust_lib_homot (from `Flutter/ephemeral/.symlinks/plugins/rust_lib_homot/macos`)
   - shared_preferences_foundation (from `Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin`)
 
 EXTERNAL SOURCES:
@@ -19,15 +19,15 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
-  rust_lib_hmmtax:
-    :path: Flutter/ephemeral/.symlinks/plugins/rust_lib_hmmtax/macos
+  rust_lib_homot:
+    :path: Flutter/ephemeral/.symlinks/plugins/rust_lib_homot/macos
   shared_preferences_foundation:
     :path: Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin
 
 SPEC CHECKSUMS:
   file_selector_macos: 9e9e068e90ebee155097d00e89ae91edb2374db7
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
-  rust_lib_hmmtax: e7fcd7e17b1c1d7eefcb1a0fa5e8651928ce31e8
+  rust_lib_homot: 02c98e0ea535f5e75a8ac8cc1fb9737c0d5beafe
   shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
 
 PODFILE CHECKSUM: 54d867c82ac51cbd61b565781b9fada492027009
