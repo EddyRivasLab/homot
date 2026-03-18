@@ -263,52 +263,52 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+      final ScrollController _mainScrollController = ScrollController();
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.primary,
       appBar: homotAppBar(text: "Settings"),
       body: Consumer<HSettings>(
         builder: (context, hsettings, child) {
-          return Column(
-            children: <Widget>[
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Card(
-                    color: Theme.of(context).colorScheme.surface,
-                    child: Column(
-                      children: [
-                        Text(
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          "Theme",
-                        ),
-                         RadioGroup<brightModes>(
-                      groupValue: hsettings.mode,
-                      onChanged: (brightModes? value){
-                        if (value != null){
-                          hsettings.mode = value;
-                        }
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+          return SingleChildScrollView(
+            controller: _mainScrollController,
+            child: Column(
+              children: <Widget>[
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Card(
+                      color: Theme.of(context).colorScheme.surface,
+                      child: Column(
                         children: [
-                        IntrinsicWidth( 
-                          child: RadioListTile<brightModes>(
-                          title: Text('Light'),
-                          value: brightModes.light,
-                        ),),
-                        IntrinsicWidth( child:
-                        RadioListTile<brightModes>(
-                          title: Text('Dark'),
-                          value: brightModes.dark,
-                        ),),
-                        IntrinsicWidth( 
-                          child: RadioListTile<brightModes>(
-                          title: Text('System'),
-                          value: brightModes.system,
+                          Text(
+                            style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface,),
+                            "Theme",
+                          ),
+                          RadioGroup<brightModes>(
+                            groupValue: hsettings.mode,
+                            onChanged: (brightModes? value){
+                              if (value != null){
+                                hsettings.mode = value;
+                              }
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                IntrinsicWidth( 
+                                  child: RadioListTile<brightModes>(
+                                    title: Text('Light'),
+                                    value: brightModes.light,
+                                  ),),
+                                IntrinsicWidth( child:
+                                  RadioListTile<brightModes>(
+                                    title: Text('Dark'),
+                                    value: brightModes.dark,
+                                    ),),
+                                IntrinsicWidth( 
+                                  child: RadioListTile<brightModes>(
+                                  title: Text('System'),
+                                value: brightModes.system,
                         ),),
                       ],),
                          ),
@@ -435,6 +435,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
                       Column(
                       children: [
                         Text(
@@ -479,7 +482,25 @@ class _SettingsPageState extends State<SettingsPage> {
                       ],
                     ),
                     ],
-                    ),
+                    ), 
+                        IntrinsicWidth( child: CheckboxListTile(
+                                title: Text(
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium!.copyWith(
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                  "Add Patterns to Filled Regions in Taxonomy and Structure",
+                                ),
+                                value: hsettings.addPatterns,
+                                onChanged: (bool? value) {
+                                  if (value != null) {
+                                    hsettings.addPatterns = value;
+                                  }
+                                },
+                              ),),
+                    ], ),
                   ),
                   Card(
                     color: Theme.of(context).colorScheme.surface,
@@ -935,7 +956,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ],
               ),
             ],
-          );
+          ),);
         },
       ),
       bottomNavigationBar: MainNavBar(whereAmI: WhichPage.settings),
