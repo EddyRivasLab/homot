@@ -422,7 +422,6 @@ class GraphPainter extends CustomPainter {
         // There isn't enough space to fit the data for the node, so turn it into a pie wedge out to the edge of
         // graph
         // There's never enough space to do this for the root node, so don't try
-print("node=${node.name}, majorcolor=$majorColor, minorcolor=$minorColor ");
         drawChildren =
             false; // don't bother with children, since there won't be space
         var piePath = Path();
