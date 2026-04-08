@@ -736,7 +736,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                   ),
-                  Card(
+ /*                 Card(
                     color: Theme.of(context).colorScheme.surface,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -952,7 +952,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         ],
                       ),
                                             ],) 
-                    ),
+                    ),*/
                 ],
               ),
             ],
