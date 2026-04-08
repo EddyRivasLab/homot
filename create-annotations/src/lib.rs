@@ -136,6 +136,7 @@ impl From<&UserValue> for Domain{
 pub struct AnnotatedSequence{
     pub name: String, 
     pub sequence: String,
+    pub description: String,
     pub length: u32,
     pub taxid: i64,
     pub domains: Vec<Domain>,

@@ -511,6 +511,17 @@ pub fn write_annotated_db(domains: HashMap<String, Vec<Domain>>, clan_map: &Hash
         let accession = sequence.id().to_string().split('|').skip(1).next().unwrap_or("none").to_string();
 
         let fields: Vec<&str> = sequence.desc().unwrap_or("none").split_whitespace().collect();
+        let mut description: String = String::new();
+        for field in &fields{
+            if !field.contains('='){
+                // this is part of the description, so add it to the description string
+                if description.len() > 0{
+                    description.push(' '); // add a space before the next part of the description
+                }
+                description.push_str(field);
+            }
+        }
+
         let mut taxid: i64 = -1;
         for field in fields{
             if field.starts_with("OX="){ // found taxid field
@@ -551,6 +562,7 @@ pub fn write_annotated_db(domains: HashMap<String, Vec<Domain>>, clan_map: &Hash
 	    length: sequence.id().len() as u32,
             sequence: String::from_utf8(sequence.seq().to_vec()).expect("Invalid sequence data found"),
             taxid: taxid,   
+            description: description,
             domains: Vec::new(),
             structure_domains: Vec::new(),
 	    real: true

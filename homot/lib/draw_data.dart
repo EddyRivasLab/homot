@@ -474,6 +474,7 @@ class DomainPainter extends CustomPainter {
     TextTheme textTheme,
     List<Widget> buttons,
     Size size,
+    bool query
   ) {
     List<double> lastEnds = List<double>.filled(domainRows.length, widthOffset);
     bool addPatterns = Provider.of<HSettings>(context, listen: false).addPatterns;
@@ -499,13 +500,14 @@ class DomainPainter extends CustomPainter {
           addPatterns,
           pfamNames,
           showInterproIdAs,
-          size
+          size,
+          query
         );
         lastEnds[i] = end;
       }
     }
     for (int j = 0; j < lastEnds.length; j++) {
-      if (lastEnds[j] < totalWidth) {
+      if (lastEnds[j] < totalWidth && !query) {
         final p1 = Offset(
           lastEnds[j],
           ((startRow + j) * lineSpace + (lineSpace / 2)) * heightPerLine,
@@ -539,6 +541,7 @@ class DomainPainter extends CustomPainter {
     bool pfamNames,
     ShowInterproIdEnum showInterproIdAs,
     Size size,
+    bool query
   ) {
     // set this up once in case we need it
     int featuresCount = 5;
@@ -554,7 +557,7 @@ class DomainPainter extends CustomPainter {
         (heightPerLine *
             (lineSpace - 1) /
             2); // adjust for spacing between rows
-    if (start > lastEnd) {
+    if (start > lastEnd && !query) {
       final p1 = Offset(
         lastEnd,
         position.dy + (heightPerLine * (lineSpace / 2)),
@@ -577,7 +580,7 @@ class DomainPainter extends CustomPainter {
       canvas.drawRect(
         theRect,
         paint
-          ..color = searchdata.get_colors(domain.name).$1
+          ..color = query? Theme.of(context).colorScheme.onSurface:searchdata.get_colors(domain.name).$1
           ..style = PaintingStyle.fill,
       );
      }
@@ -643,7 +646,7 @@ class DomainPainter extends CustomPainter {
       canvas.drawPath(
         path,
         paint
-          ..color = searchdata.get_colors(domain.name).$1
+          ..color = query? Theme.of(context).colorScheme.onSurface:searchdata.get_colors(domain.name).$1
           ..style = PaintingStyle.fill,
       );
       }
@@ -807,7 +810,8 @@ class DomainPainter extends CustomPainter {
       domainRows,
       textTheme,
       buttons,
-      size
+      size,
+      false
     );
     // draw the queries
 
@@ -821,7 +825,8 @@ class DomainPainter extends CustomPainter {
       queryRows,
       textTheme,
       buttons,
-      size
+      size,
+      true
     );
   }
 
@@ -1098,7 +1103,20 @@ class _DrawCategory extends State<DrawCategory>{
                               searchdata.hits[category.hits[0].toInt()].name +
                               ", Taxon: " +
                               graphdata.graph[searchdata.hits[category.hits[0].toInt()].taxid]!.name,
-                        ),],),
+                        ),
+                        Text(
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium!.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          "Example: " +
+                              searchdata.hits[category.hits[0].toInt()].name +
+                              ", Taxon: " +
+                              graphdata.graph[searchdata.hits[category.hits[0].toInt()].taxid]!.name,
+                        ),
+                        
+                        ],),
                Row( children:[ requiredHitWidth(searchdata.hits[category.hits[0].toInt()],
                   false, false, context) > MediaQuery.sizeOf(context).width ?  
                 RotatedBox(
