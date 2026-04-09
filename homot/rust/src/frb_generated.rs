@@ -397,6 +397,7 @@ impl SseDecode for crate::api::graph::Hit {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_sequence = <String>::sse_decode(deserializer);
+        let mut var_description = <String>::sse_decode(deserializer);
         let mut var_taxid = <i64>::sse_decode(deserializer);
         let mut var_seqLength = <u32>::sse_decode(deserializer);
         let mut var_seqEvalue = <f64>::sse_decode(deserializer);
@@ -406,6 +407,7 @@ impl SseDecode for crate::api::graph::Hit {
         return crate::api::graph::Hit {
             name: var_name,
             sequence: var_sequence,
+            description: var_description,
             taxid: var_taxid,
             seq_length: var_seqLength,
             seq_evalue: var_seqEvalue,
@@ -771,6 +773,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::graph::Hit {
         [
             self.name.into_into_dart().into_dart(),
             self.sequence.into_into_dart().into_dart(),
+            self.description.into_into_dart().into_dart(),
             self.taxid.into_into_dart().into_dart(),
             self.seq_length.into_into_dart().into_dart(),
             self.seq_evalue.into_into_dart().into_dart(),
@@ -1010,6 +1013,7 @@ impl SseEncode for crate::api::graph::Hit {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.name, serializer);
         <String>::sse_encode(self.sequence, serializer);
+        <String>::sse_encode(self.description, serializer);
         <i64>::sse_encode(self.taxid, serializer);
         <u32>::sse_encode(self.seq_length, serializer);
         <f64>::sse_encode(self.seq_evalue, serializer);

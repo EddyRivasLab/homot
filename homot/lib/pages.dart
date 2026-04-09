@@ -1996,7 +1996,7 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
                               searchdata.hits[index].name +
                               "\nE-Value: " +
                               searchdata.hits[index].seqEvalue
-                                  .toStringAsExponential(4)+"\nTaxon: "+graphdata.graph[searchdata.hits[index].taxid]!.name,
+                                  .toStringAsExponential(4)+"\nTaxon: "+graphdata.graph[searchdata.hits[index].taxid]!.name + '\nDescription: '+searchdata.hits[index].description,
                         ),
 
                         Row(
@@ -2145,11 +2145,11 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                           ),
                           "Sequence: " +
                               searchdata.hits[hitIndices[index].toInt()].name +
-                              ", E-Value: " +
+                              "\nE-Value: " +
                               searchdata
                                   .hits[hitIndices[index].toInt()]
                                   .seqEvalue
-                                  .toStringAsExponential(4),
+                                  .toStringAsExponential(4)+"\nTaxon: "+graphdata.graph[searchdata.hits[index].taxid]!.name + '\nDescription: '+searchdata.hits[index].description,
                         ),
                        Row(
                           mainAxisAlignment: MainAxisAlignment.end,

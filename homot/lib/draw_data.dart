@@ -718,8 +718,8 @@ class DomainPainter extends CustomPainter {
         painter.text = TextSpan(
           text: name,
           style: textTheme.bodyMedium!.copyWith(
-            color: textFG,
-            backgroundColor: textBG
+            color: query?Theme.of(context).colorScheme.surface: textFG,
+            backgroundColor: query?Theme.of(context).colorScheme.onSurface:textBG
           ),
         );
     painter.layout();
@@ -733,8 +733,8 @@ class DomainPainter extends CustomPainter {
       painter.text = TextSpan(
         text: name,
         style: textTheme.bodyMedium!.copyWith(
-          color: textFG,
-          backgroundColor: textBG
+          color: query?Theme.of(context).colorScheme.surface:textFG,
+          backgroundColor: query?Theme.of(context).colorScheme.onSurface:textBG
         ),
       );
       painter.layout();
@@ -750,8 +750,8 @@ class DomainPainter extends CustomPainter {
           painter.text = TextSpan(
             text: name,
             style: textTheme.bodyMedium!.copyWith(
-              color: textFG,
-              backgroundColor: textBG
+              color: query?Theme.of(context).colorScheme.surface:textFG,
+              backgroundColor: query?Theme.of(context).colorScheme.onSurface:textBG
             ),
           );
           painter.layout();
@@ -1076,23 +1076,24 @@ class _DrawCategory extends State<DrawCategory>{
                 ? searchdata.rootHits[widget.which]
                 : searchdata.currentHits[widget.which];
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Text(
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge!.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          
+                              "${category.hits.length} hits with signature ${searchdata.structures[category.signature]}"
+                        ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Column(
                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                Text(
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          
-                              "${category.hits.length} hits with signature ${searchdata.structures[category.signature]}"
-                        ),
+                
                    Text(
                           style: Theme.of(
                             context,
@@ -1101,19 +1102,12 @@ class _DrawCategory extends State<DrawCategory>{
                           ),
                           "Example: " +
                               searchdata.hits[category.hits[0].toInt()].name +
-                              ", Taxon: " +
-                              graphdata.graph[searchdata.hits[category.hits[0].toInt()].taxid]!.name,
-                        ),
-                        Text(
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          "Example: " +
-                              searchdata.hits[category.hits[0].toInt()].name +
-                              ", Taxon: " +
-                              graphdata.graph[searchdata.hits[category.hits[0].toInt()].taxid]!.name,
+                              "\nTaxon: " +
+                              graphdata.graph[searchdata.hits[category.hits[0].toInt()].taxid]!.name+
+                      
+                          "\nDescription: " +
+                              searchdata.hits[category.hits[0].toInt()].description
+
                         ),
                         
                         ],),

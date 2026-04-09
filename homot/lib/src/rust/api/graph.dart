@@ -155,6 +155,7 @@ class Domain {
 class Hit {
   final String name;
   final String sequence;
+  final String description;
   final PlatformInt64 taxid;
   final int seqLength;
   final double seqEvalue;
@@ -165,6 +166,7 @@ class Hit {
   const Hit({
     required this.name,
     required this.sequence,
+    required this.description,
     required this.taxid,
     required this.seqLength,
     required this.seqEvalue,
@@ -177,6 +179,7 @@ class Hit {
   int get hashCode =>
       name.hashCode ^
       sequence.hashCode ^
+      description.hashCode ^
       taxid.hashCode ^
       seqLength.hashCode ^
       seqEvalue.hashCode ^
@@ -191,6 +194,7 @@ class Hit {
           runtimeType == other.runtimeType &&
           name == other.name &&
           sequence == other.sequence &&
+          description == other.description &&
           taxid == other.taxid &&
           seqLength == other.seqLength &&
           seqEvalue == other.seqEvalue &&

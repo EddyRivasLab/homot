@@ -142,6 +142,7 @@ impl From<&UserValue> for Domain{
 pub struct Hit{
     pub name: String,  // Name of the sequence that the hit was to
     pub sequence: String,  // Sequence  that was hit
+    pub description: String, // Description of the sequence that was hit
     pub taxid: i64, // taxid of the sequence we hit
     pub seq_length: u32,  // length of sequence. need this to handle hits without annotation dato
     pub seq_evalue: f64,
@@ -277,6 +278,7 @@ impl From<&UserValue> for DbDomain{
 struct AnnotatedSequence{
     name: String, 
     sequence: String,
+    description: String,
     length: u32,
     taxid: i64,
     domains: Vec<DbDomain>,
@@ -407,7 +409,6 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
     let mut hit_map:DashMap<String, Hit> = DashMap::with_shard_amount(1024);
     let root: i64;
     let mut num_domtbl_hits: i64 = 0;
-    let now = Instant::now();
     // load hits from the data files
     for domtbloutfile in domtblout_files{
        // println!("searching {}", domtbloutfile);
@@ -423,7 +424,6 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
         }
     }
  //   println!{"{}ms to read domtblout files", now.elapsed().as_millis()};
-    let now = Instant::now();
     // turn the hits into a sorted vector
     for item in hit_map.iter(){
         hits.push(item.value().clone());
@@ -435,7 +435,6 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
     // create the list of domains hit so that we can assign colors
     results.domains_contained = create_domain_list(&hits);
 
-    let now:Instant = Instant::now();
     match build_graph_from_hits(&hits, &graph_db){
         Ok(v) =>{
             graph = v.0;
@@ -672,6 +671,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                     AnnotatedSequence{
                         name: target_name.clone(),
                         sequence: str::repeat("X", seq_end as usize),
+                        description: String::new(),
                         length: seq_end, // This is a fake sequence, not in the database
                         taxid: 1,  // root node if using NCBI taxonomy, figure out a better plan later
                         domains: Vec::new(),
@@ -683,6 +683,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 None => {let fake_sequence = AnnotatedSequence{
                         name: target_name.clone(),
                         sequence: str::repeat("X", seq_end as usize),
+                        description: String::new(),
                         length: seq_end, // This is a fake sequence, not in the database
                         taxid: 1,  // root node if using NCBI taxonomy, figure out a better plan later
                         domains: Vec::new(),
@@ -796,6 +797,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 taxid: seq_ann.taxid,
                 seq_length: seq_ann.sequence.len() as u32,  // Do this first to avoid borrow-after-move errors
                 sequence: seq_ann.sequence,
+                description: seq_ann.description,
                 seq_evalue: seq_evalue as f64,
                 structure_domains: structure_domains,
                 domains: our_domains, // For simplicity, just include the one domain
@@ -972,6 +974,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                     AnnotatedSequence{
                         name: target_name.clone(),
                         sequence: str::repeat("X", seq_end as usize),
+                        description: String::new(),
                         length: seq_end, // This is a fake sequence, not in the database
                         taxid: 1,  // root node if using NCBI taxonomy, figure out a better plan later
                         domains: Vec::new(),
@@ -983,6 +986,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 None => {let fake_sequence = AnnotatedSequence{
                         name: target_name.clone(),
                         sequence: str::repeat("X", seq_end as usize),
+                        description: String::new(),
                         length: seq_end, // This is a fake sequence, not in the database
                         taxid: 1,  // root node if using NCBI taxonomy, figure out a better plan later
                         domains: Vec::new(),
@@ -1096,6 +1100,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 taxid: seq_ann.taxid,
                 seq_length: seq_ann.sequence.len() as u32,  // Do this first to avoid borrow-after-move errors
                 sequence: seq_ann.sequence,
+                description: seq_ann.description,
                 seq_evalue: seq_evalue as f64,
                 structure_domains: structure_domains,
                 domains: our_domains, // For simplicity, just include the one domain

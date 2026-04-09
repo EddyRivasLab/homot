@@ -436,17 +436,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Hit dco_decode_hit(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
     return Hit(
       name: dco_decode_String(arr[0]),
       sequence: dco_decode_String(arr[1]),
-      taxid: dco_decode_i_64(arr[2]),
-      seqLength: dco_decode_u_32(arr[3]),
-      seqEvalue: dco_decode_f_64(arr[4]),
-      structureDomains: dco_decode_list_domain(arr[5]),
-      domains: dco_decode_list_domain(arr[6]),
-      queries: dco_decode_list_domain(arr[7]),
+      description: dco_decode_String(arr[2]),
+      taxid: dco_decode_i_64(arr[3]),
+      seqLength: dco_decode_u_32(arr[4]),
+      seqEvalue: dco_decode_f_64(arr[5]),
+      structureDomains: dco_decode_list_domain(arr[6]),
+      domains: dco_decode_list_domain(arr[7]),
+      queries: dco_decode_list_domain(arr[8]),
     );
   }
 
@@ -738,6 +739,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_name = sse_decode_String(deserializer);
     var var_sequence = sse_decode_String(deserializer);
+    var var_description = sse_decode_String(deserializer);
     var var_taxid = sse_decode_i_64(deserializer);
     var var_seqLength = sse_decode_u_32(deserializer);
     var var_seqEvalue = sse_decode_f_64(deserializer);
@@ -747,6 +749,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return Hit(
       name: var_name,
       sequence: var_sequence,
+      description: var_description,
       taxid: var_taxid,
       seqLength: var_seqLength,
       seqEvalue: var_seqEvalue,
@@ -1072,6 +1075,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.name, serializer);
     sse_encode_String(self.sequence, serializer);
+    sse_encode_String(self.description, serializer);
     sse_encode_i_64(self.taxid, serializer);
     sse_encode_u_32(self.seqLength, serializer);
     sse_encode_f_64(self.seqEvalue, serializer);
