@@ -1897,6 +1897,8 @@ enum selectedby { none, structure, subtree, subtree_structure }
 // class that holds the results of a search
 class SearchData with ChangeNotifier {
   List<Hit> _hits = [];
+  List<int> _lengths = [];
+  
   Uint32List _hitStructures = Uint32List(0);
   List<String> _structures = [];
   List<String> _domainsContained = [];

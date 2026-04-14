@@ -1793,8 +1793,7 @@ class SubtreeStructurePage extends StatefulWidget {
 
 class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
   final ScrollController _scrollController2 = ScrollController();
-  List<bool> fullWidth = [];
-  List<bool> showExpand = [];
+  List<int> lengths = [];
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -1810,12 +1809,20 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
               theHits.length > 1
                   ? "different structures"
                   : "structure";
-          if (fullWidth.length != theHits.length) {
-            // something has changed, reset the fullwidth list
-            fullWidth = List.filled(theHits.length, false);
-            showExpand = List.filled(theHits.length, false);
+          if (lengths.length != theHits.length) {
+            lengths = List.filled(theHits.length, 0);
           }
-          final screenWidth = MediaQuery.sizeOf(context).width;
+          for(int i=0; i<theHits.length; i++){
+            lengths[i] = searchdata.hits[theHits[i].hits[0].toInt()].seqLength;
+          }
+          lengths.sort((a,b)=> a < b ? -1 : 1);
+          int maxLength = lengths.reduce(max);
+          if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]){
+          print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
+            maxLength = lengths[(lengths.length * 0.9).toInt()];
+          }
+          double ppr= pixelsPerResidue(maxLength, Theme.of(context).textTheme, context);
+          print("pixels per residue $ppr");
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
             appBar: homotAppBar(
@@ -1828,15 +1835,6 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
                 controller: _scrollController2,
                 itemCount: theHits.length,
                 itemBuilder: (BuildContext context, int index) {
-                  showExpand[index] =
-                      requiredHitWidth(
-                        searchdata.hits[searchdata.rootHits[index].hits[0]
-                            .toInt()],
-                        false,
-                        false,
-                        context,
-                      ) >
-                      screenWidth;
                   return Card(
                     margin: EdgeInsets.only(bottom: 8),
                     color: Theme.of(context).colorScheme.surface,
@@ -1847,6 +1845,8 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
                           which: index,
                           from: selectedby.subtree_structure,
                           context: context,
+                          maxLength: maxLength,
+                          pixelsPerResidue: ppr,
                         ),
                         
                       ],
@@ -1875,19 +1875,26 @@ class AllStructurePage extends StatefulWidget {
 
 class _AllStructurePageState extends State<AllStructurePage> {
   final ScrollController _scrollController2 = ScrollController();
-  List<bool> fullWidth = [];
-  List<bool> showExpand = [];
+  List<int> lengths = [];
   @override
   Widget build(BuildContext context) {
     return Material(
       child: Consumer3<SearchData, GraphData, HSettings>(
         builder: (context, searchdata, graphdata, hsettings, child) {
           final List<SigCategory> theHits = searchdata.rootHits;
-          if (fullWidth.length != theHits.length) {
-            // something has changed, reset the fullwidth list
-            fullWidth = List.filled(theHits.length, false);
-            showExpand = List.filled(theHits.length, false);
+          if (lengths.length != theHits.length) {
+            lengths = List.filled(theHits.length, 0);
           }
+          for(int i=0; i<theHits.length; i++){
+            lengths[i] = searchdata.hits[searchdata.rootHits[i].hits[0].toInt()].seqLength;
+          }
+            int maxLength = lengths.reduce(max);
+          lengths.sort((a,b)=> a < b ? -1 : 1);
+          if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]){
+            print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
+            maxLength = lengths[(lengths.length * 0.9).toInt()];
+          }
+          double ppr= pixelsPerResidue(maxLength, Theme.of(context).textTheme, context);
           int numHits = searchdata.hits.length;
           final hitCount = numHits != 1? "hits" : "hit";
           final strucText =
@@ -1907,15 +1914,6 @@ class _AllStructurePageState extends State<AllStructurePage> {
                 controller: _scrollController2,
                 itemCount: theHits.length,
                 itemBuilder: (BuildContext context, int index) {
-                  showExpand[index] =
-                      requiredHitWidth(
-                        searchdata.hits[searchdata.rootHits[index].hits[0]
-                            .toInt()],
-                        false,
-                        false,
-                        context,
-                      ) >
-                      screenWidth;
                   return Card(
                     margin: EdgeInsets.only(bottom: 8),
                     color: Theme.of(context).colorScheme.surface,
@@ -1924,6 +1922,8 @@ class _AllStructurePageState extends State<AllStructurePage> {
                           which: index,
                           from: selectedby.structure,
                           context:context,
+                          maxLength: maxLength,
+                          pixelsPerResidue: ppr,
                         ),        
                   );
                 },
@@ -1949,6 +1949,8 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
   final ScrollController _scrollController2 = ScrollController();
   List<bool> fullWidth = [];
   List<bool> showExpand = [];
+  List<int> lengths = [];
+  
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -1958,8 +1960,20 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
             // something has changed, reset the fullwidth list
             fullWidth = List.filled(searchdata.hits.length, false);
             showExpand = List.filled(searchdata.hits.length, false);
+            lengths = List.filled(searchdata.hits.length, 0);
+          }
+          int maxLength = 0;
+          for(int i=0; i<searchdata.hits.length; i++){
+            lengths[i] = searchdata.hits[i].seqLength;
+          }
+          maxLength = lengths.reduce(max);
+          lengths.sort((a,b)=> a < b ? -1 : 1);
+          if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]){
+            print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
+            maxLength = lengths[(lengths.length * 0.9).toInt()];
           }
           final screenWidth = MediaQuery.sizeOf(context).width;
+          double ppr= pixelsPerResidue(maxLength, Theme.of(context).textTheme, context);
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
             appBar: homotAppBar(text: "${searchdata.hits.length} hits found"),
@@ -1970,13 +1984,13 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
                 itemCount: searchdata.hits.length,
                 itemBuilder: (BuildContext context, int index) {
                   showExpand[index] =
-                      requiredHitWidth(
+                      (requiredHitWidth(
                         searchdata.hits[index],
                         false,
                         false,
                         context,
                       ) >
-                      screenWidth;
+                      screenWidth) || (searchdata.hits[index].seqLength > maxLength);
                   return Card(
                     margin: EdgeInsets.only(bottom: 8),
                     color: Theme.of(context).colorScheme.surface,
@@ -1987,6 +2001,7 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                           Text(
+                            overflow: TextOverflow.clip,
                           style: Theme.of(
                             context,
                           ).textTheme.bodyMedium!.copyWith(
@@ -2049,6 +2064,8 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
                           hit: searchdata.hits[index],
                           searchdata: searchdata,
                           fullWidth: fullWidth[index],
+                          maxLength: maxLength,
+                          pixelsPerResidue: ppr,
                         ),
                       ],
                     ),
@@ -2076,6 +2093,7 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
   final ScrollController _scrollController2 = ScrollController();
   List<bool> fullWidth = [];
   List<bool> showExpand = [];
+  List<int> lengths = [];
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -2109,9 +2127,28 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
             // something has changed, reset the fullwidth list
             fullWidth = List.filled(hitIndices.length, false);
             showExpand = List.filled(hitIndices.length, false);
+            lengths = List.filled(hitIndices.length, 0);
             searchdata.previousSelectedBy = searchdata.selectedBy;
           }
           final screenWidth = MediaQuery.sizeOf(context).width;
+          for (int i=0; i<hitIndices.length; i++){
+            lengths[i] = searchdata.hits[hitIndices[i].toInt()].seqLength;
+          }
+          int maxLength = lengths.reduce(max);
+          print("max length is $maxLength");
+          lengths.sort((a,b)=> a < b ? -1 : 1);
+          if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]){
+            print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
+            maxLength = lengths[(lengths.length * 0.9).toInt()];
+          }
+          double ppr= pixelsPerResidue(maxLength, Theme.of(context).textTheme, context);
+          int count = 0;
+          for(int i=0; i<hitIndices.length; i++){
+            if (lengths[i] > maxLength){
+              count++;
+            }
+          }
+          print("$count out of ${hitIndices.length} hits are longer than the max length of $maxLength");  
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
             appBar: homotAppBar(text: title),
@@ -2128,7 +2165,7 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                         false,
                         context,
                       ) >
-                      screenWidth;
+                      screenWidth || (searchdata.hits[hitIndices[index].toInt()].seqLength > maxLength);
                   return Card(
                     margin: EdgeInsets.only(bottom: 8),
                     color: Theme.of(context).colorScheme.surface,
@@ -2138,6 +2175,7 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [Text(
+                            overflow: TextOverflow.clip,
                           style: Theme.of(
                             context,
                           ).textTheme.bodyMedium!.copyWith(
@@ -2200,7 +2238,9 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                         DrawHit(
                           hit: searchdata.hits[hitIndices[index].toInt()],
                           searchdata: searchdata,
-                          fullWidth: fullWidth[index]
+                          fullWidth: fullWidth[index],
+                          maxLength: maxLength,
+                          pixelsPerResidue: ppr,
                         ),
                       ],
                     ),
@@ -2252,6 +2292,7 @@ class _SequencePageState extends State<SequencePage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                           Text(
+                            overflow: TextOverflow.clip,
                           style: Theme.of(
                             context,
                           ).textTheme.bodyMedium!.copyWith(
@@ -2261,7 +2302,7 @@ class _SequencePageState extends State<SequencePage> {
                               theHit.name +
                               "\nE-Value: " +
                               theHit.seqEvalue
-                                  .toStringAsExponential(4)+"\nTaxon: "+graphdata.graph[theHit.taxid]!.name,
+                                  .toStringAsExponential(4)+"\nTaxon: "+graphdata.graph[theHit.taxid]!.name+ '\nDescription: '+theHit.description,
                         ),
 
                         Row(
@@ -2306,6 +2347,8 @@ class _SequencePageState extends State<SequencePage> {
                       fullWidth: fullWidth,
                       showSequence: true,
                       sequence: theHit.sequence,
+                      maxLength: theHit.seqLength,
+                      pixelsPerResidue: pixelsPerResidue(theHit.seqLength, Theme.of(context).textTheme, context),
                     ),
                     
                   ],
