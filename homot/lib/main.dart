@@ -1898,7 +1898,7 @@ enum selectedby { none, structure, subtree, subtree_structure }
 class SearchData with ChangeNotifier {
   List<Hit> _hits = [];
   List<int> _lengths = [];
-  
+
   Uint32List _hitStructures = Uint32List(0);
   List<String> _structures = [];
   List<String> _domainsContained = [];
@@ -1941,7 +1941,7 @@ class SearchData with ChangeNotifier {
   }
 
   void set selectedHit(PlatformInt64 theHit) {
-    if (0 <= theHit && theHit < _hits.length) {
+    if (-1 <= theHit &&theHit < _hits.length) {
       _selectedHit = theHit;
       notifyListeners();
     }

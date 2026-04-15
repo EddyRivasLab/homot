@@ -193,6 +193,7 @@ class _MainPageState extends State<MainPage> {
                               searchdata.setSearchResults(results);
                               searchdata.selectedBy =
                                   selectedby.none; // reset selection
+                              searchdata.selectedHit = -1;
                               context.go("/graph");
                             }
                           }
@@ -1818,11 +1819,11 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
           lengths.sort((a,b)=> a < b ? -1 : 1);
           int maxLength = lengths.reduce(max);
           if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]){
-          print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
+   //       print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
             maxLength = lengths[(lengths.length * 0.9).toInt()];
           }
           double ppr= pixelsPerResidue(maxLength, Theme.of(context).textTheme, context);
-          print("pixels per residue $ppr");
+    //      print("pixels per residue $ppr");
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
             appBar: homotAppBar(
@@ -1891,7 +1892,7 @@ class _AllStructurePageState extends State<AllStructurePage> {
             int maxLength = lengths.reduce(max);
           lengths.sort((a,b)=> a < b ? -1 : 1);
           if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]){
-            print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
+       //     print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
             maxLength = lengths[(lengths.length * 0.9).toInt()];
           }
           double ppr= pixelsPerResidue(maxLength, Theme.of(context).textTheme, context);
@@ -1969,7 +1970,7 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
           maxLength = lengths.reduce(max);
           lengths.sort((a,b)=> a < b ? -1 : 1);
           if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]){
-            print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
+     //       print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
             maxLength = lengths[(lengths.length * 0.9).toInt()];
           }
           final screenWidth = MediaQuery.sizeOf(context).width;
@@ -2135,10 +2136,10 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
             lengths[i] = searchdata.hits[hitIndices[i].toInt()].seqLength;
           }
           int maxLength = lengths.reduce(max);
-          print("max length is $maxLength");
+       //   print("max length is $maxLength");
           lengths.sort((a,b)=> a < b ? -1 : 1);
           if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]){
-            print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
+   //         print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
             maxLength = lengths[(lengths.length * 0.9).toInt()];
           }
           double ppr= pixelsPerResidue(maxLength, Theme.of(context).textTheme, context);

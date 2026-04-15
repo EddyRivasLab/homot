@@ -19,6 +19,7 @@ import 'package:provider/provider.dart';
 import "package:go_router/go_router.dart";
 import 'package:patterns_canvas/patterns_canvas.dart';
 
+const EDGEPAD = 3.0; // padding to leave at the edge of the screen when drawing a hit
 
 double pixelsPerResidue(int maxLength, TextTheme textTheme, BuildContext context) {
   double textWidth, textHeight;
@@ -297,11 +298,11 @@ class DrawDomains extends StatelessWidget {
           description: "No structure found for this sequence",
           clan: "No Clan",
           seqStart: 0,
-          seqEnd: length,
+          seqEnd: seqLength,
           hmmStart: 0,
           hmmEnd: length,
           hmmLength: length,
-          domEvalue: seqEvalue,
+          domEvalue: double.infinity,
           fullMatchStart: true,
           fullMatchEnd: true,
           fromBlast: false,
@@ -1060,7 +1061,12 @@ class _DrawHitState extends State<DrawHit> {
       double expandedPixelsPerResidue = widthPerChar > widget.pixelsPerResidue ? widthPerChar : widget.pixelsPerResidue;
       int expandedLength = widget.hit.seqLength > widget.maxLength ? widget.hit.seqLength : widget.maxLength;
       width = expandedLength * expandedPixelsPerResidue + textWidth;
-      return Scrollbar(
+    //  print("fullwidth for hit ${widget.hit.name} with expanded length $expandedLength and expanded pixels per residue $expandedPixelsPerResidue gives width $width");
+      return 
+      Padding(
+        padding: EdgeInsets.only(right:EDGEPAD),
+        child: 
+      Scrollbar(
         controller: _scrollController,
         thumbVisibility: true,
         scrollbarOrientation: ScrollbarOrientation.bottom,
@@ -1087,13 +1093,6 @@ class _DrawHitState extends State<DrawHit> {
                 pixelsPerResidue: expandedPixelsPerResidue,
               ),
               if (widget.showSequence)
-                Text(
-                  "Sequence:",
-                  style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-              if (widget.showSequence)
                 Padding(
                   padding: EdgeInsets.only(left: textWidth),
                   child: Text(
@@ -1106,13 +1105,14 @@ class _DrawHitState extends State<DrawHit> {
             ],
           ),
         ),
-      );
+      ),);
     } 
     
     else {
       // make the hit fit in the window
-      width = widget.hit.seqLength > widget.maxLength ? MediaQuery.sizeOf(context).width: widget.hit.seqLength * widget.pixelsPerResidue + textWidth;
+      width = widget.hit.seqLength >= widget.maxLength ? MediaQuery.sizeOf(context).width-EDGEPAD: widget.hit.seqLength * widget.pixelsPerResidue + textWidth;
       textWidth = 0.0;
+      double adjustedPixelsPerResidue = widget.hit.seqLength > widget.maxLength ? widget.pixelsPerResidue * (widget.maxLength.toDouble() / widget.hit.seqLength.toDouble())  : widget.pixelsPerResidue;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1130,7 +1130,7 @@ class _DrawHitState extends State<DrawHit> {
             seqLength: widget.hit.seqLength,
             seqEvalue: widget.hit.seqEvalue,
             allDomains: widget.allDomains,
-            pixelsPerResidue: widget.pixelsPerResidue,
+            pixelsPerResidue: adjustedPixelsPerResidue,
           ),
           if (widget.showSequence)
             Text(
@@ -1192,9 +1192,9 @@ class _DrawCategory extends State<DrawCategory>{
                 : searchdata.currentHits[widget.which];
         final Hit theHit = searchdata.hits[category.hits[0].toInt()];
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            Center(child:Text(
                           style: Theme.of(
                             context,
                           ).textTheme.titleLarge!.copyWith(
@@ -1203,7 +1203,7 @@ class _DrawCategory extends State<DrawCategory>{
                           ),
                           
                               "${category.hits.length} hits with signature ${searchdata.structures[category.signature]}"
-                        ),
+                        ),),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1272,13 +1272,13 @@ class _DrawCategory extends State<DrawCategory>{
                         ),],),
 
               
-          Row(children: [DrawHit(
+          DrawHit(
               hit: searchdata.hits[category.hits[0].toInt()],
               searchdata: searchdata,
               fullWidth: fullWidth,
               maxLength: widget.maxLength,
               pixelsPerResidue: widget.pixelsPerResidue,
-            ),],),
+            ),
           ],
         );
       },
