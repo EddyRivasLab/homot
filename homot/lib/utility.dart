@@ -201,7 +201,9 @@ class MainNavBar extends StatelessWidget {
               ),
             ),
           ),
-          child: NavigationBar(
+          child: TooltipVisibility(
+            visible: false,
+            child:NavigationBar(
             backgroundColor: Theme.of(context).primaryColor,
             onDestinationSelected: (int index) {
               ScaffoldMessenger.of(
@@ -312,7 +314,7 @@ class MainNavBar extends StatelessWidget {
               ),
             ],
           ),
-        );
+        ),);
       },
     );
   }
