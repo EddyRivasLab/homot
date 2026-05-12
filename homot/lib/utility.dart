@@ -232,7 +232,7 @@ class MainNavBar extends StatelessWidget {
                 ),
                 enabled:
                     (whereAmI != WhichPage.graph) && (graphdata.depth != 0),
-                tooltip: "",
+                tooltip: null,
                 label: 'Taxonomic Display',
               ),
               NavigationDestination(
