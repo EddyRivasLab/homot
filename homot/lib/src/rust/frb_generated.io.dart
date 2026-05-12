@@ -19,8 +19,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     required super.portManager,
   });
 
-  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_VecI64Ptr =>
-      wire._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64Ptr;
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_VecI64Ptr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64Ptr;
 
   @protected
   VecI64

@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:homot/src/rust/api/graph.dart';
 import 'package:homot/src/rust/frb_generated.dart';
 import 'package:homot/main.dart';
+import 'package:homot/pages.dart';
 import 'package:homot/utility.dart';
 import 'package:provider/provider.dart';
 import "package:go_router/go_router.dart";
@@ -291,7 +292,7 @@ class DrawDomains extends StatelessWidget {
     );
     var newDomains = List<Domain>.from(domains);
     // Handle the case where there are no domains
-    if (newDomains.isEmpty) {
+  /*  if (newDomains.isEmpty) {
       newDomains.add(
         Domain(
           name: "No Structure",
@@ -313,7 +314,7 @@ class DrawDomains extends StatelessWidget {
           iType: IEntryType.other,
         ),
       );
-    }
+    } */
     // Sort the domains by start position
 
     var domainRows = _map_domains_to_rows(newDomains);
@@ -1184,12 +1185,14 @@ class _DrawCategory extends State<DrawCategory>{
   }
   @override
   Widget build(BuildContext context) {
+
     return Consumer3<SearchData, HSettings, GraphData>(
       builder: (context, searchdata, hsettings, graphdata, child) {
         final SigCategory category =
             widget.from == selectedby.structure
                 ? searchdata.rootHits[widget.which]
                 : searchdata.currentHits[widget.which];
+        final String hitText = category.hits.length == 1 ? "hit" : "hits";
         final Hit theHit = searchdata.hits[category.hits[0].toInt()];
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1202,7 +1205,7 @@ class _DrawCategory extends State<DrawCategory>{
 
                           ),
                           
-                              "${category.hits.length} hits with signature ${searchdata.structures[category.signature]}"
+                              "${category.hits.length} $hitText with domain structure ${searchdata.structures[category.signature]}"
                         ),),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1261,6 +1264,7 @@ class _DrawCategory extends State<DrawCategory>{
                               onPressed: () {
                                 searchdata.selectedStructure = widget.which;
                                 searchdata.selectedBy = widget.from;
+                                selectedEvalueScrollOffset = 0.0;
                                 context.go("/subtreeevalue");
                               },
                               icon: Icon(

@@ -456,8 +456,8 @@ Future<void> main() async {
   String font = await prefs.getString("homot_font") ?? "Roboto";
   double evalMax = await prefs.getDouble("homot_evalMax") ?? 10.0;
   double evalMin = await prefs.getDouble("homot_evalMin") ?? 0.0;
-  double domEvalMax = await prefs.getDouble("homot_domEvalMAx") ?? 10.0;
   double domEvalMin = await prefs.getDouble("homot_domEvalMin") ?? 0.0;
+  double domEvalMax = await prefs.getDouble("homot_domEvalMax") ?? 10.0;  
   double scale = await prefs.getDouble("homot_scale") ?? 1.0;
   double lineWidth = await prefs.getDouble("homot_lineWidth") ?? 2.0;
   int mode = await prefs.getInt("homot_mode") ?? 3;
@@ -469,6 +469,8 @@ Future<void> main() async {
   bool showInterproRepeat = await prefs.getBool("homot_show_repeat") ?? true;
   bool showInterproSite = await prefs.getBool("homot_show_site") ?? true;
   bool showInterproOther = await prefs.getBool("homot_show_other") ?? true;
+  bool useSeqEvals = await prefs.getBool("homot_use_seq_evals") ?? false;
+  bool useDomEvals = await prefs.getBool("homot_use_dom_evals") ?? false;
   int temp2 = await prefs.getInt("homot_interpro_show_id_as") ?? 0;
   ShowInterproIdEnum showInterproIDAs;
   switch (temp2) {
@@ -496,6 +498,8 @@ Future<void> main() async {
                 mode,
                 font,
                 scale,
+                useSeqEvals,
+                useDomEvals,
                 evalMax,
                 evalMin,
                 domEvalMax,
@@ -521,9 +525,13 @@ Future<void> main() async {
 }
 
 //  Top-level application
-class TopLevel extends StatelessWidget {
+class TopLevel extends StatefulWidget {
   const TopLevel({super.key});
+  @override
+  State<TopLevel> createState() => _TopLevelState();
+}
 
+class _TopLevelState extends State<TopLevel> {
   @override
   Widget build(BuildContext context) {
     return Consumer<HSettings>(
@@ -541,20 +549,6 @@ class TopLevel extends StatelessWidget {
           },
         );
       },
-    );
-  }
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        // appBar: AppBar(title: const Text('flutter_rust_bridge quickstart')),
-        body: Center(child: Text("Hello, world")),
-      ),
     );
   }
 }
@@ -585,6 +579,8 @@ class HSettings with ChangeNotifier {
   bool _showInterproRepeat = true;
   bool _showInterproSite = true;
   bool _showInterproOther = true;
+  bool _useSeqEvals = false;
+  bool _useDomEvals = false;
   ShowNamesFrom _namesFrom = ShowNamesFrom.pfam;
   ShowInterproIdEnum _showInterproIDAs = ShowInterproIdEnum.id;
 
@@ -604,6 +600,8 @@ class HSettings with ChangeNotifier {
     int mode,
     String font,
     double scale,
+    bool useSeqEvals,
+    bool useDomEvals,
     double evalMax,
     double evalMin,
     double domEvalMax,
@@ -624,6 +622,8 @@ class HSettings with ChangeNotifier {
     _prefs = prefs;
     _font = font;
     _scale = scale;
+    _useSeqEvals = useSeqEvals;
+    _useDomEvals = useDomEvals;
     _evalMax = evalMax;
     _evalMin = evalMin;
     _domEvalMax = domEvalMax;
@@ -832,7 +832,16 @@ class HSettings with ChangeNotifier {
     _prefs.setBool("homot_show_other", val);
     notifyListeners();
   }
-
+  void set useSeqEvals(bool val) {
+    _useSeqEvals = val;
+    _prefs.setBool("homot_use_seq_evals", val);
+    notifyListeners();
+  }
+  void set useDomEvals(bool val) {  
+    _useDomEvals = val;
+    _prefs.setBool("homot_use_dom_evals", val);
+    notifyListeners();
+  }
   void set showInterproIdAs(ShowInterproIdEnum val) {
     _showInterproIDAs = val;
     _prefs.setInt("homot_interpro_show_id_as", val.index);
@@ -864,6 +873,8 @@ class HSettings with ChangeNotifier {
   bool get showInterproRepeat => _showInterproRepeat;
   bool get showInterproSite => _showInterproSite;
   bool get showInterproOther => _showInterproOther;
+  bool get useSeqEvals => _useSeqEvals;
+  bool get useDomEvals => _useDomEvals;
   ShowInterproIdEnum get showInterproIdAs => _showInterproIDAs;
   ShowNamesFrom get showNamesFrom => _namesFrom;
 
@@ -1951,7 +1962,13 @@ class SearchData with ChangeNotifier {
     _hits = results.hits;
     _hitStructures = results.hitStructures;
     _structures = results.structures;
-    _domainsContained = results.domainsContained;
+    _domainsContained = [];
+    for (var domain in results.domainsContained) {
+      if (!_domainsContained.contains(domain)&& (domain != "Sequence not in annotation database")) {
+        _domainsContained.add(domain);
+      }
+    }
+    
     _rootHits = results.rootHits;
     _resultsLoaded = true;
     _selectedStructure = -1;

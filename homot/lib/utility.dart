@@ -248,7 +248,7 @@ class MainNavBar extends StatelessWidget {
                     (whereAmI != WhichPage.allstructure) &&
                     searchdata.resultsLoaded,
                 tooltip: "",
-                label: 'All Hits by Structure',
+                label: 'All Hits by Domain Structure',
               ),
               NavigationDestination(
                 icon: Icon(
@@ -278,7 +278,7 @@ class MainNavBar extends StatelessWidget {
                     (whereAmI != WhichPage.subgraphstructure) &&
                     graphdata.currentRoot != graphdata.graphRoot,
                 tooltip: "",
-                label: 'Selected Subtree by Structure',
+                label: 'Selected Subtree by Domain Structure',
               ),
               NavigationDestination(
                 icon: Icon(

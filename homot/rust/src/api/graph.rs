@@ -8,7 +8,6 @@ use std::i64::MAX;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Seek};
 use dashmap::DashMap;
-use std::time::{Instant};
 use std::cmp::Reverse;
 use rayon::prelude::*;
 use std::sync::{Arc, Mutex};
@@ -467,6 +466,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
     results.root_hits= temp.categories;
     results.graph = graph.into_iter().collect::<HashMap<i64, Node>>(); // Convert the DashMap into a HashMap that Dart understands.
     results.hits = hits; // must be after call to find_hits_below_node because of borrow rules
+
     results
 }
 
@@ -528,7 +528,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
         reader.lines().filter_map(|line_result| line_result.ok()).par_bridge().for_each(|line| {
         if !line.starts_with('#') { // Skip comment lines
         let my_errMsg = Arc::clone(&errMsg);
-     //   println!("Examining line {}", line);
+
         let fields: Vec<&str> = line.split_whitespace().collect();
         if fields.len() < 23 {
             let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
@@ -665,7 +665,9 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
             };
             let seq_ann: AnnotatedSequence = match res1{
                 Some(d) => match rmp_serde::from_slice(&d){
-                    Ok(d) => d,
+                    Ok(d) => {
+                        d},
+
                     Err(_msg) => {
                      //errmsg = format!("Deserialization error for Annotated Sequence, reason was: {}" , &msg.to_string());
                     AnnotatedSequence{
@@ -680,7 +682,8 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                     }
                     },
                 },
-                None => {let fake_sequence = AnnotatedSequence{
+                None => {
+                    let mut fake_sequence = AnnotatedSequence{
                         name: target_name.clone(),
                         sequence: str::repeat("X", seq_end as usize),
                         description: String::new(),
@@ -690,21 +693,20 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                         structure_domains: Vec::new(),
                         real: false, // This is a fake sequence, not in the database
                         };
-                    
-                     /*    let struct_domain = DbDomain{
-                            domain: 0xffff,
+                       let struct_domain = DbDomain{
+                            domain: 0xffffffff,
                             clan: 0xffff,
                             alifrom: 1,
-                            alito: 1,
+                            alito: seq_end,
                             hmmfrom: 1,
-                            hmmto: 1,
-                            eval: 0.0,
+                            hmmto: seq_end,
+                            eval: MAX as f32,
                             full_match_start: true,
                             full_match_end: true,
                         };
                         let all_domain = struct_domain.clone();
                         fake_sequence.domains.push(all_domain);
-                        fake_sequence.structure_domains.push(struct_domain);*/
+                        fake_sequence.structure_domains.push(struct_domain);
                         fake_sequence
                 
                 },
@@ -716,9 +718,9 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 let ddata =match domain_map.get(&db_domain.domain) {
                     None => Dmap{
                         domain: 0xffff,
-                        name: "No annotation data available".to_string(),
-                        description: "No annotation data available".to_string(),
-                        clan_name: "No annotation data available".to_string(),
+                        name: "Sequence not in annotation database".to_string(),
+                        description: "".to_string(),
+                        clan_name: "".to_string(),
                         hmm_length: 0,
                         source: AnnotationType::Other,
                         ip_short: "".to_string(),
@@ -756,9 +758,9 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 let ddata =match domain_map.get(&db_domain.domain) {
                     None => Dmap{
                         domain: 0xffff,
-                        name: "No annotation data available".to_string(),
-                        description: "No annotation data available".to_string(),
-                        clan_name: "No annotation data available".to_string(),
+                        name: "Sequence not in annotation database".to_string(),
+                        description: "".to_string(),
+                        clan_name: "".to_string(),
                         hmm_length: 0,
                         source: AnnotationType::Other,
                         ip_short: "".to_string(),
@@ -803,12 +805,14 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 domains: our_domains, // For simplicity, just include the one domain
                 queries: vec![domain.clone()], // one hit
             };
-
             // Now, either put the new hit in the database or modify the existing one
             { // Create a block so that the fetched entry gets dropped as fast as possible
                 // https://github.com/xacrimon/dashmap/issues/169 describes this pattern for insert-or-modify
-                let entry = hits.entry(seq_ann.name);  // entry has a write guard on its shard to prevent concurrency issues
-                match entry{
+                hits.entry(seq_ann.name).and_modify(|existing_hit| {
+                    (*existing_hit).queries.push(domain.clone());
+                    hit_count.fetch_add(-1,std::sync::atomic::Ordering::SeqCst); // we aren't adding a new hit after all
+                }  ).or_insert(hit);  // entry has a write guard on its shard to prevent concurrency issues
+  /*               match entry{
                     dashmap::mapref::entry::Entry::Occupied(mut h)=>{
                         let existing_hit = h.get_mut();
                         hit_count.fetch_add(-1,std::sync::atomic::Ordering::SeqCst); // we aren't adding a new hit after all
@@ -824,11 +828,11 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                     dashmap::mapref::entry::Entry::Vacant(vacant) => {vacant.insert(hit);
                         ()
                     }
-                };
+                };*/
 
             }
 
-        } // closes if that decides if reportable hit
+        }// closes if that decides if reportable hit
     }// closes if that detects line with not enough fields
     } // closes if that skips comment lines
   }); // closes parallel iterator over lines in file
@@ -1110,7 +1114,11 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
             // Now, either put the new hit in the database or modify the existing one
             { // Create a block so that the fetched entry gets dropped as fast as possible
                 // https://github.com/xacrimon/dashmap/issues/169 describes this pattern for insert-or-modify
-                let entry = hits.entry(seq_ann.name);  // entry has a write guard on its shard to prevent concurrency issues
+                hits.entry(seq_ann.name).and_modify(|existing_hit| {
+                    (*existing_hit).queries.push(domain.clone());
+                    hit_count.fetch_add(-1,std::sync::atomic::Ordering::SeqCst); // we aren't adding a new hit after all
+                }  ).or_insert(hit); 
+               /*  let entry = hits.entry(seq_ann.name);  // entry has a write guard on its shard to prevent concurrency issues
                 match entry{
                     dashmap::mapref::entry::Entry::Occupied(mut h)=>{
                         let existing_hit = h.get_mut();
@@ -1128,7 +1136,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                         ()
                     }
                 };
-
+*/
             }
 
         } // closes if that decides if reportable hit
@@ -1259,7 +1267,7 @@ fn domains_to_structure(domains: &Vec<Domain>, interpro_show_superfamily: &bool,
     interpro_show_other: &bool, interpro_show_pfam_names: &bool)->String{
     if domains.len() == 0{
         // sequence contained no standard domains
-        return "None".to_string();
+        return "No Annotated Domains".to_string();
        //println!("Warning: sequence contained no standard domains, returning 'None' as structure");
     }
 

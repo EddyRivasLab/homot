@@ -29,7 +29,15 @@ import 'package:vector_math/vector_math_64.dart' hide Colors;
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
+
+// Static variables to hold the scroll positions of the different pages so that they're
+// retained when you switch from page to page.  This is ugly, but seems to be the best 
+// solution Flutter supports because the pages get disposed when you navigate away from them.
 // Widget to enter information about what files to read
+double allStructureScrollOffset = 0.0;
+double allEvalueScrollOffset = 0.0; 
+double selectedStructureScrollOffset = 0.0;
+double selectedEvalueScrollOffset = 0.0;
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
 
@@ -47,7 +55,7 @@ class _MainPageState extends State<MainPage> {
   }
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SelectionArea(child: Scaffold(
       backgroundColor: Theme.of(context).colorScheme.primary,
       appBar: homotAppBar(text: "Select Data"),
       body: Consumer4<FileData, GraphData, SearchData, HSettings>(
@@ -130,10 +138,10 @@ class _MainPageState extends State<MainPage> {
                             var results = await (fetchGraph(
                               annfile: filedata.annotationsFile!,
                               domtbloutFiles: filedata.domtbloutFiles,
-                              evalMax: hsettings.evalMax,
-                              evalMin: hsettings.evalMin,
-                              domEvalMax: hsettings.domEvalMax,
-                              domEvalMin: hsettings.domEvalMin,
+                              evalMax: hsettings.useSeqEvals ? hsettings.evalMax : double.infinity ,
+                              evalMin: hsettings.useSeqEvals ? hsettings.evalMin : 0.0,
+                              domEvalMax: hsettings.useDomEvals ? hsettings.domEvalMax : double.infinity ,
+                              domEvalMin: hsettings.useDomEvals ? hsettings.domEvalMin : 0.0,
                               fileType: hsettings.dataType,
                               interproShowSuperfamily:
                                   hsettings.showInterproSuperfamily,
@@ -148,7 +156,7 @@ class _MainPageState extends State<MainPage> {
                             // Update the overview data
                             if (await !results!.succeeded || results.graph.length == 0) {
                               String message;
-                              if(results.succeeded == 0){
+                              if(results.succeeded){
                                 message = "No hits found that met reporting criteria";
                               }
                               else{
@@ -177,8 +185,11 @@ class _MainPageState extends State<MainPage> {
                                 ),
                               );
                             } else {
-
-                       //       print("${results.graph.length}");
+                              allStructureScrollOffset = 0.0;
+                              allEvalueScrollOffset = 0.0; 
+                              selectedStructureScrollOffset = 0.0;
+                              selectedEvalueScrollOffset = 0.0;
+                            //  print("${results.hits.length}");
                               graphdata.clearGraph();
                               graphdata.setGraph(results.graph);
                               graphdata.setDepth(results.depth);
@@ -206,7 +217,7 @@ class _MainPageState extends State<MainPage> {
         },
       ),
       bottomNavigationBar: MainNavBar(whereAmI: WhichPage.home),
-    );
+    ),);
   }
 }
 
@@ -219,53 +230,100 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  Future<void> _showWarning() async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            style: Theme.of(context).textTheme.headlineLarge!.copyWith(
-              color: Theme.of(context).colorScheme.onPrimary,
-            ),
-            "Reload Data",
-          ),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          content: Text(
-            style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-              color: Theme.of(context).colorScheme.onPrimary,
-            ),
-            "Data must be re-loaded for changes to e-value settings to take effect.",
-          ),
-          actions: [
-            TextButton(
-              child: Text(
-                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                'OK',
-              ),
-              style: ButtonStyle(
-                backgroundColor: WidgetStateProperty.all(
-                  Theme.of(context).colorScheme.onPrimary,
-                ),
-                foregroundColor: WidgetStateProperty.all(
-                  Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        );
-      },
+  final evalMinNode = FocusNode();
+  final eValMinTextController = TextEditingController();
+  final evalMaxNode = FocusNode();
+  final eValMaxTextController = TextEditingController();
+  final domEvalMinNode = FocusNode();
+  final domEValMinTextController = TextEditingController();
+  final domEvalMaxNode = FocusNode();
+  final domEValMaxTextController = TextEditingController();
+
+  @override void initState() {
+    super.initState();
+    final myProvider = Provider.of<HSettings>(context, listen: false);
+    evalMinNode.addListener(() {
+      if (!evalMinNode.hasFocus) { // try to update the value when we lose focus
+        var parsed = num.tryParse(eValMinTextController.text);
+        if (parsed != null && parsed >= 0 && parsed != myProvider.evalMin && myProvider.useSeqEvals) {
+          myProvider.evalMin = parsed.toDouble();
+          _showReloadWarning();
+        } else {
+          // If the value is invalid, reset the text field to the current valid value
+          eValMinTextController.text = myProvider.evalMin.toString();
+        }
+
+      }
+
+    });
+    evalMaxNode.addListener(() {
+      if (!evalMaxNode.hasFocus) { // try to update the value when we lose focus
+        var parsed = num.tryParse(eValMaxTextController.text);
+        if (parsed != null && parsed >= 0 && parsed != myProvider.evalMax && myProvider.useSeqEvals) {
+          myProvider.evalMax = parsed.toDouble();
+          _showReloadWarning();
+        } else {
+          // If the value is invalid, reset the text field to the current valid value
+          eValMaxTextController.text = myProvider.evalMax.toString();
+        }
+
+      }
+
+    });
+
+      domEvalMinNode.addListener(() {
+        if (!domEvalMinNode.hasFocus) { // try to update the value when we lose focus
+          var parsed = num.tryParse(domEValMinTextController.text);
+          if (parsed != null && parsed >= 0 && parsed != myProvider.domEvalMin && myProvider.useDomEvals) {
+            myProvider.domEvalMin = parsed.toDouble();
+          } else {
+            // If the value is invalid, reset the text field to the current valid value
+            domEValMinTextController.text = myProvider.domEvalMin.toString();
+          }
+  
+        }
+  
+      });
+
+      domEvalMaxNode.addListener(() {
+        if (!domEvalMaxNode.hasFocus) { // try to update the value when we lose focus
+          var parsed = num.tryParse(domEValMaxTextController.text);
+          if (parsed != null && parsed >= 0 && parsed != myProvider.domEvalMax && myProvider.useDomEvals) {
+            myProvider.domEvalMax = parsed.toDouble();
+          } else {
+            // If the value is invalid, reset the text field to the current valid value
+            domEValMaxTextController.text = myProvider.domEvalMax.toString();
+          }
+  
+        }
+  
+      });
+  }
+
+  @override void dispose() {
+    evalMinNode.dispose();
+    eValMinTextController.dispose();
+    super.dispose();
+  }
+
+  _showReloadWarning() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.yellow,
+        duration: Duration(seconds: 3),
+        content: Center(child: Text(
+           "Data must be re-loaded for changes to e-value settings to take effect.",
+          style: TextStyle(color: Colors.black),
+        ),),
+      ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
       final ScrollController _mainScrollController = ScrollController();
-    return Scaffold(
+    return  Scaffold(
       backgroundColor: Theme.of(context).colorScheme.primary,
       appBar: homotAppBar(text: "Settings"),
       body: Consumer<HSettings>(
@@ -548,19 +606,28 @@ class _SettingsPageState extends State<SettingsPage> {
                   Card(
                     color: Theme.of(context).colorScheme.surface,
                     child: IntrinsicWidth(
-                      child: Column(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          Text(
+                          Row(children: [Checkbox(
+                                checkColor: Theme.of(context).colorScheme.onPrimary,
+                                //fillColor: Theme.of(context).colorScheme.surface,
+                                value: hsettings.useSeqEvals,
+                                onChanged: (bool? value) {
+                                  if (value != null) {
+                                    hsettings.useSeqEvals = value;
+                                  }
+                                },
+                              ),
+                              Text(
                             style: Theme.of(
                               context,
                             ).textTheme.bodyMedium!.copyWith(
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
-                            "Show Sequence E-Values",
+                            "Only show sequences with E-values in range",
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
+                              ]),
                               Row(
                                 children: [
                                   Padding(
@@ -570,19 +637,19 @@ class _SettingsPageState extends State<SettingsPage> {
                                         context,
                                       ).textTheme.bodyMedium!.copyWith(
                                         color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.onSurface,
+                                            hsettings.useSeqEvals ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface.withAlpha(128),
                                       ),
-                                      "Minimum",
+                                      "Minimum:",
                                     ),
                                   ),
-                                  InputQty.double(
-                                    initVal: hsettings.evalMin,
-                                    minVal: 0.0,
-                                    steps: 0.1,
-                                    decoration: QtyDecorationProps(
-                                      qtyStyle: QtyStyle.btnOnRight,
+                                  IntrinsicWidth(child: ConstrainedBox(
+                                    constraints: BoxConstraints(minWidth: 200),
+                                    child:TextFormField(
+                                    enabled: hsettings.useSeqEvals,
+                                    controller: eValMinTextController..text = hsettings.evalMin.toString(),
+                                    focusNode: evalMinNode,
+                                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                                    decoration: InputDecoration(
                                       border: OutlineInputBorder(
                                         borderSide: BorderSide(
                                           color:
@@ -591,11 +658,26 @@ class _SettingsPageState extends State<SettingsPage> {
                                               ).colorScheme.onSurface,
                                         ),
                                       ),
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                     ),
-                                    onQtyChanged: (val) {
-                                      hsettings.evalMin = val;
+                                    onFieldSubmitted: (val) {
+                                      var parsed = num.tryParse(val);
+                                      if (parsed != null && parsed >= 0 && parsed != hsettings.evalMin) {
+                                        hsettings.evalMin = parsed.toDouble();
+                                        _showReloadWarning();
+                                      }
+                                      else {
+                                        // If the value is invalid, reset the text field to the current valid value
+                                        eValMinTextController.text = hsettings.evalMin.toString();
+                                      }
                                     },
-                                  ),
+                                  validator: (String? value) {
+                                      return !(value != null && num.tryParse(value) != null && num.tryParse(value)! >= 0)
+                                          ? "Enter a number >= 0"
+                                              : null;
+                  }, 
+                                  ),),),
                                 ],
                               ),
                               Row(
@@ -607,19 +689,19 @@ class _SettingsPageState extends State<SettingsPage> {
                                         context,
                                       ).textTheme.bodyMedium!.copyWith(
                                         color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.onSurface,
+                                            hsettings.useSeqEvals ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface.withAlpha(128),
                                       ),
-                                      "Maximum",
+                                      "Maximum:",
                                     ),
                                   ),
-                                  InputQty.double(
-                                    initVal: hsettings.evalMax,
-                                    minVal: 0.0,
-                                    steps: 0.1,
-                                    decoration: QtyDecorationProps(
-                                      qtyStyle: QtyStyle.btnOnRight,
+                                  IntrinsicWidth(child: ConstrainedBox(
+                                    constraints: BoxConstraints(minWidth: 200),
+                                    child:TextFormField(
+                                    enabled: hsettings.useSeqEvals,
+                                    controller: eValMaxTextController..text = hsettings.evalMax.toString(),
+                                    focusNode: evalMaxNode,
+                                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                                    decoration: InputDecoration(
                                       border: OutlineInputBorder(
                                         borderSide: BorderSide(
                                           color:
@@ -628,35 +710,57 @@ class _SettingsPageState extends State<SettingsPage> {
                                               ).colorScheme.onSurface,
                                         ),
                                       ),
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                     ),
-                                    onQtyChanged: (val) {
-                                      hsettings.evalMax = val;
+                                    onFieldSubmitted: (val) {
+                                      var parsed = num.tryParse(val);
+                                      if (parsed != null && parsed >= 0 && parsed != hsettings.evalMax) {
+                                        hsettings.evalMax = parsed.toDouble();
+                                        _showReloadWarning();
+                                      }
+                                      else {
+                                        // If the value is invalid, reset the text field to the current valid value
+                                        eValMaxTextController.text = hsettings.evalMax.toString();
+                                      }
                                     },
-                                  ),
+                                  validator: (String? value) {
+                                      return !(value != null && num.tryParse(value) != null && num.tryParse(value)! >= 0)
+                                          ? "Enter a number >= 0"
+                                              : null;
+                  }, 
+                                  ),),),
                                 ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
                     ),
                   ),
                   Card(
                     color: Theme.of(context).colorScheme.surface,
                     child: IntrinsicWidth(
-                      child: Column(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          Text(
+                          Row(children: [Checkbox(
+                                checkColor: Theme.of(context).colorScheme.onPrimary,
+                                //fillColor: Theme.of(context).colorScheme.surface,
+                                value: hsettings.useDomEvals,
+                                onChanged: (bool? value) {
+                                  if (value != null) {
+                                    hsettings.useDomEvals = value;
+                                  }
+                                },
+                              ),
+                              Text(
                             style: Theme.of(
                               context,
                             ).textTheme.bodyMedium!.copyWith(
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
-                            "Show Domain E-Values (HMMER domtblout only)",
+                            "Only show domains with E-values in range\n (Only applicable to HMMER results)",
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
+                              ]),
                               Row(
                                 children: [
                                   Padding(
@@ -666,19 +770,19 @@ class _SettingsPageState extends State<SettingsPage> {
                                         context,
                                       ).textTheme.bodyMedium!.copyWith(
                                         color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.onSurface,
+                                            hsettings.useDomEvals ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface.withAlpha(128),
                                       ),
-                                      "Minimum",
+                                      "Minimum:",
                                     ),
                                   ),
-                                  InputQty.double(
-                                    initVal: hsettings.domEvalMin,
-                                    minVal: 0.0,
-                                    steps: 0.1,
-                                    decoration: QtyDecorationProps(
-                                      qtyStyle: QtyStyle.btnOnRight,
+                                  IntrinsicWidth(child: ConstrainedBox(
+                                    constraints: BoxConstraints(minWidth: 200),
+                                    child:TextFormField(
+                                    enabled: hsettings.useDomEvals,
+                                    controller: domEValMinTextController..text = hsettings.domEvalMin.toString(),
+                                    focusNode: domEvalMinNode,
+                                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                                    decoration: InputDecoration(
                                       border: OutlineInputBorder(
                                         borderSide: BorderSide(
                                           color:
@@ -687,11 +791,26 @@ class _SettingsPageState extends State<SettingsPage> {
                                               ).colorScheme.onSurface,
                                         ),
                                       ),
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                     ),
-                                    onQtyChanged: (val) {
-                                      hsettings.domEvalMin = val;
+                                    onFieldSubmitted: (val) {
+                                      var parsed = num.tryParse(val);
+                                      if (parsed != null && parsed >= 0 && parsed != hsettings.domEvalMin) {
+                                        hsettings.domEvalMin = parsed.toDouble();
+                                        _showReloadWarning();
+                                      }
+                                      else {
+                                        // If the value is invalid, reset the text field to the current valid value
+                                        eValMinTextController.text = hsettings.domEvalMin.toString();
+                                      }
                                     },
-                                  ),
+                                  validator: (String? value) {
+                                      return !(value != null && num.tryParse(value) != null && num.tryParse(value)! >= 0)
+                                          ? "Enter a number >= 0"
+                                              : null;
+                  }, 
+                                  ),),),
                                 ],
                               ),
                               Row(
@@ -703,19 +822,19 @@ class _SettingsPageState extends State<SettingsPage> {
                                         context,
                                       ).textTheme.bodyMedium!.copyWith(
                                         color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.onSurface,
+                                            hsettings.useDomEvals ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface.withAlpha(128),
                                       ),
-                                      "Maximum",
+                                      "Maximum:",
                                     ),
                                   ),
-                                  InputQty.double(
-                                    initVal: hsettings.domEvalMax,
-                                    minVal: 0.0,
-                                    steps: 0.1,
-                                    decoration: QtyDecorationProps(
-                                      qtyStyle: QtyStyle.btnOnRight,
+                                  IntrinsicWidth(child: ConstrainedBox(
+                                    constraints: BoxConstraints(minWidth: 200),
+                                    child:TextFormField(
+                                    enabled: hsettings.useDomEvals,
+                                    controller: domEValMaxTextController..text = hsettings.domEvalMax.toString(),
+                                    focusNode: domEvalMaxNode,
+                                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                                    decoration: InputDecoration(
                                       border: OutlineInputBorder(
                                         borderSide: BorderSide(
                                           color:
@@ -724,17 +843,30 @@ class _SettingsPageState extends State<SettingsPage> {
                                               ).colorScheme.onSurface,
                                         ),
                                       ),
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                     ),
-                                    onQtyChanged: (val) {
-                                      hsettings.domEvalMax = val;
+                                    onFieldSubmitted: (val) {
+                                      var parsed = num.tryParse(val);
+                                      if (parsed != null && parsed >= 0 && parsed != hsettings.domEvalMax) {
+                                        hsettings.domEvalMax = parsed.toDouble();
+                                        _showReloadWarning();
+                                      }
+                                      else {
+                                        // If the value is invalid, reset the text field to the current valid value
+                                        eValMaxTextController.text = hsettings.domEvalMax.toString();
+                                      }
                                     },
-                                  ),
+                                  validator: (String? value) {
+                                      return !(value != null && num.tryParse(value) != null && num.tryParse(value)! >= 0)
+                                          ? "Enter a number >= 0"
+                                              : null;
+                  }, 
+                                  ),),),
                                 ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
                     ),
                   ),
  /*                 Card(
@@ -1339,6 +1471,8 @@ class _GraphPageState extends State<GraphPage> {
                           searchdata.currentHitsByEvalue = hitResults.hits;
                           searchdata.currentHits = hitResults.categories;
                           searchdata.selectedBy = selectedby.subtree;
+                          selectedStructureScrollOffset = 0.0;
+                          selectedEvalueScrollOffset = 0.0;
                         //}
                         //;
                       }
@@ -1793,8 +1927,16 @@ class SubtreeStructurePage extends StatefulWidget {
 }
 
 class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
-  final ScrollController _scrollController2 = ScrollController();
+  final ScrollController _subtreeStructureScrollController = ScrollController(initialScrollOffset: selectedStructureScrollOffset, onDetach: (position){selectedStructureScrollOffset = position.pixels;});
   List<int> lengths = [];
+
+ /* @override
+  dispose() {
+    print("disposing subtree structure page, saving scroll offset $selectedStructureScrollOffset");
+    //selectedStructureScrollOffset = _subtreeStructureScrollController.offset;
+    super.dispose();
+  }*/
+
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -1808,8 +1950,8 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
           final hitCount = numHits == 0 || numHits > 1 ? "hits" : "hit";
           final strucText =
               theHits.length > 1
-                  ? "different structures"
-                  : "structure";
+                  ? "different domain structures"
+                  : "domain structure";
           if (lengths.length != theHits.length) {
             lengths = List.filled(theHits.length, 0);
           }
@@ -1824,16 +1966,16 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
           }
           double ppr= pixelsPerResidue(maxLength, Theme.of(context).textTheme, context);
     //      print("pixels per residue $ppr");
-          return Scaffold(
+          return SelectionArea(child: Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
             appBar: homotAppBar(
               text:
                   "${numHits} ${hitCount} found under ${graphdata.graph[graphdata.currentRoot]?.name}, with ${theHits.length} ${strucText}",
             ),
             body: Scrollbar(
-              controller: _scrollController2,
+             controller: _subtreeStructureScrollController,
               child: ListView.builder(
-                controller: _scrollController2,
+                controller: _subtreeStructureScrollController,
                 itemCount: theHits.length,
                 itemBuilder: (BuildContext context, int index) {
                   return Card(
@@ -1859,7 +2001,7 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
             bottomNavigationBar: MainNavBar(
               whereAmI: WhichPage.subgraphstructure,
             ),
-          );
+          ),);
         },
       ),
     );
@@ -1874,13 +2016,15 @@ class AllStructurePage extends StatefulWidget {
   State<AllStructurePage> createState() => _AllStructurePageState();
 }
 
+
 class _AllStructurePageState extends State<AllStructurePage> {
-  final ScrollController _scrollController2 = ScrollController();
+    final ScrollController _allStructureScrollController = ScrollController(initialScrollOffset: allStructureScrollOffset, onDetach: (position){allStructureScrollOffset = position.pixels;});
   List<int> lengths = [];
+
   @override
   Widget build(BuildContext context) {
     return Material(
-      child: Consumer3<SearchData, GraphData, HSettings>(
+      child: SelectionArea( child: Consumer3<SearchData, GraphData, HSettings>(
         builder: (context, searchdata, graphdata, hsettings, child) {
           final List<SigCategory> theHits = searchdata.rootHits;
           if (lengths.length != theHits.length) {
@@ -1900,8 +2044,8 @@ class _AllStructurePageState extends State<AllStructurePage> {
           final hitCount = numHits != 1? "hits" : "hit";
           final strucText =
               theHits.length != 1
-                  ? "different structures"
-                  : "structure";
+                  ? "different domain structures"
+                  : "domain structure";
           final screenWidth = MediaQuery.sizeOf(context).width;
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
@@ -1910,9 +2054,9 @@ class _AllStructurePageState extends State<AllStructurePage> {
                   "${numHits} ${hitCount} found, with ${theHits.length} ${strucText}",
             ),
             body: Scrollbar(
-              controller: _scrollController2,
+              controller: _allStructureScrollController,
               child: ListView.builder(
-                controller: _scrollController2,
+                controller: _allStructureScrollController,
                 itemCount: theHits.length,
                 itemBuilder: (BuildContext context, int index) {
                   return Card(
@@ -1933,7 +2077,7 @@ class _AllStructurePageState extends State<AllStructurePage> {
             bottomNavigationBar: MainNavBar(whereAmI: WhichPage.allstructure),
           );
         },
-      ),
+      ),),
     );
   }
 }
@@ -1947,15 +2091,16 @@ class AllEvaluePage extends StatefulWidget {
 }
 
 class _AllEvaluePageState extends State<AllEvaluePage> {
-  final ScrollController _scrollController2 = ScrollController();
+  final ScrollController _allEvalueScrollController = ScrollController(initialScrollOffset: allEvalueScrollOffset, onDetach: (position){allEvalueScrollOffset = position.pixels;});
   List<bool> fullWidth = [];
   List<bool> showExpand = [];
   List<int> lengths = [];
-  
+  @override
+
   @override
   Widget build(BuildContext context) {
     return Material(
-      child: Consumer3<SearchData, GraphData, HSettings>(
+      child: SelectionArea( child: Consumer3<SearchData, GraphData, HSettings>(
         builder: (context, searchdata, graphdata, hsettings, child) {
           if (fullWidth.length != searchdata.hits.length) {
             // something has changed, reset the fullwidth list
@@ -1979,9 +2124,9 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
             backgroundColor: Theme.of(context).colorScheme.primary,
             appBar: homotAppBar(text: "${searchdata.hits.length} hits found"),
             body: Scrollbar(
-              controller: _scrollController2,
+              controller: _allEvalueScrollController,
               child: ListView.builder(
-                controller: _scrollController2,
+                controller: _allEvalueScrollController,
                 itemCount: searchdata.hits.length,
                 itemBuilder: (BuildContext context, int index) {
                   showExpand[index] =
@@ -2078,7 +2223,7 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
           );
         },
       ),
-    );
+    ),);
   }
 }
 
@@ -2091,7 +2236,7 @@ class SubtreeEvaluePage extends StatefulWidget {
 }
 
 class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
-  final ScrollController _scrollController2 = ScrollController();
+  final ScrollController _subtreeEvalueScrollController = ScrollController(initialScrollOffset: selectedEvalueScrollOffset, onDetach: (position){selectedEvalueScrollOffset = position.pixels;});
   List<bool> fullWidth = [];
   List<bool> showExpand = [];
   List<int> lengths = [];
@@ -2149,14 +2294,14 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
               count++;
             }
           }
-          print("$count out of ${hitIndices.length} hits are longer than the max length of $maxLength");  
-          return Scaffold(
+        //  print("$count out of ${hitIndices.length} hits are longer than the max length of $maxLength");  
+          return SelectionArea(child: Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
             appBar: homotAppBar(text: title),
             body: Scrollbar(
-              controller: _scrollController2,
+              controller: _subtreeEvalueScrollController,
               child: ListView.builder(
-                controller: _scrollController2,
+                controller: _subtreeEvalueScrollController,
                 itemCount: hitIndices.length,
                 itemBuilder: (BuildContext context, int index) {
                   showExpand[index] =
@@ -2188,7 +2333,7 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                               searchdata
                                   .hits[hitIndices[index].toInt()]
                                   .seqEvalue
-                                  .toStringAsExponential(4)+"\nTaxon: "+graphdata.graph[searchdata.hits[index].taxid]!.name + '\nDescription: '+searchdata.hits[index].description,
+                                  .toStringAsExponential(4)+"\nTaxon: "+graphdata.graph[searchdata.hits[hitIndices[index].toInt()].taxid]!.name + '\nDescription: '+searchdata.hits[hitIndices[index].toInt()].description,
                         ),
                        Row(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -2250,7 +2395,7 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
               ),
             ),
             bottomNavigationBar: MainNavBar(whereAmI: WhichPage.subtreeevalue),
-          );
+          ),);
         },
       ),
     );
@@ -2278,7 +2423,7 @@ class _SequencePageState extends State<SequencePage> {
           Hit theHit = searchdata.hits[searchdata.selectedHit.toInt()];
           showExpand =
               requiredHitWidth(theHit, true, true, context) > screenWidth;
-          return Scaffold(
+          return SelectionArea(child: Scaffold(
             backgroundColor: Theme.of(context).colorScheme.primary,
             appBar: homotAppBar(text: "Sequence ${theHit.name}"),
             body: SingleChildScrollView(
@@ -2357,7 +2502,7 @@ class _SequencePageState extends State<SequencePage> {
               ),
             ),
             bottomNavigationBar: MainNavBar(whereAmI: WhichPage.sequence),
-          );
+          ),);
         },
       ),
     );
