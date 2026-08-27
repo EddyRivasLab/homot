@@ -40,10 +40,10 @@ dependencies:
   input_quantity: ^2.5.1
   osler_icons: ^0.0.2
   system_fonts: ^1.0.1
-  go_router: ^17.0.0
+  go_router: ^18.0.0
   matrix4_transform: ^4.0.1
   scrollable_positioned_list: ^0.3.8
-  patterns_canvas: ^0.5.0
+  patterns_canvas: ^0.6.0
   file_selector: ^1.1.0
   flutter_launcher_icons: ^0.14.0
 
@@ -59,7 +59,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   integration_test:
     sdk: flutter
-  inno_bundle: ^0.11.2
+  inno_bundle: ^0.12.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

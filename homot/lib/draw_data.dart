@@ -712,18 +712,18 @@ class DomainPainter extends CustomPainter {
       switch (domain.iType){
         case IEntryType.domain:
           if (pfamNames && domain.pfamName != ""){
-            name = domain.pfamName + evalString;
+            name = domain.pfamName;
           }
           else{
             switch (showInterproIdAs){
               case ShowInterproIdEnum.id:
-                name = domain.name + evalString;
+                name = domain.name;
                 break;
               case ShowInterproIdEnum.short_name:
-                name = domain.ipShort != "" ? domain.ipShort + evalString : domain.name + evalString;
+                name = domain.ipShort != "" ? domain.ipShort: domain.name;
                 break;
               case ShowInterproIdEnum.long_name:
-                name = domain.ipLong != "" ? domain.ipLong + evalString : domain.name + evalString;
+                name = domain.ipLong != "" ? domain.ipLong: domain.name;
                 break;
             }
           }
@@ -731,19 +731,19 @@ class DomainPainter extends CustomPainter {
         default: 
           switch (showInterproIdAs){
               case ShowInterproIdEnum.id:
-                name = domain.name + evalString;
+                name = domain.name;
                 break;
               case ShowInterproIdEnum.short_name:
-                name = domain.ipShort != "" ? domain.ipShort + evalString : domain.name + evalString;
+                name = domain.ipShort != "" ? domain.ipShort: domain.name;
                 break;
               case ShowInterproIdEnum.long_name:
-                name = domain.ipLong != "" ? domain.ipLong + evalString : domain.name + evalString;
+                name = domain.ipLong != "" ? domain.ipLong: domain.name;
                 break;
             }
         }
     }
     else{
-      name = domain.name + evalString;
+      name = domain.name;
     }
     //name = (domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "") ? domain.pfamName: domain.name + evalString;
     painter.text =
@@ -773,7 +773,7 @@ class DomainPainter extends CustomPainter {
       if (painter.width <= (width - heightPerLine)) {
         Offset textPosition = Offset(textOffset - painter.width / 2, startY);
         painter.paint(canvas, textPosition);
-      } else {
+      }/*else {
         //Cram in what we can
         int numChars = name.length;
         while (painter.width > (width - heightPerLine) && numChars > 0) {
@@ -790,7 +790,7 @@ class DomainPainter extends CustomPainter {
         }
         Offset textPosition = Offset(textOffset - painter.width / 2, startY);
         painter.paint(canvas, textPosition);
-      }
+      }*/
     }
   }
 

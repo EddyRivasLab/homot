@@ -336,12 +336,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "init_app", argNames: []);
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_VecI64 => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64;
+  get rust_arc_increment_strong_count_VecI64 =>
+      wire.rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64;
 
   RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_VecI64 => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64;
+  get rust_arc_decrement_strong_count_VecI64 =>
+      wire.rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64;
 
   @protected
   VecI64

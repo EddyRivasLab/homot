@@ -29,15 +29,15 @@ import 'package:vector_math/vector_math_64.dart' hide Colors;
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
-
 // Static variables to hold the scroll positions of the different pages so that they're
-// retained when you switch from page to page.  This is ugly, but seems to be the best 
+// retained when you switch from page to page.  This is ugly, but seems to be the best
 // solution Flutter supports because the pages get disposed when you navigate away from them.
 // Widget to enter information about what files to read
 double allStructureScrollOffset = 0.0;
-double allEvalueScrollOffset = 0.0; 
+double allEvalueScrollOffset = 0.0;
 double selectedStructureScrollOffset = 0.0;
 double selectedEvalueScrollOffset = 0.0;
+
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
 
@@ -49,175 +49,205 @@ class _MainPageState extends State<MainPage> {
   final ScrollController _mainScrollController = ScrollController();
   String? dtemp;
   @override
-  void dispose(){
+  void dispose() {
     //ScaffoldMessenger.of(context).clearSnackBars();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
-    return SelectionArea(child: Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.primary,
-      appBar: homotAppBar(text: "Select Data"),
-      body: Consumer4<FileData, GraphData, SearchData, HSettings>(
-        builder: (context, filedata, graphdata, searchdata, hsettings, child) {
-          return Column(
-            //mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text(
-                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                  color: Theme.of(context).colorScheme.onPrimary,
-                ),
-                "Annotations Database:",
-              ),
-
-              AnnDbSelect(),
-
-              Text(
-                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                  color: Theme.of(context).colorScheme.onPrimary,
-                ),
-                "Search Result File(s):",
-              ),
-              Builder(
-                builder: (context) {
-                  return Flexible(
-                    child: Scrollbar(
-                      controller: _mainScrollController,
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        controller: _mainScrollController,
-                        itemCount: filedata.domtbloutFiles.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          return DomtblEdit(which: index);
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-              DomtblSelect(),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: <Widget>[
-                  ElevatedButton(
-                    onPressed:
-                        filedata.domtbloutFiles.isNotEmpty
-                            ? () async {
-                              filedata.clearDomtbloutFiles();
-                              filedata.notifyListeners;
-                            }
-                            : null,
-                    child: Text("Clear"),
+    return SelectionArea(
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        appBar: homotAppBar(text: "Select Data"),
+        body: Consumer4<FileData, GraphData, SearchData, HSettings>(
+          builder: (
+            context,
+            filedata,
+            graphdata,
+            searchdata,
+            hsettings,
+            child,
+          ) {
+            return Column(
+              //mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimary,
                   ),
-                ],
-              ),
-              Center(
-                child: ElevatedButton(
-                  onPressed:
-                      filedata.annFileSet && filedata.domtbloutFiles.isNotEmpty
-                          ? () async {
-                            const loadingSnackBar = SnackBar(
-                              duration: Duration(days: 1),
-                              backgroundColor: Colors.yellow,
-                              content: Center(child: Text("Loading Data")),
-                            );
+                  "Annotations Database:",
+                ),
 
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
+                AnnDbSelect(),
+
+                Text(
+                  style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                  "Search Result File(s):",
+                ),
+                Builder(
+                  builder: (context) {
+                    return Flexible(
+                      child: Scrollbar(
+                        controller: _mainScrollController,
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          controller: _mainScrollController,
+                          itemCount: filedata.domtbloutFiles.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            return DomtblEdit(which: index);
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                DomtblSelect(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: <Widget>[
+                    ElevatedButton(
+                      onPressed:
+                          filedata.domtbloutFiles.isNotEmpty
+                              ? () async {
+                                filedata.clearDomtbloutFiles();
+                                filedata.notifyListeners;
+                              }
+                              : null,
+                      child: Text("Clear"),
+                    ),
+                  ],
+                ),
+                Center(
+                  child: ElevatedButton(
+                    onPressed:
+                        filedata.annFileSet &&
+                                filedata.domtbloutFiles.isNotEmpty
+                            ? () async {
+                              const loadingSnackBar = SnackBar(
                                 duration: Duration(days: 1),
                                 backgroundColor: Colors.yellow,
-                                content: Center(
-                                  child: Text(
-                                    "Loading Data",
-                                    style: TextStyle(color: Colors.black),
-                                  ),
-                                ),
-                              ),
-                            );
-                            //Gather hits from the domtblout files
-                            var results = await (fetchGraph(
-                              annfile: filedata.annotationsFile!,
-                              domtbloutFiles: filedata.domtbloutFiles,
-                              evalMax: hsettings.useSeqEvals ? hsettings.evalMax : double.infinity ,
-                              evalMin: hsettings.useSeqEvals ? hsettings.evalMin : 0.0,
-                              domEvalMax: hsettings.useDomEvals ? hsettings.domEvalMax : double.infinity ,
-                              domEvalMin: hsettings.useDomEvals ? hsettings.domEvalMin : 0.0,
-                              fileType: hsettings.dataType,
-                              interproShowSuperfamily:
-                                  hsettings.showInterproSuperfamily,
-                              interproShowFamily: hsettings.showInterproFamily,
-                              interproShowDomain: hsettings.showInterproDomain,
-                              interproShowRepeat: hsettings.showInterproRepeat, 
-                              interproShowSite: hsettings.showInterproSite,
-                              interproShowOther: hsettings.showInterproOther,
-                              interproShowPfamNames: (hsettings.showNamesFrom == ShowNamesFrom.pfam),
-                            ));
-                            ScaffoldMessenger.of(context).clearSnackBars();
-                            // Update the overview data
-                            if (await !results!.succeeded || results.graph.length == 0) {
-                              String message;
-                              if(results.succeeded){
-                                message = "No hits found that met reporting criteria";
-                              }
-                              else{
-                                message = "Data load failed.\n${results.message}";
-                              }
+                                content: Center(child: Text("Loading Data")),
+                              );
+
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  //duration: Duration(days: 1),
-                                  backgroundColor: Colors.red,
-                                  duration: const Duration(days: 100),
+                                  duration: Duration(days: 1),
+                                  backgroundColor: Colors.yellow,
                                   content: Center(
-                                    child: Column(
-                                      children: [
-                                        Text(message),
-                                        ElevatedButton(
-                                          child: Text("Close"),
-                                          onPressed: () {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).hideCurrentSnackBar();
-                                          },
-                                        ),
-                                      ],
+                                    child: Text(
+                                      "Loading Data",
+                                      style: TextStyle(color: Colors.black),
                                     ),
                                   ),
                                 ),
                               );
-                            } else {
-                              allStructureScrollOffset = 0.0;
-                              allEvalueScrollOffset = 0.0; 
-                              selectedStructureScrollOffset = 0.0;
-                              selectedEvalueScrollOffset = 0.0;
-                            //  print("${results.hits.length}");
-                              graphdata.clearGraph();
-                              graphdata.setGraph(results.graph);
-                              graphdata.setDepth(results.depth);
-                              graphdata.setMaxLevels(results.depth);
-                              graphdata.clearDeletedNodes();
-                              graphdata.addRoot(
-                                results.root,
-                              ); // set the current root to the overall root
-                              graphdata.graphRoot =
-                                  results
-                                      .root; // and set the overall root as well.
-                              searchdata.setSearchResults(results);
-                              searchdata.selectedBy =
-                                  selectedby.none; // reset selection
-                              searchdata.selectedHit = -1;
-                              context.go("/graph");
+                              //Gather hits from the domtblout files
+                              var results = await (fetchGraph(
+                                annfile: filedata.annotationsFile!,
+                                domtbloutFiles: filedata.domtbloutFiles,
+                                evalMax:
+                                    hsettings.useSeqEvals
+                                        ? hsettings.evalMax
+                                        : double.infinity,
+                                evalMin:
+                                    hsettings.useSeqEvals
+                                        ? hsettings.evalMin
+                                        : 0.0,
+                                domEvalMax:
+                                    hsettings.useDomEvals
+                                        ? hsettings.domEvalMax
+                                        : double.infinity,
+                                domEvalMin:
+                                    hsettings.useDomEvals
+                                        ? hsettings.domEvalMin
+                                        : 0.0,
+                                fileType: hsettings.dataType,
+                                interproShowSuperfamily:
+                                    hsettings.showInterproSuperfamily,
+                                interproShowFamily:
+                                    hsettings.showInterproFamily,
+                                interproShowDomain:
+                                    hsettings.showInterproDomain,
+                                interproShowRepeat:
+                                    hsettings.showInterproRepeat,
+                                interproShowSite: hsettings.showInterproSite,
+                                interproShowOther: hsettings.showInterproOther,
+                                interproShowPfamNames:
+                                    (hsettings.showNamesFrom ==
+                                        ShowNamesFrom.pfam),
+                              ));
+                              ScaffoldMessenger.of(context).clearSnackBars();
+                              // Update the overview data
+                              if (await !results!.succeeded ||
+                                  results.graph.length == 0) {
+                                String message;
+                                if (results.succeeded) {
+                                  message =
+                                      "No hits found that met reporting criteria";
+                                } else {
+                                  message =
+                                      "Data load failed.\n${results.message}";
+                                }
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    //duration: Duration(days: 1),
+                                    backgroundColor: Colors.red,
+                                    duration: const Duration(days: 100),
+                                    content: Center(
+                                      child: Column(
+                                        children: [
+                                          Text(message),
+                                          ElevatedButton(
+                                            child: Text("Close"),
+                                            onPressed: () {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).hideCurrentSnackBar();
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                allStructureScrollOffset = 0.0;
+                                allEvalueScrollOffset = 0.0;
+                                selectedStructureScrollOffset = 0.0;
+                                selectedEvalueScrollOffset = 0.0;
+                                //  print("${results.hits.length}");
+                                graphdata.clearGraph();
+                                graphdata.setGraph(results.graph);
+                                graphdata.setDepth(results.depth);
+                                graphdata.setMaxLevels(results.depth);
+                                graphdata.clearDeletedNodes();
+                                graphdata.addRoot(
+                                  results.root,
+                                ); // set the current root to the overall root
+                                graphdata.graphRoot =
+                                    results
+                                        .root; // and set the overall root as well.
+                                searchdata.setSearchResults(results);
+                                searchdata.selectedBy =
+                                    selectedby.none; // reset selection
+                                searchdata.selectedHit = -1;
+                                context.go("/graph");
+                              }
                             }
-                          }
-                          : null,
-                  child: Text("Load Data"),
+                            : null,
+                    child: Text("Load Data"),
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
+        bottomNavigationBar: MainNavBar(whereAmI: WhichPage.home),
       ),
-      bottomNavigationBar: MainNavBar(whereAmI: WhichPage.home),
-    ),);
+    );
   }
 }
 
@@ -239,68 +269,78 @@ class _SettingsPageState extends State<SettingsPage> {
   final domEvalMaxNode = FocusNode();
   final domEValMaxTextController = TextEditingController();
 
-  @override void initState() {
+  @override
+  void initState() {
     super.initState();
     final myProvider = Provider.of<HSettings>(context, listen: false);
     evalMinNode.addListener(() {
-      if (!evalMinNode.hasFocus) { // try to update the value when we lose focus
+      if (!evalMinNode.hasFocus) {
+        // try to update the value when we lose focus
         var parsed = num.tryParse(eValMinTextController.text);
-        if (parsed != null && parsed >= 0 && parsed != myProvider.evalMin && myProvider.useSeqEvals) {
+        if (parsed != null &&
+            parsed >= 0 &&
+            parsed != myProvider.evalMin &&
+            myProvider.useSeqEvals) {
           myProvider.evalMin = parsed.toDouble();
           _showReloadWarning();
         } else {
           // If the value is invalid, reset the text field to the current valid value
           eValMinTextController.text = myProvider.evalMin.toString();
         }
-
       }
-
     });
     evalMaxNode.addListener(() {
-      if (!evalMaxNode.hasFocus) { // try to update the value when we lose focus
+      if (!evalMaxNode.hasFocus) {
+        // try to update the value when we lose focus
         var parsed = num.tryParse(eValMaxTextController.text);
-        if (parsed != null && parsed >= 0 && parsed != myProvider.evalMax && myProvider.useSeqEvals) {
+        if (parsed != null &&
+            parsed >= 0 &&
+            parsed != myProvider.evalMax &&
+            myProvider.useSeqEvals) {
           myProvider.evalMax = parsed.toDouble();
           _showReloadWarning();
         } else {
           // If the value is invalid, reset the text field to the current valid value
           eValMaxTextController.text = myProvider.evalMax.toString();
         }
-
       }
-
     });
 
-      domEvalMinNode.addListener(() {
-        if (!domEvalMinNode.hasFocus) { // try to update the value when we lose focus
-          var parsed = num.tryParse(domEValMinTextController.text);
-          if (parsed != null && parsed >= 0 && parsed != myProvider.domEvalMin && myProvider.useDomEvals) {
-            myProvider.domEvalMin = parsed.toDouble();
-          } else {
-            // If the value is invalid, reset the text field to the current valid value
-            domEValMinTextController.text = myProvider.domEvalMin.toString();
-          }
-  
+    domEvalMinNode.addListener(() {
+      if (!domEvalMinNode.hasFocus) {
+        // try to update the value when we lose focus
+        var parsed = num.tryParse(domEValMinTextController.text);
+        if (parsed != null &&
+            parsed >= 0 &&
+            parsed != myProvider.domEvalMin &&
+            myProvider.useDomEvals) {
+          myProvider.domEvalMin = parsed.toDouble();
+        } else {
+          // If the value is invalid, reset the text field to the current valid value
+          domEValMinTextController.text = myProvider.domEvalMin.toString();
         }
-  
-      });
+      }
+    });
 
-      domEvalMaxNode.addListener(() {
-        if (!domEvalMaxNode.hasFocus) { // try to update the value when we lose focus
-          var parsed = num.tryParse(domEValMaxTextController.text);
-          if (parsed != null && parsed >= 0 && parsed != myProvider.domEvalMax && myProvider.useDomEvals) {
-            myProvider.domEvalMax = parsed.toDouble();
-          } else {
-            // If the value is invalid, reset the text field to the current valid value
-            domEValMaxTextController.text = myProvider.domEvalMax.toString();
-          }
-  
+    domEvalMaxNode.addListener(() {
+      if (!domEvalMaxNode.hasFocus) {
+        // try to update the value when we lose focus
+        var parsed = num.tryParse(domEValMaxTextController.text);
+        if (parsed != null &&
+            parsed >= 0 &&
+            parsed != myProvider.domEvalMax &&
+            myProvider.useDomEvals) {
+          myProvider.domEvalMax = parsed.toDouble();
+        } else {
+          // If the value is invalid, reset the text field to the current valid value
+          domEValMaxTextController.text = myProvider.domEvalMax.toString();
         }
-  
-      });
+      }
+    });
   }
 
-  @override void dispose() {
+  @override
+  void dispose() {
     evalMinNode.dispose();
     eValMinTextController.dispose();
     super.dispose();
@@ -311,19 +351,20 @@ class _SettingsPageState extends State<SettingsPage> {
       SnackBar(
         backgroundColor: Colors.yellow,
         duration: Duration(seconds: 3),
-        content: Center(child: Text(
-           "Data must be re-loaded for changes to e-value settings to take effect.",
-          style: TextStyle(color: Colors.black),
-        ),),
+        content: Center(
+          child: Text(
+            "Data must be re-loaded for changes to e-value settings to take effect.",
+            style: TextStyle(color: Colors.black),
+          ),
+        ),
       ),
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
-      final ScrollController _mainScrollController = ScrollController();
-    return  Scaffold(
+    final ScrollController _mainScrollController = ScrollController();
+    return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.primary,
       appBar: homotAppBar(text: "Settings"),
       body: Consumer<HSettings>(
@@ -340,536 +381,675 @@ class _SettingsPageState extends State<SettingsPage> {
                       child: Column(
                         children: [
                           Text(
-                            style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface,),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium!.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                             "Theme",
                           ),
                           RadioGroup<brightModes>(
                             groupValue: hsettings.mode,
-                            onChanged: (brightModes? value){
-                              if (value != null){
+                            onChanged: (brightModes? value) {
+                              if (value != null) {
                                 hsettings.mode = value;
                               }
                             },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                IntrinsicWidth( 
+                                IntrinsicWidth(
                                   child: RadioListTile<brightModes>(
                                     title: Text('Light'),
                                     value: brightModes.light,
-                                  ),),
-                                IntrinsicWidth( child:
-                                  RadioListTile<brightModes>(
+                                  ),
+                                ),
+                                IntrinsicWidth(
+                                  child: RadioListTile<brightModes>(
                                     title: Text('Dark'),
                                     value: brightModes.dark,
-                                    ),),
-                                IntrinsicWidth( 
+                                  ),
+                                ),
+                                IntrinsicWidth(
                                   child: RadioListTile<brightModes>(
-                                  title: Text('System'),
-                                value: brightModes.system,
-                        ),),
-                      ],),
-                         ),
-                      
-                      ],
-                    ),
-                  ),
-                  Card(
-                    color: Theme.of(context).colorScheme.surface,
-                    child: Column(
-                      children: [
-                        Text(
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          "Font Settings",
-                        ),
-                      Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                       Row(
-                      children: [
-                        Padding(
-                                    padding: const EdgeInsets.only(right: 6.0),
-                                    child:Text(
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          "Font Family",
-                        ),),
-                        HmmotSystemFontSelector(
-                          width: 200 * hsettings.scale,
-                          textStyle: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          initial: hsettings.font,
-                          isFontPreviewEnabled: true,
-                          onFontSelected: (font) {
-                            hsettings.font = font;
-                          },
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Padding(
-                                    padding: const EdgeInsets.only(right: 6.0),
-                                    child:Text(
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          "Font Scale Factor",
-                        ),),
-                        InputQty.double(
-                          initVal: hsettings.scale,
-                          minVal: 0.001,
-                          steps: 0.1,
-                          decoration: QtyDecorationProps(
-                            qtyStyle: QtyStyle.btnOnRight,
-                            border: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
+                                    title: Text('System'),
+                                    value: brightModes.system,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          onQtyChanged: (val) {
-                            hsettings.scale = val;
-                          },
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    ],),],),
-                  ),
-                  Card(
-                    color: Theme.of(context).colorScheme.surface,
-                    child: Column(
-                      children: [
-                        Text(
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
+                    Card(
+                      color: Theme.of(context).colorScheme.surface,
+                      child: Column(
+                        children: [
+                          Text(
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium!.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                            "Font Settings",
                           ),
-                          "Draw Taxonomy As",
-                        ),
-                         RadioGroup<GraphDrawType>(
-                      groupValue: hsettings.drawType,
-                      onChanged: (GraphDrawType? value){
-                        if (value != null){
-                          hsettings.drawType = value;
-                        }
-                      },
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              Row(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 6.0),
+                                    child: Text(
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium!.copyWith(
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                      ),
+                                      "Font Family",
+                                    ),
+                                  ),
+                                  HmmotSystemFontSelector(
+                                    width: 200 * hsettings.scale,
+                                    textStyle: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium!.copyWith(
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                    ),
+                                    initial: hsettings.font,
+                                    isFontPreviewEnabled: true,
+                                    onFontSelected: (font) {
+                                      hsettings.font = font;
+                                    },
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 6.0),
+                                    child: Text(
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium!.copyWith(
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                      ),
+                                      "Font Scale Factor",
+                                    ),
+                                  ),
+                                  InputQty.double(
+                                    initVal: hsettings.scale,
+                                    minVal: 0.001,
+                                    steps: 0.1,
+                                    decoration: QtyDecorationProps(
+                                      qtyStyle: QtyStyle.btnOnRight,
+                                      border: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                          color:
+                                              Theme.of(
+                                                context,
+                                              ).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                    ),
+                                    onQtyChanged: (val) {
+                                      hsettings.scale = val;
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Card(
+                      color: Theme.of(context).colorScheme.surface,
+                      child: Column(
+                        children: [
+                          Text(
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium!.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                            "Draw Taxonomy As",
+                          ),
+                          RadioGroup<GraphDrawType>(
+                            groupValue: hsettings.drawType,
+                            onChanged: (GraphDrawType? value) {
+                              if (value != null) {
+                                hsettings.drawType = value;
+                              }
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                IntrinsicWidth(
+                                  child: RadioListTile<GraphDrawType>(
+                                    title: Text('Lines'),
+                                    value: GraphDrawType.line,
+                                  ),
+                                ),
+                                IntrinsicWidth(
+                                  child: RadioListTile<GraphDrawType>(
+                                    title: Text('Arc Segments'),
+                                    value: GraphDrawType.outline,
+                                  ),
+                                ),
+                                IntrinsicWidth(
+                                  child: RadioListTile<GraphDrawType>(
+                                    title: Text('Filled Arc Segments'),
+                                    value: GraphDrawType.fill,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Card(
+                      color: Theme.of(context).colorScheme.surface,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                        IntrinsicWidth( 
-                          child: RadioListTile<GraphDrawType>(
-                          title: Text('Lines'),
-                          value: GraphDrawType.line,
-                        ),),
-                        IntrinsicWidth( 
-                          child: RadioListTile<GraphDrawType>(
-                          title: Text('Arc Segments'),
-                          value: GraphDrawType.outline,
-                        ),),
-                        IntrinsicWidth( child:
-                        RadioListTile<GraphDrawType>(
-                          title: Text('Filled Arc Segments'),
-                          value: GraphDrawType.fill,
-                        ),),
-                      ],)
-                    ),],),
-                  ),
-                   Card(
-                    color: Theme.of(context).colorScheme.surface,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                      Column(
-                      children: [
-                        Text(
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          "Graph Line Width",
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            InputQty.double(
-                              initVal: hsettings.lineWidth,
-                              minVal: 0.5,
-                              steps: 0.5,
-                              decoration: QtyDecorationProps(
-                                qtyStyle: QtyStyle.btnOnRight,
-                                border: OutlineInputBorder(
-                                  borderSide: BorderSide(
-                                    color:
-                                        Theme.of(context).colorScheme.onSurface,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              Column(
+                                children: [
+                                  Text(
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium!.copyWith(
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                    ),
+                                    "Graph Line Width",
                                   ),
-                                ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      InputQty.double(
+                                        initVal: hsettings.lineWidth,
+                                        minVal: 0.5,
+                                        steps: 0.5,
+                                        decoration: QtyDecorationProps(
+                                          qtyStyle: QtyStyle.btnOnRight,
+                                          border: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color:
+                                                  Theme.of(
+                                                    context,
+                                                  ).colorScheme.onSurface,
+                                            ),
+                                          ),
+                                        ),
+                                        onQtyChanged: (val) {
+                                          hsettings.lineWidth = val;
+                                        },
+                                      ),
+                                      SizedBox(width: 20),
+                                      CustomPaint(
+                                        size: Size(50, 10),
+                                        painter: LinePainter(
+                                          context,
+                                          hsettings,
+                                          MediaQuery.of(
+                                            context,
+                                          ).devicePixelRatio,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                              onQtyChanged: (val) {
-                                hsettings.lineWidth = val;
+                            ],
+                          ),
+                          IntrinsicWidth(
+                            child: CheckboxListTile(
+                              title: Text(
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium!.copyWith(
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                                "Add Patterns to Filled Regions in Taxonomy and Structure",
+                              ),
+                              value: hsettings.addPatterns,
+                              onChanged: (bool? value) {
+                                if (value != null) {
+                                  hsettings.addPatterns = value;
+                                }
                               },
                             ),
-                            SizedBox(width: 20),
-                            CustomPaint(
-                              size: Size(50, 10),
-                              painter: LinePainter(
-                                context,
-                                hsettings,
-                                MediaQuery.of(context).devicePixelRatio,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
-                    ],
-                    ), 
-                        IntrinsicWidth( child: CheckboxListTile(
-                                title: Text(
+                    Card(
+                      color: Theme.of(context).colorScheme.surface,
+                      child: Column(
+                        children: [
+                          Text(
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium!.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                            "Search Result File Type",
+                          ),
+                          RadioGroup<DataFileType>(
+                            groupValue: hsettings.dataType,
+                            onChanged: (DataFileType? value) {
+                              if (value != null) {
+                                hsettings.dataType = value;
+                              }
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                IntrinsicWidth(
+                                  child: RadioListTile<DataFileType>(
+                                    title: Text('HMMER domtblout'),
+                                    value: DataFileType.domTblOut,
+                                  ),
+                                ),
+                                IntrinsicWidth(
+                                  child: RadioListTile<DataFileType>(
+                                    title: Text('BLAST tabular'),
+                                    value: DataFileType.blast,
+                                  ),
+                                ),
+                                IntrinsicWidth(
+                                  child: RadioListTile<DataFileType>(
+                                    title: Text('Infer from file contents'),
+                                    value: DataFileType.infer,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Card(
+                      color: Theme.of(context).colorScheme.surface,
+                      child: IntrinsicWidth(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            Row(
+                              children: [
+                                Checkbox(
+                                  checkColor:
+                                      Theme.of(context).colorScheme.onPrimary,
+                                  //fillColor: Theme.of(context).colorScheme.surface,
+                                  value: hsettings.useSeqEvals,
+                                  onChanged: (bool? value) {
+                                    if (value != null) {
+                                      hsettings.useSeqEvals = value;
+                                    }
+                                  },
+                                ),
+                                Text(
                                   style: Theme.of(
                                     context,
                                   ).textTheme.bodyMedium!.copyWith(
                                     color:
                                         Theme.of(context).colorScheme.onSurface,
                                   ),
-                                  "Add Patterns to Filled Regions in Taxonomy and Structure",
+                                  "Only show sequences with E-values in range",
                                 ),
-                                value: hsettings.addPatterns,
-                                onChanged: (bool? value) {
-                                  if (value != null) {
-                                    hsettings.addPatterns = value;
-                                  }
-                                },
-                              ),),
-                    ], ),
-                  ),
-                  Card(
-                    color: Theme.of(context).colorScheme.surface,
-                    child: Column(
-                      children: [
-                        Text(
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          "Search Result File Type",
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 6.0),
+                                  child: Text(
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium!.copyWith(
+                                      color:
+                                          hsettings.useSeqEvals
+                                              ? Theme.of(
+                                                context,
+                                              ).colorScheme.onSurface
+                                              : Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withAlpha(128),
+                                    ),
+                                    "Minimum:",
+                                  ),
+                                ),
+                                IntrinsicWidth(
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(minWidth: 200),
+                                    child: TextFormField(
+                                      enabled: hsettings.useSeqEvals,
+                                      controller:
+                                          eValMinTextController
+                                            ..text =
+                                                hsettings.evalMin.toString(),
+                                      focusNode: evalMinNode,
+                                      autovalidateMode:
+                                          AutovalidateMode.onUserInteraction,
+                                      decoration: InputDecoration(
+                                        border: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 8,
+                                        ),
+                                      ),
+                                      onFieldSubmitted: (val) {
+                                        var parsed = num.tryParse(val);
+                                        if (parsed != null &&
+                                            parsed >= 0 &&
+                                            parsed != hsettings.evalMin) {
+                                          hsettings.evalMin = parsed.toDouble();
+                                          _showReloadWarning();
+                                        } else {
+                                          // If the value is invalid, reset the text field to the current valid value
+                                          eValMinTextController.text =
+                                              hsettings.evalMin.toString();
+                                        }
+                                      },
+                                      validator: (String? value) {
+                                        return !(value != null &&
+                                                num.tryParse(value) != null &&
+                                                num.tryParse(value)! >= 0)
+                                            ? "Enter a number >= 0"
+                                            : null;
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 6.0),
+                                  child: Text(
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium!.copyWith(
+                                      color:
+                                          hsettings.useSeqEvals
+                                              ? Theme.of(
+                                                context,
+                                              ).colorScheme.onSurface
+                                              : Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withAlpha(128),
+                                    ),
+                                    "Maximum:",
+                                  ),
+                                ),
+                                IntrinsicWidth(
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(minWidth: 200),
+                                    child: TextFormField(
+                                      enabled: hsettings.useSeqEvals,
+                                      controller:
+                                          eValMaxTextController
+                                            ..text =
+                                                hsettings.evalMax.toString(),
+                                      focusNode: evalMaxNode,
+                                      autovalidateMode:
+                                          AutovalidateMode.onUserInteraction,
+                                      decoration: InputDecoration(
+                                        border: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 8,
+                                        ),
+                                      ),
+                                      onFieldSubmitted: (val) {
+                                        var parsed = num.tryParse(val);
+                                        if (parsed != null &&
+                                            parsed >= 0 &&
+                                            parsed != hsettings.evalMax) {
+                                          hsettings.evalMax = parsed.toDouble();
+                                          _showReloadWarning();
+                                        } else {
+                                          // If the value is invalid, reset the text field to the current valid value
+                                          eValMaxTextController.text =
+                                              hsettings.evalMax.toString();
+                                        }
+                                      },
+                                      validator: (String? value) {
+                                        return !(value != null &&
+                                                num.tryParse(value) != null &&
+                                                num.tryParse(value)! >= 0)
+                                            ? "Enter a number >= 0"
+                                            : null;
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                         RadioGroup<DataFileType>(
-                      groupValue: hsettings.dataType,
-                      onChanged: (DataFileType? value){
-                        if (value != null){
-                          hsettings.dataType = value;
-                        }
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                        IntrinsicWidth( 
-                          child: RadioListTile<DataFileType>(
-                          title: Text('HMMER domtblout'),
-                          value: DataFileType.domTblOut,
-                        ),),
-                        IntrinsicWidth( child:
-                        RadioListTile<DataFileType>(
-                          title: Text('BLAST tabular'),
-                          value: DataFileType.blast,
-                        ),),
-                        IntrinsicWidth( 
-                          child: RadioListTile<DataFileType>(
-                          title: Text('Infer from file contents'),
-                          value: DataFileType.infer,
-                        ),),
-                      ],),
-                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                  Card(
-                    color: Theme.of(context).colorScheme.surface,
-                    child: IntrinsicWidth(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          Row(children: [Checkbox(
-                                checkColor: Theme.of(context).colorScheme.onPrimary,
-                                //fillColor: Theme.of(context).colorScheme.surface,
-                                value: hsettings.useSeqEvals,
-                                onChanged: (bool? value) {
-                                  if (value != null) {
-                                    hsettings.useSeqEvals = value;
-                                  }
-                                },
-                              ),
-                              Text(
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodyMedium!.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface,
+                    Card(
+                      color: Theme.of(context).colorScheme.surface,
+                      child: IntrinsicWidth(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            Row(
+                              children: [
+                                Checkbox(
+                                  checkColor:
+                                      Theme.of(context).colorScheme.onPrimary,
+                                  //fillColor: Theme.of(context).colorScheme.surface,
+                                  value: hsettings.useDomEvals,
+                                  onChanged: (bool? value) {
+                                    if (value != null) {
+                                      hsettings.useDomEvals = value;
+                                    }
+                                  },
+                                ),
+                                Text(
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium!.copyWith(
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                  "Only show domains with E-values in range\n (Only applicable to HMMER results)",
+                                ),
+                              ],
                             ),
-                            "Only show sequences with E-values in range",
-                          ),
-                              ]),
-                              Row(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 6.0),
-                                    child: Text(
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium!.copyWith(
-                                        color:
-                                            hsettings.useSeqEvals ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface.withAlpha(128),
-                                      ),
-                                      "Minimum:",
-                                    ),
-                                  ),
-                                  IntrinsicWidth(child: ConstrainedBox(
-                                    constraints: BoxConstraints(minWidth: 200),
-                                    child:TextFormField(
-                                    enabled: hsettings.useSeqEvals,
-                                    controller: eValMinTextController..text = hsettings.evalMin.toString(),
-                                    focusNode: evalMinNode,
-                                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                                    decoration: InputDecoration(
-                                      border: OutlineInputBorder(
-                                        borderSide: BorderSide(
-                                          color:
-                                              Theme.of(
+                            Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 6.0),
+                                  child: Text(
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium!.copyWith(
+                                      color:
+                                          hsettings.useDomEvals
+                                              ? Theme.of(
                                                 context,
-                                              ).colorScheme.onSurface,
+                                              ).colorScheme.onSurface
+                                              : Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withAlpha(128),
+                                    ),
+                                    "Minimum:",
+                                  ),
+                                ),
+                                IntrinsicWidth(
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(minWidth: 200),
+                                    child: TextFormField(
+                                      enabled: hsettings.useDomEvals,
+                                      controller:
+                                          domEValMinTextController
+                                            ..text =
+                                                hsettings.domEvalMin.toString(),
+                                      focusNode: domEvalMinNode,
+                                      autovalidateMode:
+                                          AutovalidateMode.onUserInteraction,
+                                      decoration: InputDecoration(
+                                        border: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 8,
                                         ),
                                       ),
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                    ),
-                                    onFieldSubmitted: (val) {
-                                      var parsed = num.tryParse(val);
-                                      if (parsed != null && parsed >= 0 && parsed != hsettings.evalMin) {
-                                        hsettings.evalMin = parsed.toDouble();
-                                        _showReloadWarning();
-                                      }
-                                      else {
-                                        // If the value is invalid, reset the text field to the current valid value
-                                        eValMinTextController.text = hsettings.evalMin.toString();
-                                      }
-                                    },
-                                  validator: (String? value) {
-                                      return !(value != null && num.tryParse(value) != null && num.tryParse(value)! >= 0)
-                                          ? "Enter a number >= 0"
-                                              : null;
-                  }, 
-                                  ),),),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 6.0),
-                                    child: Text(
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium!.copyWith(
-                                        color:
-                                            hsettings.useSeqEvals ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface.withAlpha(128),
-                                      ),
-                                      "Maximum:",
+                                      onFieldSubmitted: (val) {
+                                        var parsed = num.tryParse(val);
+                                        if (parsed != null &&
+                                            parsed >= 0 &&
+                                            parsed != hsettings.domEvalMin) {
+                                          hsettings.domEvalMin =
+                                              parsed.toDouble();
+                                          _showReloadWarning();
+                                        } else {
+                                          // If the value is invalid, reset the text field to the current valid value
+                                          eValMinTextController.text =
+                                              hsettings.domEvalMin.toString();
+                                        }
+                                      },
+                                      validator: (String? value) {
+                                        return !(value != null &&
+                                                num.tryParse(value) != null &&
+                                                num.tryParse(value)! >= 0)
+                                            ? "Enter a number >= 0"
+                                            : null;
+                                      },
                                     ),
                                   ),
-                                  IntrinsicWidth(child: ConstrainedBox(
-                                    constraints: BoxConstraints(minWidth: 200),
-                                    child:TextFormField(
-                                    enabled: hsettings.useSeqEvals,
-                                    controller: eValMaxTextController..text = hsettings.evalMax.toString(),
-                                    focusNode: evalMaxNode,
-                                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                                    decoration: InputDecoration(
-                                      border: OutlineInputBorder(
-                                        borderSide: BorderSide(
-                                          color:
-                                              Theme.of(
-                                                context,
-                                              ).colorScheme.onSurface,
-                                        ),
-                                      ),
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                    ),
-                                    onFieldSubmitted: (val) {
-                                      var parsed = num.tryParse(val);
-                                      if (parsed != null && parsed >= 0 && parsed != hsettings.evalMax) {
-                                        hsettings.evalMax = parsed.toDouble();
-                                        _showReloadWarning();
-                                      }
-                                      else {
-                                        // If the value is invalid, reset the text field to the current valid value
-                                        eValMaxTextController.text = hsettings.evalMax.toString();
-                                      }
-                                    },
-                                  validator: (String? value) {
-                                      return !(value != null && num.tryParse(value) != null && num.tryParse(value)! >= 0)
-                                          ? "Enter a number >= 0"
-                                              : null;
-                  }, 
-                                  ),),),
-                                ],
-                              ),
-                            ],
-                          ),
-                    ),
-                  ),
-                  Card(
-                    color: Theme.of(context).colorScheme.surface,
-                    child: IntrinsicWidth(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          Row(children: [Checkbox(
-                                checkColor: Theme.of(context).colorScheme.onPrimary,
-                                //fillColor: Theme.of(context).colorScheme.surface,
-                                value: hsettings.useDomEvals,
-                                onChanged: (bool? value) {
-                                  if (value != null) {
-                                    hsettings.useDomEvals = value;
-                                  }
-                                },
-                              ),
-                              Text(
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodyMedium!.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ],
                             ),
-                            "Only show domains with E-values in range\n (Only applicable to HMMER results)",
-                          ),
-                              ]),
-                              Row(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 6.0),
-                                    child: Text(
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium!.copyWith(
-                                        color:
-                                            hsettings.useDomEvals ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface.withAlpha(128),
-                                      ),
-                                      "Minimum:",
-                                    ),
-                                  ),
-                                  IntrinsicWidth(child: ConstrainedBox(
-                                    constraints: BoxConstraints(minWidth: 200),
-                                    child:TextFormField(
-                                    enabled: hsettings.useDomEvals,
-                                    controller: domEValMinTextController..text = hsettings.domEvalMin.toString(),
-                                    focusNode: domEvalMinNode,
-                                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                                    decoration: InputDecoration(
-                                      border: OutlineInputBorder(
-                                        borderSide: BorderSide(
-                                          color:
-                                              Theme.of(
+                            Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 6.0),
+                                  child: Text(
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium!.copyWith(
+                                      color:
+                                          hsettings.useDomEvals
+                                              ? Theme.of(
                                                 context,
-                                              ).colorScheme.onSurface,
+                                              ).colorScheme.onSurface
+                                              : Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withAlpha(128),
+                                    ),
+                                    "Maximum:",
+                                  ),
+                                ),
+                                IntrinsicWidth(
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(minWidth: 200),
+                                    child: TextFormField(
+                                      enabled: hsettings.useDomEvals,
+                                      controller:
+                                          domEValMaxTextController
+                                            ..text =
+                                                hsettings.domEvalMax.toString(),
+                                      focusNode: domEvalMaxNode,
+                                      autovalidateMode:
+                                          AutovalidateMode.onUserInteraction,
+                                      decoration: InputDecoration(
+                                        border: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 8,
                                         ),
                                       ),
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                    ),
-                                    onFieldSubmitted: (val) {
-                                      var parsed = num.tryParse(val);
-                                      if (parsed != null && parsed >= 0 && parsed != hsettings.domEvalMin) {
-                                        hsettings.domEvalMin = parsed.toDouble();
-                                        _showReloadWarning();
-                                      }
-                                      else {
-                                        // If the value is invalid, reset the text field to the current valid value
-                                        eValMinTextController.text = hsettings.domEvalMin.toString();
-                                      }
-                                    },
-                                  validator: (String? value) {
-                                      return !(value != null && num.tryParse(value) != null && num.tryParse(value)! >= 0)
-                                          ? "Enter a number >= 0"
-                                              : null;
-                  }, 
-                                  ),),),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 6.0),
-                                    child: Text(
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium!.copyWith(
-                                        color:
-                                            hsettings.useDomEvals ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.onSurface.withAlpha(128),
-                                      ),
-                                      "Maximum:",
+                                      onFieldSubmitted: (val) {
+                                        var parsed = num.tryParse(val);
+                                        if (parsed != null &&
+                                            parsed >= 0 &&
+                                            parsed != hsettings.domEvalMax) {
+                                          hsettings.domEvalMax =
+                                              parsed.toDouble();
+                                          _showReloadWarning();
+                                        } else {
+                                          // If the value is invalid, reset the text field to the current valid value
+                                          eValMaxTextController.text =
+                                              hsettings.domEvalMax.toString();
+                                        }
+                                      },
+                                      validator: (String? value) {
+                                        return !(value != null &&
+                                                num.tryParse(value) != null &&
+                                                num.tryParse(value)! >= 0)
+                                            ? "Enter a number >= 0"
+                                            : null;
+                                      },
                                     ),
                                   ),
-                                  IntrinsicWidth(child: ConstrainedBox(
-                                    constraints: BoxConstraints(minWidth: 200),
-                                    child:TextFormField(
-                                    enabled: hsettings.useDomEvals,
-                                    controller: domEValMaxTextController..text = hsettings.domEvalMax.toString(),
-                                    focusNode: domEvalMaxNode,
-                                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                                    decoration: InputDecoration(
-                                      border: OutlineInputBorder(
-                                        borderSide: BorderSide(
-                                          color:
-                                              Theme.of(
-                                                context,
-                                              ).colorScheme.onSurface,
-                                        ),
-                                      ),
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                    ),
-                                    onFieldSubmitted: (val) {
-                                      var parsed = num.tryParse(val);
-                                      if (parsed != null && parsed >= 0 && parsed != hsettings.domEvalMax) {
-                                        hsettings.domEvalMax = parsed.toDouble();
-                                        _showReloadWarning();
-                                      }
-                                      else {
-                                        // If the value is invalid, reset the text field to the current valid value
-                                        eValMaxTextController.text = hsettings.domEvalMax.toString();
-                                      }
-                                    },
-                                  validator: (String? value) {
-                                      return !(value != null && num.tryParse(value) != null && num.tryParse(value)! >= 0)
-                                          ? "Enter a number >= 0"
-                                              : null;
-                  }, 
-                                  ),),),
-                                ],
-                              ),
-                            ],
-                          ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
- /*                 Card(
+                    /*                 Card(
                     color: Theme.of(context).colorScheme.surface,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -1086,10 +1266,11 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                                             ],) 
                     ),*/
-                ],
-              ),
-            ],
-          ),);
+                  ],
+                ),
+              ],
+            ),
+          );
         },
       ),
       bottomNavigationBar: MainNavBar(whereAmI: WhichPage.settings),
@@ -1110,282 +1291,323 @@ class _GraphPageState extends State<GraphPage> {
   OverlayEntry? _nodeOverlayEntry;
   OverlayEntry? _removedNodesOverlayEntry;
   OverlayEntry? _norootOverlayEntry;
-  final GlobalKey _myKey = GlobalKey(); // key used to measure size of the nodeOverlay
-  final GlobalKey _secondKey = GlobalKey(); // key used to measure size of the removedNodeOverlay
+  final GlobalKey _myKey =
+      GlobalKey(); // key used to measure size of the nodeOverlay
+  final GlobalKey _secondKey =
+      GlobalKey(); // key used to measure size of the removedNodeOverlay
 
-  double findX(GlobalKey theKey, Offset tapPosition, Size mySize){
-    if(_myKey.currentContext!= null){
-      final RenderBox renderBox = _myKey.currentContext!.findRenderObject() as RenderBox;
+  double findX(GlobalKey theKey, Offset tapPosition, Size mySize) {
+    if (_myKey.currentContext != null) {
+      final RenderBox renderBox =
+          _myKey.currentContext!.findRenderObject() as RenderBox;
       Size widgetSize = renderBox.size;
-      if(widgetSize.width + tapPosition.dx > mySize.width){
-        return mySize.width - widgetSize.width; 
-      }
-      else{
+      if (widgetSize.width + tapPosition.dx > mySize.width) {
+        return mySize.width - widgetSize.width;
+      } else {
         return tapPosition.dx;
       }
-    }
-    else{
+    } else {
       return tapPosition.dx;
     }
   }
-  double findY(GlobalKey theKey, Offset tapPosition, Size mySize){
-    if(_myKey.currentContext!= null){
-      final RenderBox renderBox = _myKey.currentContext!.findRenderObject() as RenderBox;
+
+  double findY(GlobalKey theKey, Offset tapPosition, Size mySize) {
+    if (_myKey.currentContext != null) {
+      final RenderBox renderBox =
+          _myKey.currentContext!.findRenderObject() as RenderBox;
       Size widgetSize = renderBox.size;
-      if(widgetSize.height + tapPosition.dy > mySize.height){
-        return mySize.height - widgetSize.height; 
-      }
-      else{
+      if (widgetSize.height + tapPosition.dy > mySize.height) {
+        return mySize.height - widgetSize.height;
+      } else {
         return tapPosition.dy;
       }
-    }
-    else{
+    } else {
       return tapPosition.dy;
     }
   }
-  void _removeAllOverlays(){
+
+  void _removeAllOverlays() {
     _removeNorootOverlay();
     _removeNodeOverlay();
     _removeRemovedNodesOverlay();
   }
-  // Displays an overlay showing information about the node clicked 
+
+  // Displays an overlay showing information about the node clicked
   void _showNodeOverlay(
-      BuildContext context,
-      Offset tapPosition,
-      Node theNode,
-      GraphData graphdata,
-    )
-    {
-      String children = "";
-      for (var child in theNode.children) {
-        var childNode = graphdata.getNode(child.toInt());
-        if (children != ""){
-          children += ", ";
-        }
-        children += childNode.name;
+    BuildContext context,
+    Offset tapPosition,
+    Node theNode,
+    GraphData graphdata,
+  ) {
+    String children = "";
+    for (var child in theNode.children) {
+      var childNode = graphdata.getNode(child.toInt());
+      if (children != "") {
+        children += ", ";
       }
+      children += childNode.name;
+    }
 
-      String parentName = graphdata.getNode(theNode.parent).name;
-      // Declare this once because we have to render it twice
-      Widget theWidget = Container(
-                  key: _myKey,
-                  constraints: BoxConstraints(maxWidth: graphdata.size.width/2),
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(5),
-                    boxShadow: [BoxShadow(
-                      color: Colors.black.withValues(alpha:0.5),
-                      spreadRadius: 5,
-                      blurRadius: 7,
-                      offset: Offset(3,3),
-                    )]
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                    "Taxon: ${theNode.name}\nRank: ${theNode.rank}\nParent: ${parentName}\nChildren: ${children}\n${theNode.hitsBelow} hits at or below this node\n",
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                  ),
-                    IntrinsicWidth(child: Align( 
-                      alignment:AlignmentGeometry.centerRight,
-                      child:Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                      Padding(
-                                    padding: const EdgeInsets.only(right: 6.0),
-                                    child:ElevatedButton(
-                        style: ButtonStyle(backgroundColor:  WidgetStateProperty.resolveWith(
-                                                    (states) {
-                                                      if (states.contains(WidgetState.disabled)){
-                                                        return Theme.of(
-                                                        context,
-                                                      ).colorScheme.primary.withAlpha(128);
-                                                      }
-                                                      else{
-                                                      return Theme.of(
-                                                        context,
-                                                      ).colorScheme.primary;
-                                                    }},
-                                                  ),),
-                        onPressed: (theNode.taxid != theNode.parent) ?() { // Don't let user delete the root node
-                          graphdata.deleteNode(theNode.taxid);
-                          Overlay.of(context).setState(() {
-                            _removeAllOverlays();
-                          });
-                        }:null,
-                        child: Text(style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
-                          "Remove Node from Graph"),
-                      ),),
-                       Padding(
-                                    padding: const EdgeInsets.only(right: 6.0),
-                                    child:ElevatedButton(
-                        style: ButtonStyle(backgroundColor:  WidgetStateProperty.resolveWith(
-                                                    (states) {
-                                                      if (states.contains(WidgetState.disabled)){
-                                                        return Theme.of(
-                                                        context,
-                                                      ).colorScheme.primary.withAlpha(128);
-                                                      }
-                                                      else{
-                                                      return Theme.of(
-                                                        context,
-                                                      ).colorScheme.primary;
-                                                    }},
-                                                  ),),
-                        onPressed: graphdata.deletedNodes.isNotEmpty ?() {
-                          Overlay.of(context).setState(() {
-                            _removeAllOverlays();
-                            _showRemovedNodesOverlay(context, tapPosition, theNode);
-                          });
-                        }:null,
-                        child: Text(style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),"Show Removed Nodes"),
-                      ),),
-                      ElevatedButton(
-                        style: ButtonStyle(backgroundColor:  WidgetStateProperty.resolveWith(
-                                                    (states) {
-                                                      return Theme.of(
-                                                        context,
-                                                      ).colorScheme.primary;
-                                                    },
-                                                  ),),
-                        onPressed: (){
-                          Overlay.of(context).setState(() {
-                            _removeAllOverlays();
-                          });
-                        },
-                        child: Text(style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),"Close"),
+    String parentName = graphdata.getNode(theNode.parent).name;
+    // Declare this once because we have to render it twice
+    Widget theWidget = Container(
+      key: _myKey,
+      constraints: BoxConstraints(maxWidth: graphdata.size.width / 2),
+      padding: EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            spreadRadius: 5,
+            blurRadius: 7,
+            offset: Offset(3, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Taxon: ${theNode.name}\nRank: ${theNode.rank}\nParent: ${parentName}\nChildren: ${children}\n${theNode.hitsBelow} hits at or below this node\n",
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+          ),
+          IntrinsicWidth(
+            child: Align(
+              alignment: AlignmentGeometry.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6.0),
+                    child: ElevatedButton(
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStateProperty.resolveWith((
+                          states,
+                        ) {
+                          if (states.contains(WidgetState.disabled)) {
+                            return Theme.of(
+                              context,
+                            ).colorScheme.primary.withAlpha(128);
+                          } else {
+                            return Theme.of(context).colorScheme.primary;
+                          }
+                        }),
                       ),
-                    ],),),),
-                    ],),
-                );
-
-
-      _nodeOverlayEntry = OverlayEntry(
-        builder:
-            (context) { 
-                           Offstage( // render widget offstage so we can measure it
-                offstage: true,
-                child: theWidget);
-            double xCoord = findX(_myKey, tapPosition, graphdata.size);
-            double yCoord = findY(_myKey, tapPosition, graphdata.size);
-            return
-              Positioned(
-              left: xCoord,
-              top:  yCoord,
-              child: Material(
-                child: theWidget,
+                      onPressed:
+                          (theNode.taxid != theNode.parent)
+                              ? () {
+                                // Don't let user delete the root node
+                                graphdata.deleteNode(theNode.taxid);
+                                Overlay.of(context).setState(() {
+                                  _removeAllOverlays();
+                                });
+                              }
+                              : null,
+                      child: Text(
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                        "Remove Node from Graph",
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6.0),
+                    child: ElevatedButton(
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStateProperty.resolveWith((
+                          states,
+                        ) {
+                          if (states.contains(WidgetState.disabled)) {
+                            return Theme.of(
+                              context,
+                            ).colorScheme.primary.withAlpha(128);
+                          } else {
+                            return Theme.of(context).colorScheme.primary;
+                          }
+                        }),
+                      ),
+                      onPressed:
+                          graphdata.deletedNodes.isNotEmpty
+                              ? () {
+                                Overlay.of(context).setState(() {
+                                  _removeAllOverlays();
+                                  _showRemovedNodesOverlay(
+                                    context,
+                                    tapPosition,
+                                    theNode,
+                                  );
+                                });
+                              }
+                              : null,
+                      child: Text(
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                        "Show Removed Nodes",
+                      ),
+                    ),
+                  ),
+                  ElevatedButton(
+                    style: ButtonStyle(
+                      backgroundColor: WidgetStateProperty.resolveWith((
+                        states,
+                      ) {
+                        return Theme.of(context).colorScheme.primary;
+                      }),
+                    ),
+                    onPressed: () {
+                      Overlay.of(context).setState(() {
+                        _removeAllOverlays();
+                      });
+                    },
+                    child: Text(
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                      "Close",
+                    ),
+                  ),
+                ],
               ),
-            );
-            }
-      );
-      Overlay.of(context).insert(_nodeOverlayEntry!);
-    }
-    void _removeNodeOverlay() {
-      _nodeOverlayEntry?.remove();
-      _nodeOverlayEntry = null;
-    }
+            ),
+          ),
+        ],
+      ),
+    );
 
-// Shows an overlay with a list of nodes that have been removed from the graph
+    _nodeOverlayEntry = OverlayEntry(
+      builder: (context) {
+        Offstage(
+          // render widget offstage so we can measure it
+          offstage: true,
+          child: theWidget,
+        );
+        double xCoord = findX(_myKey, tapPosition, graphdata.size);
+        double yCoord = findY(_myKey, tapPosition, graphdata.size);
+        return Positioned(
+          left: xCoord,
+          top: yCoord,
+          child: Material(child: theWidget),
+        );
+      },
+    );
+    Overlay.of(context).insert(_nodeOverlayEntry!);
+  }
+
+  void _removeNodeOverlay() {
+    _nodeOverlayEntry?.remove();
+    _nodeOverlayEntry = null;
+  }
+
+  // Shows an overlay with a list of nodes that have been removed from the graph
   void _showRemovedNodesOverlay(
-      BuildContext context,
-      Offset tapPosition,
-      Node theNode,
-    )
-    {
-//      String parentName = graphdata.getNode(theNode.parent).name;
-      ScrollController _mainScrollController = ScrollController();
-      // Declare this once because we have to render it twice
-      Widget theWidget = 
-              Consumer<GraphData>(
-            builder: (context, graphdata, child) {
-             return Scrollbar(
-                      key: _secondKey,
-                      controller: _mainScrollController,
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        controller: _mainScrollController,
-                        itemCount: graphdata.deletedNodes.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          return Card(
-                            margin: EdgeInsets.only(bottom: 8),
-                            color: Theme.of(context).colorScheme.surface,
-                            child: Row(children: [Text(graphdata.getNode(graphdata.deletedNodes[index]).name),
-                            TextButton(child: Text("Restore"), onPressed: (){graphdata.restoreNode(graphdata.deletedNodes[index]);},),
-                            ],
-                            ),
-                          );
-                        },
-                      ),
-                );
-            });
+    BuildContext context,
+    Offset tapPosition,
+    Node theNode,
+  ) {
+    //      String parentName = graphdata.getNode(theNode.parent).name;
+    ScrollController _mainScrollController = ScrollController();
+    // Declare this once because we have to render it twice
+    Widget theWidget = Consumer<GraphData>(
+      builder: (context, graphdata, child) {
+        return Scrollbar(
+          key: _secondKey,
+          controller: _mainScrollController,
+          child: ListView.builder(
+            shrinkWrap: true,
+            controller: _mainScrollController,
+            itemCount: graphdata.deletedNodes.length,
+            itemBuilder: (BuildContext context, int index) {
+              return Card(
+                margin: EdgeInsets.only(bottom: 8),
+                color: Theme.of(context).colorScheme.surface,
+                child: Row(
+                  children: [
+                    Text(graphdata.getNode(graphdata.deletedNodes[index]).name),
+                    TextButton(
+                      child: Text("Restore"),
+                      onPressed: () {
+                        graphdata.restoreNode(graphdata.deletedNodes[index]);
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
 
-      _removedNodesOverlayEntry = OverlayEntry(
-        builder:
-            (context) { 
-              return Consumer<GraphData>(
-                builder: (context, graphdata, child){
-            Offstage( // render widget offstage so we can measure it
-                offstage: true,
-                child: theWidget);
+    _removedNodesOverlayEntry = OverlayEntry(
+      builder: (context) {
+        return Consumer<GraphData>(
+          builder: (context, graphdata, child) {
+            Offstage(
+              // render widget offstage so we can measure it
+              offstage: true,
+              child: theWidget,
+            );
             double xCoord = findX(_secondKey, tapPosition, graphdata.size);
             double yCoord = findY(_secondKey, tapPosition, graphdata.size);
-            return 
-              Positioned(
+            return Positioned(
               left: xCoord, //findX(_myKey, tapPosition, graphdata.size),
               top: yCoord, //findY(_myKey, tapPosition, graphdata.size),
-              width: graphdata.size.width/4,
-              child: Material(
-                child: theWidget,
-              ),
+              width: graphdata.size.width / 4,
+              child: Material(child: theWidget),
             );
-            });
-            }
-      );
-      Overlay.of(context).insert(_removedNodesOverlayEntry!);
-    }
-    void _removeRemovedNodesOverlay() {
-      _removedNodesOverlayEntry?.remove();
-      _removedNodesOverlayEntry = null;
-    }
+          },
+        );
+      },
+    );
+    Overlay.of(context).insert(_removedNodesOverlayEntry!);
+  }
 
-// shows a warning Overlay because it is not possible to re-center the graph on a node
-    void _showNorootOverlay(
-      BuildContext context,
-      Offset tapPosition,
-      PlatformInt64 nodeId,
-      Node theNode,
-    ) {
-      _norootOverlayEntry = OverlayEntry(
-        builder:
-            (context) => Positioned(
-              left: tapPosition.dx,
-              top: tapPosition.dy,
-              child: Material(
-                color: Colors.transparent,
-                child: Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.yellow,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Text(
-                    "Node ${theNode.name} has no children",
-                    style: TextStyle(color: Colors.black),
-                  ),
+  void _removeRemovedNodesOverlay() {
+    _removedNodesOverlayEntry?.remove();
+    _removedNodesOverlayEntry = null;
+  }
+
+  // shows a warning Overlay because it is not possible to re-center the graph on a node
+  void _showNorootOverlay(
+    BuildContext context,
+    Offset tapPosition,
+    PlatformInt64 nodeId,
+    Node theNode,
+  ) {
+    _norootOverlayEntry = OverlayEntry(
+      builder:
+          (context) => Positioned(
+            left: tapPosition.dx,
+            top: tapPosition.dy,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.yellow,
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Text(
+                  "Node ${theNode.name} has no children",
+                  style: TextStyle(color: Colors.black),
                 ),
               ),
             ),
-      );
-      Overlay.of(context).insert(_norootOverlayEntry!);
-    }
+          ),
+    );
+    Overlay.of(context).insert(_norootOverlayEntry!);
+  }
 
-    void _removeNorootOverlay() {
-      _norootOverlayEntry?.remove();
-      _norootOverlayEntry = null;
-    }
+  void _removeNorootOverlay() {
+    _norootOverlayEntry?.remove();
+    _norootOverlayEntry = null;
+  }
+
   @override
   void dispose() {
     _removeAllOverlays();
@@ -1460,19 +1682,19 @@ class _GraphPageState extends State<GraphPage> {
                           Future.delayed(const Duration(seconds: 5), () {
                             _removeNorootOverlay();
                           });
-                        }//else {
-                          graphdata.popPastIndex();
-                          graphdata.addRoot(node);
-                          HitResults hitResults = findHitsBelowNode(
-                            root: graphdata.getNode(node).taxid,
-                            graph: graphdata.graph,
-                            hitStructures: searchdata.hitStructures,
-                          );
-                          searchdata.currentHitsByEvalue = hitResults.hits;
-                          searchdata.currentHits = hitResults.categories;
-                          searchdata.selectedBy = selectedby.subtree;
-                          selectedStructureScrollOffset = 0.0;
-                          selectedEvalueScrollOffset = 0.0;
+                        } //else {
+                        graphdata.popPastIndex();
+                        graphdata.addRoot(node);
+                        HitResults hitResults = findHitsBelowNode(
+                          root: graphdata.getNode(node).taxid,
+                          graph: graphdata.graph,
+                          hitStructures: searchdata.hitStructures,
+                        );
+                        searchdata.currentHitsByEvalue = hitResults.hits;
+                        searchdata.currentHits = hitResults.categories;
+                        searchdata.selectedBy = selectedby.subtree;
+                        selectedStructureScrollOffset = 0.0;
+                        selectedEvalueScrollOffset = 0.0;
                         //}
                         //;
                       }
@@ -1495,13 +1717,15 @@ class _GraphPageState extends State<GraphPage> {
                         center.dx,
                         center.dy,
                       );
-                      if(node>=0){
-                      var theNode = graphdata.getNode(node);
-                      _showNodeOverlay(context,
-                        details.globalPosition,
-                        theNode,
-                        graphdata,
-                      );}
+                      if (node >= 0) {
+                        var theNode = graphdata.getNode(node);
+                        _showNodeOverlay(
+                          context,
+                          details.globalPosition,
+                          theNode,
+                          graphdata,
+                        );
+                      }
                     },
 
                     child: Transform(
@@ -1700,8 +1924,14 @@ class _GraphPageState extends State<GraphPage> {
                                             value: _value,
                                             label: _value.round().toString(),
                                             min: 1.0,
-                                            max: max(1.0, graphdata.depth.toDouble()),
-                                            divisions: max(1, graphdata.depth - 1),
+                                            max: max(
+                                              1.0,
+                                              graphdata.depth.toDouble(),
+                                            ),
+                                            divisions: max(
+                                              1,
+                                              graphdata.depth - 1,
+                                            ),
                                             onChanged: (double value) {
                                               setState(() {
                                                 graphdata.setMaxLevels(
@@ -1927,10 +2157,15 @@ class SubtreeStructurePage extends StatefulWidget {
 }
 
 class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
-  final ScrollController _subtreeStructureScrollController = ScrollController(initialScrollOffset: selectedStructureScrollOffset, onDetach: (position){selectedStructureScrollOffset = position.pixels;});
+  final ScrollController _subtreeStructureScrollController = ScrollController(
+    initialScrollOffset: selectedStructureScrollOffset,
+    onDetach: (position) {
+      selectedStructureScrollOffset = position.pixels;
+    },
+  );
   List<int> lengths = [];
 
- /* @override
+  /* @override
   dispose() {
     print("disposing subtree structure page, saving scroll offset $selectedStructureScrollOffset");
     //selectedStructureScrollOffset = _subtreeStructureScrollController.offset;
@@ -1955,53 +2190,58 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
           if (lengths.length != theHits.length) {
             lengths = List.filled(theHits.length, 0);
           }
-          for(int i=0; i<theHits.length; i++){
+          for (int i = 0; i < theHits.length; i++) {
             lengths[i] = searchdata.hits[theHits[i].hits[0].toInt()].seqLength;
           }
-          lengths.sort((a,b)=> a < b ? -1 : 1);
+          lengths.sort((a, b) => a < b ? -1 : 1);
           int maxLength = lengths.reduce(max);
-          if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]){
-   //       print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
+          if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]) {
+            //       print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
             maxLength = lengths[(lengths.length * 0.9).toInt()];
           }
-          double ppr= pixelsPerResidue(maxLength, Theme.of(context).textTheme, context);
-    //      print("pixels per residue $ppr");
-          return SelectionArea(child: Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            appBar: homotAppBar(
-              text:
-                  "${numHits} ${hitCount} found under ${graphdata.graph[graphdata.currentRoot]?.name}, with ${theHits.length} ${strucText}",
-            ),
-            body: Scrollbar(
-             controller: _subtreeStructureScrollController,
-              child: ListView.builder(
+          double ppr = pixelsPerResidue(
+            maxLength,
+            Theme.of(context).textTheme,
+            context,
+          );
+          //      print("pixels per residue $ppr");
+          return SelectionArea(
+            child: Scaffold(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              appBar: homotAppBar(
+                text:
+                    "${numHits} ${hitCount} found under ${graphdata.graph[graphdata.currentRoot]?.name}, with ${theHits.length} ${strucText}",
+              ),
+              body: Scrollbar(
                 controller: _subtreeStructureScrollController,
-                itemCount: theHits.length,
-                itemBuilder: (BuildContext context, int index) {
-                  return Card(
-                    margin: EdgeInsets.only(bottom: 8),
-                    color: Theme.of(context).colorScheme.surface,
-                    child: Stack(
-                      //crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        DrawCategory(
-                          which: index,
-                          from: selectedby.subtree_structure,
-                          context: context,
-                          maxLength: maxLength,
-                          pixelsPerResidue: ppr,
-                        ),
-                        
-                      ],
-                    ),
-                  );
-                },
+                child: ListView.builder(
+                  controller: _subtreeStructureScrollController,
+                  itemCount: theHits.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    return Card(
+                      margin: EdgeInsets.only(bottom: 8),
+                      color: Theme.of(context).colorScheme.surface,
+                      child: Stack(
+                        //crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          DrawCategory(
+                            which: index,
+                            from: selectedby.subtree_structure,
+                            context: context,
+                            maxLength: maxLength,
+                            pixelsPerResidue: ppr,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              bottomNavigationBar: MainNavBar(
+                whereAmI: WhichPage.subgraphstructure,
               ),
             ),
-            bottomNavigationBar: MainNavBar(
-              whereAmI: WhichPage.subgraphstructure,
-            ),
-          ),);
+          );
         },
       ),
     );
@@ -2016,68 +2256,80 @@ class AllStructurePage extends StatefulWidget {
   State<AllStructurePage> createState() => _AllStructurePageState();
 }
 
-
 class _AllStructurePageState extends State<AllStructurePage> {
-    final ScrollController _allStructureScrollController = ScrollController(initialScrollOffset: allStructureScrollOffset, onDetach: (position){allStructureScrollOffset = position.pixels;});
+  final ScrollController _allStructureScrollController = ScrollController(
+    initialScrollOffset: allStructureScrollOffset,
+    onDetach: (position) {
+      allStructureScrollOffset = position.pixels;
+    },
+  );
   List<int> lengths = [];
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      child: SelectionArea( child: Consumer3<SearchData, GraphData, HSettings>(
-        builder: (context, searchdata, graphdata, hsettings, child) {
-          final List<SigCategory> theHits = searchdata.rootHits;
-          if (lengths.length != theHits.length) {
-            lengths = List.filled(theHits.length, 0);
-          }
-          for(int i=0; i<theHits.length; i++){
-            lengths[i] = searchdata.hits[searchdata.rootHits[i].hits[0].toInt()].seqLength;
-          }
+      child: SelectionArea(
+        child: Consumer3<SearchData, GraphData, HSettings>(
+          builder: (context, searchdata, graphdata, hsettings, child) {
+            final List<SigCategory> theHits = searchdata.rootHits;
+            if (lengths.length != theHits.length) {
+              lengths = List.filled(theHits.length, 0);
+            }
+            for (int i = 0; i < theHits.length; i++) {
+              lengths[i] =
+                  searchdata
+                      .hits[searchdata.rootHits[i].hits[0].toInt()]
+                      .seqLength;
+            }
             int maxLength = lengths.reduce(max);
-          lengths.sort((a,b)=> a < b ? -1 : 1);
-          if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]){
-       //     print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
-            maxLength = lengths[(lengths.length * 0.9).toInt()];
-          }
-          double ppr= pixelsPerResidue(maxLength, Theme.of(context).textTheme, context);
-          int numHits = searchdata.hits.length;
-          final hitCount = numHits != 1? "hits" : "hit";
-          final strucText =
-              theHits.length != 1
-                  ? "different domain structures"
-                  : "domain structure";
-          final screenWidth = MediaQuery.sizeOf(context).width;
-          return Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            appBar: homotAppBar(
-              text:
-                  "${numHits} ${hitCount} found, with ${theHits.length} ${strucText}",
-            ),
-            body: Scrollbar(
-              controller: _allStructureScrollController,
-              child: ListView.builder(
-                controller: _allStructureScrollController,
-                itemCount: theHits.length,
-                itemBuilder: (BuildContext context, int index) {
-                  return Card(
-                    margin: EdgeInsets.only(bottom: 8),
-                    color: Theme.of(context).colorScheme.surface,
-                    child: 
-                        DrawCategory(
-                          which: index,
-                          from: selectedby.structure,
-                          context:context,
-                          maxLength: maxLength,
-                          pixelsPerResidue: ppr,
-                        ),        
-                  );
-                },
+            lengths.sort((a, b) => a < b ? -1 : 1);
+            if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]) {
+              //     print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
+              maxLength = lengths[(lengths.length * 0.9).toInt()];
+            }
+            double ppr = pixelsPerResidue(
+              maxLength,
+              Theme.of(context).textTheme,
+              context,
+            );
+            int numHits = searchdata.hits.length;
+            final hitCount = numHits != 1 ? "hits" : "hit";
+            final strucText =
+                theHits.length != 1
+                    ? "different domain structures"
+                    : "domain structure";
+            final screenWidth = MediaQuery.sizeOf(context).width;
+            return Scaffold(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              appBar: homotAppBar(
+                text:
+                    "${numHits} ${hitCount} found, with ${theHits.length} ${strucText}",
               ),
-            ),
-            bottomNavigationBar: MainNavBar(whereAmI: WhichPage.allstructure),
-          );
-        },
-      ),),
+              body: Scrollbar(
+                controller: _allStructureScrollController,
+                child: ListView.builder(
+                  controller: _allStructureScrollController,
+                  itemCount: theHits.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    return Card(
+                      margin: EdgeInsets.only(bottom: 8),
+                      color: Theme.of(context).colorScheme.surface,
+                      child: DrawCategory(
+                        which: index,
+                        from: selectedby.structure,
+                        context: context,
+                        maxLength: maxLength,
+                        pixelsPerResidue: ppr,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              bottomNavigationBar: MainNavBar(whereAmI: WhichPage.allstructure),
+            );
+          },
+        ),
+      ),
     );
   }
 }
@@ -2091,139 +2343,162 @@ class AllEvaluePage extends StatefulWidget {
 }
 
 class _AllEvaluePageState extends State<AllEvaluePage> {
-  final ScrollController _allEvalueScrollController = ScrollController(initialScrollOffset: allEvalueScrollOffset, onDetach: (position){allEvalueScrollOffset = position.pixels;});
+  final ScrollController _allEvalueScrollController = ScrollController(
+    initialScrollOffset: allEvalueScrollOffset,
+    onDetach: (position) {
+      allEvalueScrollOffset = position.pixels;
+    },
+  );
   List<bool> fullWidth = [];
   List<bool> showExpand = [];
   List<int> lengths = [];
   @override
-
   @override
   Widget build(BuildContext context) {
     return Material(
-      child: SelectionArea( child: Consumer3<SearchData, GraphData, HSettings>(
-        builder: (context, searchdata, graphdata, hsettings, child) {
-          if (fullWidth.length != searchdata.hits.length) {
-            // something has changed, reset the fullwidth list
-            fullWidth = List.filled(searchdata.hits.length, false);
-            showExpand = List.filled(searchdata.hits.length, false);
-            lengths = List.filled(searchdata.hits.length, 0);
-          }
-          int maxLength = 0;
-          for(int i=0; i<searchdata.hits.length; i++){
-            lengths[i] = searchdata.hits[i].seqLength;
-          }
-          maxLength = lengths.reduce(max);
-          lengths.sort((a,b)=> a < b ? -1 : 1);
-          if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]){
-     //       print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
-            maxLength = lengths[(lengths.length * 0.9).toInt()];
-          }
-          final screenWidth = MediaQuery.sizeOf(context).width;
-          double ppr= pixelsPerResidue(maxLength, Theme.of(context).textTheme, context);
-          return Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            appBar: homotAppBar(text: "${searchdata.hits.length} hits found"),
-            body: Scrollbar(
-              controller: _allEvalueScrollController,
-              child: ListView.builder(
+      child: SelectionArea(
+        child: Consumer3<SearchData, GraphData, HSettings>(
+          builder: (context, searchdata, graphdata, hsettings, child) {
+            if (fullWidth.length != searchdata.hits.length) {
+              // something has changed, reset the fullwidth list
+              fullWidth = List.filled(searchdata.hits.length, false);
+              showExpand = List.filled(searchdata.hits.length, false);
+              lengths = List.filled(searchdata.hits.length, 0);
+            }
+            int maxLength = 0;
+            for (int i = 0; i < searchdata.hits.length; i++) {
+              lengths[i] = searchdata.hits[i].seqLength;
+            }
+            maxLength = lengths.reduce(max);
+            lengths.sort((a, b) => a < b ? -1 : 1);
+            if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]) {
+              //       print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
+              maxLength = lengths[(lengths.length * 0.9).toInt()];
+            }
+            final screenWidth = MediaQuery.sizeOf(context).width;
+            double ppr = pixelsPerResidue(
+              maxLength,
+              Theme.of(context).textTheme,
+              context,
+            );
+            return Scaffold(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              appBar: homotAppBar(text: "${searchdata.hits.length} hits found"),
+              body: Scrollbar(
                 controller: _allEvalueScrollController,
-                itemCount: searchdata.hits.length,
-                itemBuilder: (BuildContext context, int index) {
-                  showExpand[index] =
-                      (requiredHitWidth(
-                        searchdata.hits[index],
-                        false,
-                        false,
-                        context,
-                      ) >
-                      screenWidth) || (searchdata.hits[index].seqLength > maxLength);
-                  return Card(
-                    margin: EdgeInsets.only(bottom: 8),
-                    color: Theme.of(context).colorScheme.surface,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                          Text(
-                            overflow: TextOverflow.clip,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          "Sequence: " +
-                              searchdata.hits[index].name +
-                              "\nE-Value: " +
-                              searchdata.hits[index].seqEvalue
-                                  .toStringAsExponential(4)+"\nTaxon: "+graphdata.graph[searchdata.hits[index].taxid]!.name + '\nDescription: '+searchdata.hits[index].description,
-                        ),
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            showExpand[index]
-                                ? RotatedBox(
-                                  quarterTurns: 1,
-                                  child: IconButton.outlined(
-                                    iconSize: 24 * hsettings.scale,
-                                  
-                                    onPressed: () {
-                                      fullWidth[index] = !fullWidth[index];
-                                      setState(() {});
-                                    },
-                                    icon:
-                                        fullWidth[index]
-                                            ? Icon(
-                                              Icons.compress,
-                                              color:
-                                                  Theme.of(
-                                                    context,
-                                                  ).colorScheme.onSurface,
-                                            )
-                                            : Icon(
-                                              Icons.expand,
-                                              color:
-                                                  Theme.of(
-                                                    context,
-                                                  ).colorScheme.onSurface,
-                                            ),
-                                  ),
-                                )
-                                : SizedBox.shrink(),
-                            IconButton.outlined(
-                                    iconSize: 24 * hsettings.scale,
-                              onPressed: () {
-                                searchdata.selectedHit = index;
-                                context.go("/sequence");
-                              },
-                              icon: Icon(
-                                Icons.search,
-                                color: Theme.of(context).colorScheme.onSurface,
+                child: ListView.builder(
+                  controller: _allEvalueScrollController,
+                  itemCount: searchdata.hits.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    showExpand[index] =
+                        (requiredHitWidth(
+                              searchdata.hits[index],
+                              false,
+                              false,
+                              context,
+                            ) >
+                            screenWidth) ||
+                        (searchdata.hits[index].seqLength > maxLength);
+                    return Card(
+                      margin: EdgeInsets.only(bottom: 8),
+                      color: Theme.of(context).colorScheme.surface,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                overflow: TextOverflow.clip,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium!.copyWith(
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                                "Sequence: " +
+                                    searchdata.hits[index].name +
+                                    "\nE-Value: " +
+                                    searchdata.hits[index].seqEvalue
+                                        .toStringAsExponential(4) +
+                                    "\nTaxon: " +
+                                    graphdata
+                                        .graph[searchdata.hits[index].taxid]!
+                                        .name +
+                                    '\nDescription: ' +
+                                    searchdata.hits[index].description,
                               ),
-                            ),
-                          ],
-                        ),
-                          ],),
-                        DrawHit(
-                          hit: searchdata.hits[index],
-                          searchdata: searchdata,
-                          fullWidth: fullWidth[index],
-                          maxLength: maxLength,
-                          pixelsPerResidue: ppr,
-                        ),
-                      ],
-                    ),
-                  );
-                },
+
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  showExpand[index]
+                                      ? RotatedBox(
+                                        quarterTurns: 1,
+                                        child: IconButton.outlined(
+                                          iconSize: 24 * hsettings.scale,
+
+                                          onPressed: () {
+                                            fullWidth[index] =
+                                                !fullWidth[index];
+                                            setState(() {});
+                                          },
+                                          icon:
+                                              fullWidth[index]
+                                                  ? Icon(
+                                                    Icons.compress,
+                                                    color:
+                                                        Theme.of(
+                                                          context,
+                                                        ).colorScheme.onSurface,
+                                                  )
+                                                  : Icon(
+                                                    Icons.expand,
+                                                    color:
+                                                        Theme.of(
+                                                          context,
+                                                        ).colorScheme.onSurface,
+                                                  ),
+                                        ),
+                                      )
+                                      : SizedBox.shrink(),
+                                  IconButton.outlined(
+                                    iconSize: 24 * hsettings.scale,
+                                    onPressed: () {
+                                      searchdata.selectedHit = index;
+                                      context.go("/sequence");
+                                    },
+                                    icon: Icon(
+                                      Icons.search,
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          DrawHit(
+                            hit: searchdata.hits[index],
+                            searchdata: searchdata,
+                            fullWidth: fullWidth[index],
+                            maxLength: maxLength,
+                            pixelsPerResidue: ppr,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
-            bottomNavigationBar: MainNavBar(whereAmI: WhichPage.allevalue),
-          );
-        },
+              bottomNavigationBar: MainNavBar(whereAmI: WhichPage.allevalue),
+            );
+          },
+        ),
       ),
-    ),);
+    );
   }
 }
 
@@ -2236,7 +2511,12 @@ class SubtreeEvaluePage extends StatefulWidget {
 }
 
 class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
-  final ScrollController _subtreeEvalueScrollController = ScrollController(initialScrollOffset: selectedEvalueScrollOffset, onDetach: (position){selectedEvalueScrollOffset = position.pixels;});
+  final ScrollController _subtreeEvalueScrollController = ScrollController(
+    initialScrollOffset: selectedEvalueScrollOffset,
+    onDetach: (position) {
+      selectedEvalueScrollOffset = position.pixels;
+    },
+  );
   List<bool> fullWidth = [];
   List<bool> showExpand = [];
   List<int> lengths = [];
@@ -2277,125 +2557,155 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
             searchdata.previousSelectedBy = searchdata.selectedBy;
           }
           final screenWidth = MediaQuery.sizeOf(context).width;
-          for (int i=0; i<hitIndices.length; i++){
+          for (int i = 0; i < hitIndices.length; i++) {
             lengths[i] = searchdata.hits[hitIndices[i].toInt()].seqLength;
           }
           int maxLength = lengths.reduce(max);
-       //   print("max length is $maxLength");
-          lengths.sort((a,b)=> a < b ? -1 : 1);
-          if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]){
-   //         print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
+          //   print("max length is $maxLength");
+          lengths.sort((a, b) => a < b ? -1 : 1);
+          if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]) {
+            //         print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
             maxLength = lengths[(lengths.length * 0.9).toInt()];
           }
-          double ppr= pixelsPerResidue(maxLength, Theme.of(context).textTheme, context);
+          double ppr = pixelsPerResidue(
+            maxLength,
+            Theme.of(context).textTheme,
+            context,
+          );
           int count = 0;
-          for(int i=0; i<hitIndices.length; i++){
-            if (lengths[i] > maxLength){
+          for (int i = 0; i < hitIndices.length; i++) {
+            if (lengths[i] > maxLength) {
               count++;
             }
           }
-        //  print("$count out of ${hitIndices.length} hits are longer than the max length of $maxLength");  
-          return SelectionArea(child: Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            appBar: homotAppBar(text: title),
-            body: Scrollbar(
-              controller: _subtreeEvalueScrollController,
-              child: ListView.builder(
+          //  print("$count out of ${hitIndices.length} hits are longer than the max length of $maxLength");
+          return SelectionArea(
+            child: Scaffold(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              appBar: homotAppBar(text: title),
+              body: Scrollbar(
                 controller: _subtreeEvalueScrollController,
-                itemCount: hitIndices.length,
-                itemBuilder: (BuildContext context, int index) {
-                  showExpand[index] =
-                      requiredHitWidth(
-                        searchdata.hits[hitIndices[index].toInt()],
-                        false,
-                        false,
-                        context,
-                      ) >
-                      screenWidth || (searchdata.hits[hitIndices[index].toInt()].seqLength > maxLength);
-                  return Card(
-                    margin: EdgeInsets.only(bottom: 8),
-                    color: Theme.of(context).colorScheme.surface,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [Text(
-                            overflow: TextOverflow.clip,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          "Sequence: " +
-                              searchdata.hits[hitIndices[index].toInt()].name +
-                              "\nE-Value: " +
-                              searchdata
-                                  .hits[hitIndices[index].toInt()]
-                                  .seqEvalue
-                                  .toStringAsExponential(4)+"\nTaxon: "+graphdata.graph[searchdata.hits[hitIndices[index].toInt()].taxid]!.name + '\nDescription: '+searchdata.hits[hitIndices[index].toInt()].description,
-                        ),
-                       Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            showExpand[index]
-                                ? RotatedBox(
-                                  quarterTurns: 1,
-                                  child: IconButton.outlined(
-                                    iconSize: 24 * hsettings.scale,
-                                  
-                                    onPressed: () {
-                                      fullWidth[index] = !fullWidth[index];
-                                      setState(() {});
-                                    },
-                                    icon:
-                                        fullWidth[index]
-                                            ? Icon(
-                                              Icons.compress,
-                                              color:
-                                                  Theme.of(
-                                                    context,
-                                                  ).colorScheme.onSurface,
-                                            )
-                                            : Icon(
-                                              Icons.expand,
-                                              color:
-                                                  Theme.of(
-                                                    context,
-                                                  ).colorScheme.onSurface,
-                                            ),
-                                  ),
-                                )
-                                : SizedBox.shrink(),
-                            IconButton.outlined(
-                                    iconSize: 24 * hsettings.scale,
-                              onPressed: () {
-                                searchdata.selectedHit = hitIndices[index].toInt();
-                                context.go("/sequence");
-                              },
-                              icon: Icon(
-                                Icons.search,
-                                color: Theme.of(context).colorScheme.onSurface,
+                child: ListView.builder(
+                  controller: _subtreeEvalueScrollController,
+                  itemCount: hitIndices.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    showExpand[index] =
+                        requiredHitWidth(
+                              searchdata.hits[hitIndices[index].toInt()],
+                              false,
+                              false,
+                              context,
+                            ) >
+                            screenWidth ||
+                        (searchdata.hits[hitIndices[index].toInt()].seqLength >
+                            maxLength);
+                    return Card(
+                      margin: EdgeInsets.only(bottom: 8),
+                      color: Theme.of(context).colorScheme.surface,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                overflow: TextOverflow.clip,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium!.copyWith(
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                                "Sequence: " +
+                                    searchdata
+                                        .hits[hitIndices[index].toInt()]
+                                        .name +
+                                    "\nE-Value: " +
+                                    searchdata
+                                        .hits[hitIndices[index].toInt()]
+                                        .seqEvalue
+                                        .toStringAsExponential(4) +
+                                    "\nTaxon: " +
+                                    graphdata
+                                        .graph[searchdata
+                                            .hits[hitIndices[index].toInt()]
+                                            .taxid]!
+                                        .name +
+                                    '\nDescription: ' +
+                                    searchdata
+                                        .hits[hitIndices[index].toInt()]
+                                        .description,
                               ),
-                            ),
-                          ],
-                        ),
-                          ],),
-                        DrawHit(
-                          hit: searchdata.hits[hitIndices[index].toInt()],
-                          searchdata: searchdata,
-                          fullWidth: fullWidth[index],
-                          maxLength: maxLength,
-                          pixelsPerResidue: ppr,
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  showExpand[index]
+                                      ? RotatedBox(
+                                        quarterTurns: 1,
+                                        child: IconButton.outlined(
+                                          iconSize: 24 * hsettings.scale,
+
+                                          onPressed: () {
+                                            fullWidth[index] =
+                                                !fullWidth[index];
+                                            setState(() {});
+                                          },
+                                          icon:
+                                              fullWidth[index]
+                                                  ? Icon(
+                                                    Icons.compress,
+                                                    color:
+                                                        Theme.of(
+                                                          context,
+                                                        ).colorScheme.onSurface,
+                                                  )
+                                                  : Icon(
+                                                    Icons.expand,
+                                                    color:
+                                                        Theme.of(
+                                                          context,
+                                                        ).colorScheme.onSurface,
+                                                  ),
+                                        ),
+                                      )
+                                      : SizedBox.shrink(),
+                                  IconButton.outlined(
+                                    iconSize: 24 * hsettings.scale,
+                                    onPressed: () {
+                                      searchdata.selectedHit =
+                                          hitIndices[index].toInt();
+                                      context.go("/sequence");
+                                    },
+                                    icon: Icon(
+                                      Icons.search,
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          DrawHit(
+                            hit: searchdata.hits[hitIndices[index].toInt()],
+                            searchdata: searchdata,
+                            fullWidth: fullWidth[index],
+                            maxLength: maxLength,
+                            pixelsPerResidue: ppr,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              bottomNavigationBar: MainNavBar(
+                whereAmI: WhichPage.subtreeevalue,
               ),
             ),
-            bottomNavigationBar: MainNavBar(whereAmI: WhichPage.subtreeevalue),
-          ),);
+          );
         },
       ),
     );
@@ -2423,86 +2733,95 @@ class _SequencePageState extends State<SequencePage> {
           Hit theHit = searchdata.hits[searchdata.selectedHit.toInt()];
           showExpand =
               requiredHitWidth(theHit, true, true, context) > screenWidth;
-          return SelectionArea(child: Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            appBar: homotAppBar(text: "Sequence ${theHit.name}"),
-            body: SingleChildScrollView(
-              controller: _scrollController2,
-              child: Card(
-                margin: EdgeInsets.only(bottom: 8),
-                color: Theme.of(context).colorScheme.surface,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                   Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
+          return SelectionArea(
+            child: Scaffold(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              appBar: homotAppBar(text: "Sequence ${theHit.name}"),
+              body: SingleChildScrollView(
+                controller: _scrollController2,
+                child: Card(
+                  margin: EdgeInsets.only(bottom: 8),
+                  color: Theme.of(context).colorScheme.surface,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
                           Text(
                             overflow: TextOverflow.clip,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium!.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                            "Sequence: " +
+                                theHit.name +
+                                "\nE-Value: " +
+                                theHit.seqEvalue.toStringAsExponential(4) +
+                                "\nTaxon: " +
+                                graphdata.graph[theHit.taxid]!.name +
+                                '\nDescription: ' +
+                                theHit.description,
                           ),
-                          "Sequence: " +
-                              theHit.name +
-                              "\nE-Value: " +
-                              theHit.seqEvalue
-                                  .toStringAsExponential(4)+"\nTaxon: "+graphdata.graph[theHit.taxid]!.name+ '\nDescription: '+theHit.description,
-                        ),
 
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            showExpand
-                                ? RotatedBox(
-                                  quarterTurns: 1,
-                                  child: IconButton.outlined(
-                                    iconSize: 24 * hsettings.scale,
-                                  
-                                    onPressed: () {
-                                      fullWidth= !fullWidth;
-                                      setState(() {});
-                                    },
-                                    icon:
-                                        fullWidth
-                                            ? Icon(
-                                              Icons.compress,
-                                              color:
-                                                  Theme.of(
-                                                    context,
-                                                  ).colorScheme.onSurface,
-                                            )
-                                            : Icon(
-                                              Icons.expand,
-                                              color:
-                                                  Theme.of(
-                                                    context,
-                                                  ).colorScheme.onSurface,
-                                            ),
-                                  ),
-                                )
-                                : SizedBox.shrink(),
-                          ],
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              showExpand
+                                  ? RotatedBox(
+                                    quarterTurns: 1,
+                                    child: IconButton.outlined(
+                                      iconSize: 24 * hsettings.scale,
+
+                                      onPressed: () {
+                                        fullWidth = !fullWidth;
+                                        setState(() {});
+                                      },
+                                      icon:
+                                          fullWidth
+                                              ? Icon(
+                                                Icons.compress,
+                                                color:
+                                                    Theme.of(
+                                                      context,
+                                                    ).colorScheme.onSurface,
+                                              )
+                                              : Icon(
+                                                Icons.expand,
+                                                color:
+                                                    Theme.of(
+                                                      context,
+                                                    ).colorScheme.onSurface,
+                                              ),
+                                    ),
+                                  )
+                                  : SizedBox.shrink(),
+                            ],
+                          ),
+                        ],
+                      ),
+                      DrawHit(
+                        hit: theHit,
+                        allDomains: true,
+                        searchdata: searchdata,
+                        fullWidth: fullWidth,
+                        showSequence: true,
+                        sequence: theHit.sequence,
+                        maxLength: theHit.seqLength,
+                        pixelsPerResidue: pixelsPerResidue(
+                          theHit.seqLength,
+                          Theme.of(context).textTheme,
+                          context,
                         ),
-                          ],), 
-                    DrawHit(
-                      hit: theHit,
-                      allDomains: true,
-                      searchdata: searchdata,
-                      fullWidth: fullWidth,
-                      showSequence: true,
-                      sequence: theHit.sequence,
-                      maxLength: theHit.seqLength,
-                      pixelsPerResidue: pixelsPerResidue(theHit.seqLength, Theme.of(context).textTheme, context),
-                    ),
-                    
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
+              bottomNavigationBar: MainNavBar(whereAmI: WhichPage.sequence),
             ),
-            bottomNavigationBar: MainNavBar(whereAmI: WhichPage.sequence),
-          ),);
+          );
         },
       ),
     );

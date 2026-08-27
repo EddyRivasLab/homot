@@ -512,8 +512,12 @@ pub fn write_annotated_db(domains: HashMap<String, Vec<Domain>>, clan_map: &Hash
 
         let fields: Vec<&str> = sequence.desc().unwrap_or("none").split_whitespace().collect();
         let mut description: String = String::new();
+        let mut structured_found = false;
         for field in &fields{
-            if !field.contains('='){
+            if fild.contains('='){
+                structured_found = true;
+            }
+            if !structured_found{
                 // this is part of the description, so add it to the description string
                 if description.len() > 0{
                     description.push(' '); // add a space before the next part of the description
