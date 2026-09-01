@@ -514,7 +514,7 @@ pub fn write_annotated_db(domains: HashMap<String, Vec<Domain>>, clan_map: &Hash
         let mut description: String = String::new();
         let mut structured_found = false;
         for field in &fields{
-            if fild.contains('='){
+            if field.contains('='){
                 structured_found = true;
             }
             if !structured_found{
