@@ -762,18 +762,24 @@ class DomainPainter extends CustomPainter {
     } else {
       //see if the domain name fits
     //  name = domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "" ? domain.pfamName : domain.name;
-      painter.text = TextSpan(
-        text: name,
-        style: textTheme.bodyMedium!.copyWith(
-          color: query?Theme.of(context).colorScheme.surface:textFG,
-          backgroundColor: query?Theme.of(context).colorScheme.onSurface:textBG
-        ),
-      );
-      painter.layout();
-      if (painter.width <= (width - heightPerLine)) {
-        Offset textPosition = Offset(textOffset - painter.width / 2, startY);
-        painter.paint(canvas, textPosition);
-      }/*else {
+      var baseFontSize = textTheme.bodyMedium!.fontSize ?? 14.0;
+      for (var size in [baseFontSize, baseFontSize * 0.9, baseFontSize * 0.8, baseFontSize * 0.7, baseFontSize * 0.6, baseFontSize * 0.5]) {
+        painter.text = TextSpan(
+          text: name,
+          style: textTheme.bodyMedium!.copyWith(
+            fontSize: size,
+            color: query?Theme.of(context).colorScheme.surface:textFG,
+            backgroundColor: query?Theme.of(context).colorScheme.onSurface:textBG
+          ),
+        );
+        painter.layout();
+        if (painter.width <= (width - heightPerLine)) {
+          Offset textPosition = Offset(textOffset - painter.width / 2, startY+(heightPerLine - painter.height)/2);
+          painter.paint(canvas, textPosition);
+          break;
+          }
+      }
+      /*else {
         //Cram in what we can
         int numChars = name.length;
         while (painter.width > (width - heightPerLine) && numChars > 0) {
@@ -962,8 +968,7 @@ double requiredHitWidth(
   double widthPerChar = 0.0;
   for (var domain in hit.queries) {
     // figure out how long the domain needs to be to fit the text we'll put in it
-    String evalString = domain.domEvalue.toStringAsExponential(2);
-    String name = (domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "") ? domain.pfamName: domain.name + evalString;
+    String name = (domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "") ? domain.pfamName: domain.name;
     painter.text = TextSpan(
       text: name,
       style: Theme.of(context).textTheme.bodyMedium,
@@ -977,15 +982,12 @@ double requiredHitWidth(
       //this domain needs more room per character than previous ones
       widthPerChar = domainWidthPerChar;
     }
-    ;
   }
   // Now repeat for the sequence domains
   for (var domain in allDomains ? hit.domains : hit.structureDomains) {
     // figure out how long the domain needs to be to fit the text we'll put in it
-    String evalString = domain.domEvalue.toStringAsExponential(2);
-    String name = domain.name + " (" + evalString + ")";
     painter.text = TextSpan(
-      text: name,
+      text: domain.name,
       style: Theme.of(context).textTheme.bodyMedium,
     );
     painter.layout();
