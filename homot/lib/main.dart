@@ -1764,7 +1764,7 @@ void showMyAboutDialog(BuildContext context) {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Text(
-                "Version 0.1.0\n",
+                "Version 1.0.0\n",
                 style: TextStyle(color: Theme.of(context).colorScheme.primary),
               ),
             ),
@@ -2096,7 +2096,7 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
               showAboutDialog(
                 context: context,
                 applicationName: 'Homot: A taxonomy viewer for HMMER',
-                applicationVersion: '0.0.1',
+                applicationVersion: '1.0.0',
               );
             },
           ),
