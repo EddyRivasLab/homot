@@ -11,7 +11,7 @@ section: x11
 installed_size: 56000
 essential: false
 icon: assets/app_icon_1024.png
-
+setup_icon_file: assets/app_icon_1024.png
 postinstall_scripts:
   - echo "Installed homot"
 postuninstall_scripts:
