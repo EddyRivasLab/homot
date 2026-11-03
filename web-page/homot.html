@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HMMER</title>
+<link rel="stylesheet" href="css/hmmer.css?v=2">
+</head>
+<body>
+
+<!-- The header is the same on every page. aria-current marks the page you're on. -->
+<header>
+  <a><img src="icon_1024.png" alt=""> Homot</a>
+</header>
+
+<main>
+
+<h1>Homot: A Viewer for Homology Search Results</h1>
+
+<!-- Download box, shown to the right of the text. -->
+<aside>
+  <p>Download Binary Installers</p>
+  <p><a class="button" href="homot-1.0.0+1-macos.dmg">MacOS</a></p>
+</aside>
+
+<p>HMMER is used for searching sequence databases for sequence homologs,
+and for making sequence alignments. Its
+methods use probabilistic models called profile hidden
+Markov models (profile HMMs).</p>
+
+<p>You can use <strong>hmmbuild</strong> and
+<strong>hmmsearch</strong> to build and search with your own profiles
+of conserved protein domains or DNA elements starting from your own
+multiple sequence alignments. HMMER is also often used together with
+an existing curated profile database, such as <a
+href="http://pfam.xfam.org/">Pfam</a> or many of the databases that
+participate in <a href="http://www.ebi.ac.uk/interpro/">Interpro</a>:
+you can scan a sequence against a profile database with
+<strong>hmmscan</strong>.  HMMER can also start with your query
+<em>sequences</em>, not just profiles, just like BLAST. You can search
+a protein query sequence against a database with
+<strong>phmmer</strong>, or do an iterative search with
+<strong>jackhmmer</strong>.</p>
+
+<p>HMMER is designed to detect remote homologs as sensitively as
+possible, relying on the strength of its underlying probability
+models. When profile HMMs were first introduced, this strength came at
+significant computational expense, but as of HMMER3, HMMER is
+essentially as fast as BLAST.</p>
+
+<p>HMMER can be downloaded and installed as a command line tool,
+and 
+<a href="http://www.ebi.ac.uk/Tools/hmmer/">a HMMER search server</a>
+is hosted at the European
+Bioinformatics Institute.</p>
+
+<!-- Three short sections, side by side. -->
+<section class="columns">
+  <div>
+    <h3>Perform a Search</h3>
+    <p>An online interactive <a href="http://www.ebi.ac.uk/Tools/hmmer/">search</a> service is available at the European Bioinformatics Institute. Go there to <a href="http://www.ebi.ac.uk/Tools/hmmer/">search</a> against the latest Uniprot databases.</p>
+  </div>
+  <div>
+    <h3><a href="documentation.html">Documentation</a></h3>
+    <p>The HMMER User's Guide: <a href="http://eddylab.org/software/hmmer/Userguide.pdf">[PDF]</a>.</p>
+  </div>
+  <div>
+    <h3>News</h3>
+    <p>See the blog <a href="http://cryptogenomicon.org/category/hmmer.html">Cryptogenomicon</a> for more information and discussion about HMMER3.</p>
+  </div>
+</section>
+
+</main>
+</body>
+</html>

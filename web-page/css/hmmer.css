@@ -1,0 +1,185 @@
+/* hmmer.org style sheet
+ *
+ * Styles plain HTML elements, so the pages need almost no classes.
+ * The only classes are .version and .button (home page download box),
+ * .columns (home page bottom row), and .current (download page).
+ */
+
+
+/* Colors. The second set is used when the visitor's system is in dark mode. */
+
+:root {
+  --text:       #1f2328;
+  --muted:      #5f6b76;   /* secondary text: dates, notes, nav */
+  --background: #ffffff;
+  --shade:      #f6f7f9;   /* code blocks, download box */
+  --line:       #e4e7eb;   /* rules and borders */
+  --link:       #007699;
+  --link-hover: #00546d;
+  --logo-red:   #981914;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text:       #e6e8eb;
+    --muted:      #9aa4ae;
+    --background: #0f1115;
+    --shade:      #171a21;
+    --line:       #2a2f38;
+    --link:       #4cc3e8;
+    --link-hover: #8fdcf3;
+    --logo-red:   #e2574f;
+  }
+}
+
+
+/* Page */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0 1.5rem;
+  background: var(--background);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  overflow-y: scroll;   /* stops the page shifting sideways between short and long pages */
+}
+
+header, main {
+  max-width: 61rem;
+  margin: 0 auto;
+}
+
+main { padding: 2.5rem 0 5rem; }
+
+
+/* Text */
+
+h1, h2, h3, h4 { line-height: 1.3; font-weight: 650; }
+
+h1 { font-size: clamp(1.5rem, 2.5vw, 2rem); font-weight: 700; letter-spacing: -0.02em; margin: 1.5rem 0 2.5rem; }
+h2 { font-size: 1.3rem; margin: 3rem 0 0.6rem; }
+h3 { font-size: 1.1rem; margin: 1.75rem 0 0.4rem; }
+
+main > h2:first-child { margin-top: 0; }
+
+p, ul, pre, table { margin: 0 0 1rem; }
+p, ul { max-width: 42rem; }   /* keeps lines of text to a readable length */
+ul { padding-left: 1.25rem; }
+li { margin-bottom: 0.35rem; }
+
+a { color: var(--link); text-underline-offset: 0.2em; }
+a:hover { color: var(--link-hover); }
+
+code, pre { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.875em; }
+code { background: var(--shade); padding: 0.1em 0.35em; border-radius: 4px; }
+pre  { background: var(--shade); padding: 1rem 1.25rem; border-radius: 8px; overflow-x: auto; }
+
+
+/* Header: logo on the left, navigation on the right */
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 2rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+header > a {   /* logo and HMMER name */
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--logo-red);
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+header img { height: 44px; }
+
+nav { display: flex; flex-wrap: wrap; gap: 0.25rem 1.75rem; font-size: 0.95rem; font-weight: 500; }
+nav a { color: var(--muted); text-decoration: none; padding: 0.25rem 0; }
+nav a:hover { color: var(--text); }
+nav a[aria-current] { color: var(--text); border-bottom: 2px solid var(--logo-red); }   /* the page you're on */
+
+
+/* Home page: download box, to the right of the text */
+
+aside {
+  float: right;
+  width: 17rem;
+  margin: 0 0 2rem 3rem;
+  padding: 1.75rem 1.5rem;
+  text-align: center;
+  background: var(--shade);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+aside p { margin: 0; color: var(--muted); font-size: 0.85rem; }   /* small links below the button */
+aside p:first-child { font-size: 0.95rem; }                         /* "Get the latest version" */
+
+aside .version {
+  margin: 0.25rem 0 1.25rem;
+  color: var(--text);
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.button {
+  display: inline-block;
+  margin-bottom: 0.9rem;
+  font-size: 0.95rem;
+  padding: 0.55rem 1.2rem;
+  border-radius: 8px;
+  background: var(--link);
+  color: var(--background);
+  font-weight: 600;
+  text-decoration: none;
+}
+.button:hover { background: var(--link-hover); color: var(--background); }
+
+
+/* Home page: three short sections side by side, below everything else */
+
+.columns {
+  clear: both;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 2rem;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--line);
+}
+.columns p { font-size: 0.95rem; color: var(--muted); }
+.columns h3 { margin-top: 0; }
+.columns h3 a { color: inherit; text-decoration: none; }
+.columns h3 a:hover { color: var(--link); }
+
+
+/* Download page */
+
+h2.current { font-weight: 400; }   /* "The current version is..." */
+
+table { border-collapse: collapse; font-size: 0.95rem; margin-bottom: 1.5rem; }
+td { padding: 0.45rem 2.5rem 0.45rem 0; border-bottom: 1px solid var(--line); }
+td:first-child  { font-weight: 600; min-width: 5rem; }          /* version */
+td:nth-child(2) { color: var(--muted); white-space: nowrap; }   /* date */
+td:last-child   { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.9em; }   /* file */
+
+
+/* Phones and narrow windows */
+
+@media (max-width: 760px) {
+  body { font-size: 1rem; }
+  main { padding-top: 1.5rem; }
+  h1 { margin: 0.5rem 0 1.5rem; }
+  aside { float: none; width: auto; margin: 0 0 2rem; }
+  .columns { grid-template-columns: 1fr; gap: 1.5rem; }
+  td { padding-right: 1.25rem; }
+}
