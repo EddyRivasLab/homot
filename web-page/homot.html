@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HMMER</title>
+<title>Homot</title>
 <link rel="stylesheet" href="css/hmmer.css?v=2">
 </head>
 <body>
@@ -16,60 +16,101 @@
 <main>
 
 <h1>Homot: A Viewer for Homology Search Results</h1>
+<p>Homot is a tool for visualizing and exploring the results of homology searches. It accepts results in HMMER's .domtblout and BLAST's tabular formats. It can display results on a taxonomic tree, grouped by structure (the domains or other regions of interest in each homolog), or sorted by e-value.  To display search results, Homot needs an "annotations database" for the sequence set that was searched, which contains information about the regions of interest (typically Pfam domains) and taxonomic locations of the sequences in the set.  We have a few annotations databases available, and the source code distribution of Homot contains a program to annotate sequence sets.</p>
 
-<!-- Download box, shown to the right of the text. -->
-<aside>
-  <p>Download Binary Installers</p>
-  <p><a class="button" href="homot-1.0.0+1-macos.dmg">MacOS</a></p>
-</aside>
 
-<p>HMMER is used for searching sequence databases for sequence homologs,
-and for making sequence alignments. Its
-methods use probabilistic models called profile hidden
-Markov models (profile HMMs).</p>
+<figure>
+<img src="taxonomy.png" style="max-width: 75%; height: auto;"alt="Taxonomic Display of Search Results">
+<figcaption>Taxonomic display of Search Results</figcaption>
+</figure>
 
-<p>You can use <strong>hmmbuild</strong> and
-<strong>hmmsearch</strong> to build and search with your own profiles
-of conserved protein domains or DNA elements starting from your own
-multiple sequence alignments. HMMER is also often used together with
-an existing curated profile database, such as <a
-href="http://pfam.xfam.org/">Pfam</a> or many of the databases that
-participate in <a href="http://www.ebi.ac.uk/interpro/">Interpro</a>:
-you can scan a sequence against a profile database with
-<strong>hmmscan</strong>.  HMMER can also start with your query
-<em>sequences</em>, not just profiles, just like BLAST. You can search
-a protein query sequence against a database with
-<strong>phmmer</strong>, or do an iterative search with
-<strong>jackhmmer</strong>.</p>
+<p> Homot's taxonomic display allows users to see how their search results are distributed across the tree of life, making it easy to identify both where the bulk of results lie and where there are outliers.  Users can explore their results by re-rooting the tree at any node to see more detail, by removing nodes from the graph to allow more room for others, and by changing the number of levels of the taxonomy displayed.   Selecting a sub-tree also allows the results in that sub-tree to be viewed by structure and by E-value.</p>
+<figure>
+<img src="structure.png" style="max-width: 75%; height: auto;" alt="Grouped Display of Search Results">
+<figcaption>Search Results Grouped by Structure</figcaption>
+</figure>
 
-<p>HMMER is designed to detect remote homologs as sensitively as
-possible, relying on the strength of its underlying probability
-models. When profile HMMs were first introduced, this strength came at
-significant computational expense, but as of HMMER3, HMMER is
-essentially as fast as BLAST.</p>
+<p>Homot's structure display groups homologs by the set of domains or other regions of interest that they contain, allowing users to see the breadth of results from their search, zoom in on the results of most interest, and avoid losing unusual results in a sea of close homologs.  Homot displays each class of results graphically, showing where the regions of interest lie in each homolog and where homology was found between the query object and the search result.  Users can also select an individual result to see more detail about it.</p>
 
-<p>HMMER can be downloaded and installed as a command line tool,
-and 
-<a href="http://www.ebi.ac.uk/Tools/hmmer/">a HMMER search server</a>
-is hosted at the European
-Bioinformatics Institute.</p>
+<figure>
+<img src="evalue.png" style="max-width: 75%; height: auto;"alt="Sorted Display of Search Results">
+<figcaption>Search Results Sorted by E-value</figcaption>
+</figure>
+
+<p>Sorting results by E-value mimics the default output of most tools in a graphical manner, showing the user where regions of interest lie on each homolog found and where homology was found to the query object.</p>
+
+<H2>Want to Try Homot?</H2>
+<ol>
+  <li>Download an installer for your OS from the list below and install Homot using the normal process for your system<./li>
+  <li>Download the <a href=/Users/npcarter/Desktop/homot_to_release/homot_example.tgz>example data</a> and unzip/untar it.</li>
+  <li>Start Homot.  Using the file folder icons on the screen that comes up, select homot_example/swissprot-26_03_annotated as the annotations database and example_data/example.domtblout as the results file.</li>
+  <li>Click "Load Data" and start exploring.</li>
+</ol>
+If that interests you enough to learn more about Homot, the <a href="/Users/npcarter/Desktop/homot_to_release/homot_userguide.pdf">userguide</a> has more information.
 
 <!-- Three short sections, side by side. -->
-<section class="columns">
-  <div>
-    <h3>Perform a Search</h3>
-    <p>An online interactive <a href="http://www.ebi.ac.uk/Tools/hmmer/">search</a> service is available at the European Bioinformatics Institute. Go there to <a href="http://www.ebi.ac.uk/Tools/hmmer/">search</a> against the latest Uniprot databases.</p>
+<section class="columns-container">
+  <div class="column side-left">
+    <h3>Get Homot</h3>
+    <a class="button" href="/Users/npcarter/Desktop/homot_to_release/homot-1.0.0+1-macos.dmg">MacOS</a>
+    <a class="button" href="/Users/npcarter/Desktop/homot_to_release/homot-1.0.0+1-windows-setup.exe">Windows</a>
+    <a class="button" href="/Users/npcarter/Desktop/homot_to_release/homot-1.0.0+1-linux.deb">Linux .deb</a>
+    <a class="button" href="/Users/npcarter/Desktop/homot_to_release/homot-1.0.0+1-1.x86_64.rpm">Linux RPM</a>
+    <a class="button" href="https://github.com/EddyRivasLab/homot">Source Code</a>
   </div>
-  <div>
-    <h3><a href="documentation.html">Documentation</a></h3>
-    <p>The HMMER User's Guide: <a href="http://eddylab.org/software/hmmer/Userguide.pdf">[PDF]</a>.</p>
+  <div class="column center-main">
+    <h3>Pfam Domain Annotations <br> for UniProt Datasets</h3><h3>Source Datasets</h3>
+    <a class="button" href="/Users/npcarter/Desktop/homot_to_release/swissprot-26_03_annotated.tgz">UniProt SwissProt 26_03<br> (Annotations Database)</a>
+    <a class="button" href="https://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-2026_03/knowledgebase/uniprot_sprot-only2026_03.tar.gz">UniProt SwissProt 26_03 <br>(From UniProt)</a>
+    <a class="button" href="/Users/npcarter/Desktop/homot_to_release/swissprot-26_03_annotated.tgz">UniProt SwissProt 26_03<br> (Annotations Database)</a>
+    <a class="button" href="https://ftp.uniprot.org/pub/databases/uniprot/previous_releases/release-2026_03/knowledgebase/knowledgebase2026_03.tar.gz">UniProtKb 26_03 <br>(From UniProt)</a>
   </div>
-  <div>
-    <h3>News</h3>
-    <p>See the blog <a href="http://cryptogenomicon.org/category/hmmer.html">Cryptogenomicon</a> for more information and discussion about HMMER3.</p>
+  <div class="column side-right">
+    <h3>Documentation</h3>
+    <p><a href="/Users/npcarter/Desktop/homot_to_release/homot_userguide.pdf">Userguide</a>.</p>
+    <p><a href ="/Users/npcarter/Desktop/homot_to_release/homot_example.tgz">Example Results File and Annotations Database</a></p>
   </div>
+
 </section>
 
 </main>
 </body>
+
+<style>
+.columns-container {
+  display: flex;
+  width: 100%; /* Ensures the container spans the full page width */
+  box-sizing: border-box;
+  align-items: flex-start;
+}
+
+/* Base styles for all columns */
+.column {
+  box-sizing: border-box;
+  padding: 15px; /* Optional: adds space inside columns */
+}
+
+/* Explicit widths */
+.side-left {
+  width: 25%;
+  display: inline-grid;       /* Keeps the container tight around the buttons */
+  grid-auto-rows: 1fr;    /* Forces all columns to take up 1 equal fraction of space */
+  grid-auto-flow: row;    /* Rows up buttons horizontally. Change to 'row' for a vertical stack */
+  gap: 10px;                 /* Spacing between buttons */
+  width: fit-content;
+}
+
+.center-main {
+  width: 50%;
+    display: inline-grid;       /* Keeps the container tight around the buttons */
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-flow: row;    /* Rows up buttons horizontally. Change to 'row' for a vertical stack */
+  gap: 10px;                 /* Spacing between buttons */
+  width: fit-content;
+}
+
+.side-right {
+  width: 25%;
+}
+</style>
 </html>

@@ -183,3 +183,4 @@ td:last-child   { font-family: ui-monospace, Menlo, Consolas, monospace; font-si
   .columns { grid-template-columns: 1fr; gap: 1.5rem; }
   td { padding-right: 1.25rem; }
 }
+
