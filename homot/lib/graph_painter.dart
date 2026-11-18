@@ -258,7 +258,7 @@ class GraphPainter extends CustomPainter {
       startRadius + ((maxLevel - startLevel) * radPerLevel),
     );
 
-    if (myRadius >= (graphRadius - ((hSettings.lineWidth/2) / (graphData.scale)))) { // make sure outer border fits
+    if ((hSettings.drawType != GraphDrawType.fill) & (myRadius >= (graphRadius - ((hSettings.lineWidth/2) / (graphData.scale))))) { // make sure outer border fits
       myRadius = graphRadius - ((hSettings.lineWidth/2) / (graphData.scale));
     }
 
@@ -324,6 +324,29 @@ class GraphPainter extends CustomPainter {
             myCanvas.drawLine(parentOffset, myOffset, paint
                               ..strokeWidth = hSettings.lineWidth / graphData.scale
                               ..color = nodeColor,);
+            double arcPerChild =
+              (node.myArcEnd - node.myArcStart) / max(node.hitsBelow, 1);
+              var rect = Rect.fromCircle(center: center, radius: myRadius);
+
+            double arcStart =
+              node.myArcStart +
+              (graph[node.children[0].toInt()]!.hitsBelow) * arcPerChild; 
+            double arcEnd =
+              node.myArcEnd; -
+              (graph[node.children[node.children.length - 1].toInt()]!
+                    .hitsBelow) *
+                arcPerChild;
+            double sweep = node.myArcEnd - node.myArcStart;
+            myCanvas.drawArc(
+              rect,
+              node.myArcStart,
+              sweep,
+              false,
+              paint
+              ..style = PaintingStyle.stroke
+              ..color = nodeColor
+              ..strokeWidth = hSettings.lineWidth / graphData.scale,
+            );
             break;
           case GraphDrawType.outline:
           // Approximation: shrink the arc angles by half the line width at both inner and outer radius
@@ -367,6 +390,29 @@ class GraphPainter extends CustomPainter {
                 //  ..strokeWidth = hSettings.lineWidth / graphData.scale
                   ,
                 ); 
+                             double arcPerChild =
+              (node.myArcEnd - node.myArcStart) / max(node.hitsBelow, 1);
+              var rect = Rect.fromCircle(center: center, radius: myRadius);
+
+            double arcStart =
+              node.myArcStart +
+              (graph[node.children[0].toInt()]!.hitsBelow) * arcPerChild; 
+            double arcEnd =
+              node.myArcEnd; -
+              (graph[node.children[node.children.length - 1].toInt()]!
+                    .hitsBelow) *
+                arcPerChild;
+            double sweep = node.myArcEnd - node.myArcStart;
+            myCanvas.drawArc(
+              rect,
+              node.myArcStart,
+              sweep,
+              false,
+              paint
+              ..style = PaintingStyle.stroke
+              ..color = fillColor
+              ..strokeWidth = hSettings.lineWidth / graphData.scale,
+            ); 
               break;
           case GraphDrawType.fill:
             var innerRect = Rect.fromCircle(center: center, radius: parentRadius);
@@ -402,6 +448,29 @@ class GraphPainter extends CustomPainter {
                 //  ..strokeWidth = hSettings.lineWidth / graphData.scale
                   ,
                 ); 
+              double arcPerChild =
+              (node.myArcEnd - node.myArcStart) / max(node.hitsBelow, 1);
+              var rect = Rect.fromCircle(center: center, radius: myRadius);
+
+            double arcStart =
+              node.myArcStart +
+              (graph[node.children[0].toInt()]!.hitsBelow) * arcPerChild; 
+            double arcEnd =
+              node.myArcEnd; -
+              (graph[node.children[node.children.length - 1].toInt()]!
+                    .hitsBelow) *
+                arcPerChild;
+            double sweep = node.myArcEnd - node.myArcStart;
+        /*    myCanvas.drawArc(
+              rect,
+              node.myArcStart,
+              sweep,
+              false,
+              paint
+              ..style = PaintingStyle.stroke
+              ..color = fillColor
+              ..strokeWidth = hSettings.lineWidth / graphData.scale,
+            ); */
             break;
         }
         _write_if_fits( // Draw the text here so that it appears on top of any decoration
@@ -413,7 +482,7 @@ class GraphPainter extends CustomPainter {
         myRadius,
         (node.myArcEnd - node.myArcStart),
         center,
-        Theme.of(context).colorScheme.onSurface,
+        hSettings.drawType == GraphDrawType.fill ? fillTextColor: Theme.of(context).colorScheme.onSurface,
         Color(0x00000000), // transparent background for text
         false
       );
@@ -517,7 +586,7 @@ class GraphPainter extends CustomPainter {
     if (drawChildren) {
       double arcPerChild =
           (node.myArcEnd - node.myArcStart) / max(node.hitsBelow, 1);
-      if (node.children.length > 1) {
+     /* if (node.children.length > 1) {
         // Need to draw the arc for this node
         var rect = Rect.fromCircle(center: center, radius: myRadius);
 
@@ -540,7 +609,7 @@ class GraphPainter extends CustomPainter {
             ..color = fillColor
             ..strokeWidth = hSettings.lineWidth / graphData.scale,
         );
-      }
+      } */
 
       double lastEnd = node.myArcStart;
       var i = 0;

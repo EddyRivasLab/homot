@@ -91,6 +91,8 @@ pub struct Node{
     pub my_arc_start: f64, // Not used on the Rust side, but useful for Flutter visualization
     #[frb(non_final)]
     pub my_arc_end: f64,    // Not used on the Rust side, but useful for Flutter visualization
+ //   #[frb(non_final)]
+ //   pub scale_factor: f64,  // used on Dart side in cases where we need to adjust a taxon's 
 }
 impl From<&Node> for Slice{
     fn from(val: &Node) ->Self{

@@ -448,7 +448,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                         color:
                                             Theme.of(
                                               context,
-                                            ).colorScheme.onSurface,
+                                          ).colorScheme.onSurface,
                                       ),
                                       "Font Family",
                                     ),

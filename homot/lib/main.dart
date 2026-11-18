@@ -486,7 +486,18 @@ Future<void> main() async {
   }
   bool temp = await prefs.getBool("homot_interpro_names_from_pfam") ?? true;
   ShowNamesFrom namesFrom = temp ? ShowNamesFrom.pfam : ShowNamesFrom.interpro;
-
+  int temp3 = await prefs.getInt("homot_drawtype") ?? 2;
+  GraphDrawType drawType;
+  switch(temp3){
+    case 0:
+      drawType = GraphDrawType.line;
+    case 1:
+      drawType = GraphDrawType.outline;
+    case 2:
+      drawType = GraphDrawType.fill;
+    default:
+      drawType = GraphDrawType.fill;
+  }
   runApp(
     MultiProvider(
       providers: [
@@ -516,6 +527,7 @@ Future<void> main() async {
                 showInterproOther,
                 showInterproIDAs,
                 namesFrom,
+                drawType,
               ),
         ),
         ChangeNotifierProvider(create: (_) => SearchData()),
@@ -587,7 +599,7 @@ class HSettings with ChangeNotifier {
   ShowNamesFrom _namesFrom = ShowNamesFrom.pfam;
   ShowInterproIdEnum _showInterproIDAs = ShowInterproIdEnum.id;
 
-  GraphDrawType _drawType = GraphDrawType.line;
+  GraphDrawType _drawType = GraphDrawType.fill;
   late SharedPreferencesAsync _prefs;
   List<(Color, Color, PatternType, Color, Color)> get graphColors {
     if (_mode == brightModes.light ||
@@ -620,6 +632,7 @@ class HSettings with ChangeNotifier {
     bool showInterproOther,
     ShowInterproIdEnum showInterproIDAs,
     ShowNamesFrom namesFrom,
+    GraphDrawType drawType,
   ) {
     _prefs = prefs;
     _font = font;
@@ -640,6 +653,7 @@ class HSettings with ChangeNotifier {
     _showInterproOther = showInterproOther;
     _showInterproIDAs = showInterproIDAs;
     _namesFrom = namesFrom;
+    _drawType = drawType;
 
     switch (mode) {
       case 1:
@@ -760,6 +774,14 @@ class HSettings with ChangeNotifier {
 
   void set drawType(GraphDrawType newType) {
     _drawType = newType;
+    switch(newType){
+      case GraphDrawType.line:
+        _prefs.setInt("homot_drawtype", 0);
+      case GraphDrawType.outline:
+        _prefs.setInt("homot_drawtype", 1);
+      case GraphDrawType.fill:
+        _prefs.setInt("homot_drawtype", 2);
+    }
     notifyListeners();
   }
 
@@ -829,6 +851,7 @@ class HSettings with ChangeNotifier {
     if (newWidth > 0) {
       _lineWidth = newWidth;
     }
+    _prefs.setDouble("homot_lineWidth", newWidth);
   }
 
   void set addPatterns(bool val) {
