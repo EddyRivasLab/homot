@@ -1,7 +1,6 @@
 use flutter_rust_bridge::frb;
 use serde::{Serialize, Deserialize};
 use fjall::{Config, PartitionCreateOptions,UserValue, Slice, PartitionHandle};
-use core::panic;
 use std::sync::atomic::AtomicI64;
 use std::{collections::HashMap};
 use std::i64::MAX;
@@ -11,6 +10,7 @@ use dashmap::DashMap;
 use std::cmp::Reverse;
 use rayon::prelude::*;
 use std::sync::{Arc, Mutex};
+use std::cmp;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Dmap{
@@ -155,13 +155,13 @@ pub struct Hit{
 
 impl From<&Hit> for Slice{
     fn from(val: &Hit) ->Self{
-        rmp_serde::to_vec(&val).expect("Serialization error for Node").into()
+        rmp_serde::to_vec(&val).expect("Serialization error for Hit").into()
     }
 }
 
 impl From<&UserValue> for Hit{
     fn from(value: &UserValue) -> Self{
-        let item: Hit = rmp_serde::from_slice(&value).expect("Deserialization error for Node");
+        let item: Hit = rmp_serde::from_slice(&value).expect("Deserialization error for Hit");
         item
     }
 }
@@ -300,30 +300,33 @@ impl From<&UserValue> for AnnotatedSequence{
     }
 }
 
-fn count_hits(graph: &mut HashMap<i64, Node>, id: i64) -> i64 {
+fn count_hits(graph: &mut HashMap<i64, Node>, id: i64) -> Result<i64, String>  {
     let mut total: i64=0;   
     let children: Vec<i64>;
     if (id == -1)||(graph.len()== 0){ // empty graph
-        return 0;
+        return Ok(0);
     }
     if let Some(node) = graph.get(&id) {
         total += node.hits.len() as i64;
         children = node.children.clone();
 
     } else {
-        panic!("Node with taxid {} not found in graph", id);
+        return Err(format!("Node with taxid {} not found in graph",id));
     }
 
     for child_id in children {
-        total += count_hits(graph, child_id as i64);
+        match count_hits(graph, child_id as i64){
+            Ok(v) => total +=v,
+            Err(msg) => return Err(msg),
+        }
     }
     if let Some(node) = graph.get_mut(&id) {
         node.hits_below = total;
     }
     else{
-        panic!("Node with taxid {} not found in graph", id);
+        return Err(format!("Node with taxid {} not found in graph", id));
     }
-    total
+    Ok(total)
 }
 
 
@@ -395,7 +398,11 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
     };
 
     // Read all of the nodes into memory, and determine the root and depth of the tree
-
+  if !keyspace.partition_exists("nodes"){
+        // we're overwriting an existing database, so delete the partition first
+        results.message = "Couldn't find nodes data in database".to_string() +&annfile;
+        return results
+    }
     let mut graph: HashMap<i64, Node>;
     let depth: u32;
     let graph_db = match keyspace.open_partition("nodes", PartitionCreateOptions::default()){
@@ -449,8 +456,16 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
         
     }
  //   println!("{}ms to build graph from hits", now.elapsed().as_millis());
-    let total_hits = count_hits(&mut graph, root);
-
+    let total_hits:i64; 
+    match count_hits(&mut graph, root){
+        Ok(v) =>{
+            total_hits = v;
+        }
+        Err(msg) =>{
+            results.message = "Error building graph: ".to_string()+&msg;
+            return results;
+        }
+    }
  //   println!("Hits in domtbl(s): {}, in graph: {}, in list of hits {} ",num_domtbl_hits, total_hits, hits.len());
 
 
@@ -503,11 +518,17 @@ fn read_hits_from_file(filename: &str, hits: &mut DashMap<String, Hit>, min_seq_
     }
 
     if *fileType == DataFileType::DomTblOut || (*fileType == DataFileType::Infer && inferred_filetype == DataFileType::DomTblOut){
-        reader.rewind().unwrap(); // Back up to the start of the file
+        match reader.rewind(){
+            Ok(_v) =>{},
+            Err(msg)=> return Err(format!("Unable to rewind input file, error was : {}", msg)),
+        } // Back up to the start of the file
         return read_hits_from_domtblout(filename, reader, hits, min_seq_evalue, max_seq_evalue, min_dom_evalue, max_dom_evalue, annotation_db, domain_map);
     }
     else{
-        reader.rewind().unwrap(); // Back up to the start of the file
+        match reader.rewind(){
+            Ok(_v) =>{},
+            Err(msg)=> return Err(format!("Unable to rewind input file, error was : {}",msg)),
+        } // Back up to the start of the file
         return read_hits_from_blast(filename, reader, hits, min_seq_evalue, max_seq_evalue, annotation_db, domain_map);
     }
 }
@@ -556,54 +577,54 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 },
                 Ok(v) => v,
             };
-        let seq_evalue: f64 = match fields[6].parse(){
-            Ok(v) => v,
-            Err(e) => {//errmsg = format!("Error parsing seq_evalue in file {}: {}", filename, e);
-            let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+            let seq_evalue: f64 = match fields[6].parse(){
+                Ok(v) => v,
+                Err(e) => {//errmsg = format!("Error parsing seq_evalue in file {}: {}", filename, e);
+                    let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
                     if msg.is_empty() { // haven't already found an error
                         *msg = format!("Error {} encountered when trying to parse seq_evalue field of {} in line {} of {}", e, fields[6], line, filename);
                         error_found = true;
                     }
                     drop(msg);  // Unlock the mutex
-                0.0
-            }
-        };
+                    0.0
+                }
+            };
 
-        let seq_start: u32 = match fields[17].parse(){
-            Ok(v) => v,
-            Err(e) => {//errmsg = format!("Error parsing seq_start in file {}: {}", filename, e);
-            let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+            let seq_start: u32 = match fields[17].parse(){
+                Ok(v) => v,
+                Err(e) => {//errmsg = format!("Error parsing seq_start in file {}: {}", filename, e);
+                let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
                     if msg.is_empty() { // haven't already found an error
                         *msg = format!("Error {} encountered when trying to parse seq_start field of {} in line {} of {}", e, fields[17], line, filename);
                         error_found = true;
                     }
                     drop(msg);  // Unlock the mutex
-            0},
-        };
+                0},
+            };
         
-        let seq_end: u32 = match fields[18].parse(){
-            Ok(v) => v,
-            Err(e) =>{
-                let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
-                if msg.is_empty() { // haven't already found an error
+            let seq_end: u32 = match fields[18].parse(){
+                Ok(v) => v,
+                Err(e) =>{
+                    let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    if msg.is_empty() { // haven't already found an error
                         *msg = format!("Error {} encountered when trying to parse seq_end field of {} in line {} of {}", e, fields[18], line, filename);
                         error_found = true;
                     }
                     drop(msg);  // Unlock the mutex
-            0}
-        }; 
+                0}
+            }; 
 
-        let hmm_start: u32 = match fields[15].parse(){
-            Ok(v) => v,
-            Err(e) => {
-                let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
-                    if msg.is_empty() { // haven't already found an error
-                        *msg = format!("Error {} encountered when trying to parse hmm_start field of {} in line {} of {}", e, fields[15], line, filename);
-                        error_found = true;
-                    }
+            let hmm_start: u32 = match fields[15].parse(){
+                Ok(v) => v,
+                Err(e) => {
+                    let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                        if msg.is_empty() { // haven't already found an error
+                            *msg = format!("Error {} encountered when trying to parse hmm_start field of {} in line {} of {}", e, fields[15], line, filename);
+                            error_found = true;
+                        }
                     drop(msg);  // Unlock the mutex
-            0},
-        };
+                0},
+            };
 
         let hmm_end: u32 = match fields[16].parse(){
             Ok(v) => v,
@@ -812,6 +833,13 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 // https://github.com/xacrimon/dashmap/issues/169 describes this pattern for insert-or-modify
                 hits.entry(seq_ann.name).and_modify(|existing_hit| {
                     (*existing_hit).queries.push(domain.clone());
+                    if (*existing_hit).seq_evalue > hit.seq_evalue{
+                        (*existing_hit).seq_evalue = hit.seq_evalue;
+                    }
+                    if (*existing_hit).seq_length < hit.seq_length{
+                            (* existing_hit).seq_length = hit.seq_length;
+                            (* existing_hit).sequence = hit.sequence.clone();
+                        }
                     hit_count.fetch_add(-1,std::sync::atomic::Ordering::SeqCst); // we aren't adding a new hit after all
                 }  ).or_insert(hit);  // entry has a write guard on its shard to prevent concurrency issues
   /*               match entry{
@@ -1118,6 +1146,13 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 // https://github.com/xacrimon/dashmap/issues/169 describes this pattern for insert-or-modify
                 hits.entry(seq_ann.name).and_modify(|existing_hit| {
                     (*existing_hit).queries.push(domain.clone());
+                    if (*existing_hit).seq_evalue > hit.seq_evalue{
+                        (*existing_hit).seq_evalue = hit.seq_evalue;
+                    }
+                    if (*existing_hit).seq_length < hit.seq_length{
+                            (* existing_hit).seq_length = hit.seq_length;
+                            (* existing_hit).sequence = hit.sequence.clone();
+                        }
                     hit_count.fetch_add(-1,std::sync::atomic::Ordering::SeqCst); // we aren't adding a new hit after all
                 }  ).or_insert(hit); 
                /*  let entry = hits.entry(seq_ann.name);  // entry has a write guard on its shard to prevent concurrency issues
@@ -1443,4 +1478,3 @@ fn create_domain_id_map(db: &fjall::PartitionHandle) -> Result<HashMap<u32, Dmap
     }
    Ok(map)
 } 
-

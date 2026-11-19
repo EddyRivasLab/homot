@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hmmtax/main.dart';
-import 'package:hmmtax/src/rust/frb_generated.dart';
+import 'package:homot/main.dart';
+import 'package:homot/src/rust/frb_generated.dart';
 import 'package:integration_test/integration_test.dart';
 
 void main() {

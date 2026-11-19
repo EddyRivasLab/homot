@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
-import 'package:homot/src/rust/api/simple.dart';
 import 'package:homot/src/rust/frb_generated.dart';
 import 'package:homot/src/rust/api/graph.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -15,7 +14,6 @@ import "package:go_router/go_router.dart";
 import 'dart:io';
 import 'dart:collection';
 import 'package:matrix4_transform/matrix4_transform.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:patterns_canvas/patterns_canvas.dart';
 
 // List of pairs of background and foregrund colors for displaying

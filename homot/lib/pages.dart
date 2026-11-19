@@ -20,11 +20,8 @@ import 'package:homot/graph_painter.dart';
 import 'package:homot/draw_data.dart';
 import 'package:homot/src/rust/api/graph.dart';
 import 'package:provider/provider.dart';
-import 'dart:io';
 import 'package:input_quantity/input_quantity.dart';
-import 'package:system_fonts/system_fonts.dart';
 import "package:go_router/go_router.dart";
-import 'package:matrix4_transform/matrix4_transform.dart';
 import 'package:vector_math/vector_math_64.dart' hide Colors;
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -113,7 +110,7 @@ class _MainPageState extends State<MainPage> {
                           filedata.domtbloutFiles.isNotEmpty
                               ? () async {
                                 filedata.clearDomtbloutFiles();
-                                filedata.notifyListeners;
+                                filedata.notifyListeners();
                               }
                               : null,
                       child: Text("Clear"),
@@ -181,8 +178,7 @@ class _MainPageState extends State<MainPage> {
                               ));
                               ScaffoldMessenger.of(context).clearSnackBars();
                               // Update the overview data
-                              if (await !results!.succeeded ||
-                                  results.graph.length == 0) {
+                              if (!results.succeeded || results.graph.length == 0) {
                                 String message;
                                 if (results.succeeded) {
                                   message =
@@ -222,7 +218,7 @@ class _MainPageState extends State<MainPage> {
                                 graphdata.clearGraph();
                                 graphdata.setGraph(results.graph);
                                 graphdata.setDepth(results.depth);
-                                graphdata.setMaxLevels(results.depth);
+                                graphdata.setMaxLevels(results.depth-1);
                                 graphdata.clearDeletedNodes();
                                 graphdata.addRoot(
                                   results.root,
@@ -1896,7 +1892,7 @@ class _GraphPageState extends State<GraphPage> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      "Graph Levels Shown: ${graphdata.maxLevels}",
+                                      "Graph Levels Shown: ${min(graphdata.maxLevels, (graphdata.depth-(graphdata.graph[graphdata.currentRoot]!.ranknum)-1))}",
                                       style: Theme.of(
                                         context,
                                       ).textTheme.bodyMedium!.copyWith(
@@ -1926,11 +1922,11 @@ class _GraphPageState extends State<GraphPage> {
                                             min: 1.0,
                                             max: max(
                                               1.0,
-                                              graphdata.depth.toDouble(),
+                                              graphdata.depth.toDouble()-1,
                                             ),
                                             divisions: max(
                                               1,
-                                              graphdata.depth - 1,
+                                              graphdata.depth-2,
                                             ),
                                             onChanged: (double value) {
                                               setState(() {
@@ -1942,7 +1938,7 @@ class _GraphPageState extends State<GraphPage> {
                                           ),
                                         ),
                                         Text(
-                                          "${graphdata.depth}",
+                                          "${graphdata.depth-1}",
                                           style: Theme.of(
                                             context,
                                           ).textTheme.bodyMedium!.copyWith(

@@ -1,14 +1,17 @@
-import 'dart:io';
 import 'dart:math';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:homot/main.dart';
-import 'package:homot/utility.dart';
 import 'package:homot/src/rust/api/graph.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:patterns_canvas/patterns_canvas.dart';
+
+
+// Establish a minimum arc that the children of the root node are allowed to occupy
+// in order to keep nodes with few hits from disappearing
+// That arc will be the full circle divided by minArcFrac
+const minArcFrac = 100; // 1% of circle, 3.6 degrees
 
 // Draws a horizontal line as an example for the settings page
 class LinePainter extends CustomPainter {
@@ -324,18 +327,7 @@ class GraphPainter extends CustomPainter {
             myCanvas.drawLine(parentOffset, myOffset, paint
                               ..strokeWidth = hSettings.lineWidth / graphData.scale
                               ..color = nodeColor,);
-            double arcPerChild =
-              (node.myArcEnd - node.myArcStart) / max(node.hitsBelow, 1);
               var rect = Rect.fromCircle(center: center, radius: myRadius);
-
-            double arcStart =
-              node.myArcStart +
-              (graph[node.children[0].toInt()]!.hitsBelow) * arcPerChild; 
-            double arcEnd =
-              node.myArcEnd; -
-              (graph[node.children[node.children.length - 1].toInt()]!
-                    .hitsBelow) *
-                arcPerChild;
             double sweep = node.myArcEnd - node.myArcStart;
             myCanvas.drawArc(
               rect,
@@ -393,15 +385,6 @@ class GraphPainter extends CustomPainter {
                              double arcPerChild =
               (node.myArcEnd - node.myArcStart) / max(node.hitsBelow, 1);
               var rect = Rect.fromCircle(center: center, radius: myRadius);
-
-            double arcStart =
-              node.myArcStart +
-              (graph[node.children[0].toInt()]!.hitsBelow) * arcPerChild; 
-            double arcEnd =
-              node.myArcEnd; -
-              (graph[node.children[node.children.length - 1].toInt()]!
-                    .hitsBelow) *
-                arcPerChild;
             double sweep = node.myArcEnd - node.myArcStart;
             myCanvas.drawArc(
               rect,
@@ -451,17 +434,9 @@ class GraphPainter extends CustomPainter {
               double arcPerChild =
               (node.myArcEnd - node.myArcStart) / max(node.hitsBelow, 1);
               var rect = Rect.fromCircle(center: center, radius: myRadius);
-
-            double arcStart =
-              node.myArcStart +
-              (graph[node.children[0].toInt()]!.hitsBelow) * arcPerChild; 
-            double arcEnd =
-              node.myArcEnd; -
-              (graph[node.children[node.children.length - 1].toInt()]!
-                    .hitsBelow) *
-                arcPerChild;
+            
             double sweep = node.myArcEnd - node.myArcStart;
-        /*    myCanvas.drawArc(
+            myCanvas.drawArc(
               rect,
               node.myArcStart,
               sweep,
@@ -470,7 +445,7 @@ class GraphPainter extends CustomPainter {
               ..style = PaintingStyle.stroke
               ..color = fillColor
               ..strokeWidth = hSettings.lineWidth / graphData.scale,
-            ); */
+            ); 
             break;
         }
         _write_if_fits( // Draw the text here so that it appears on top of any decoration
@@ -522,54 +497,50 @@ class GraphPainter extends CustomPainter {
           center.dy + (parentRadius * sin(node.myArcStart)),
         );
 
-        /*myCanvas.drawPath(
-          piePath,
-          paint
-            ..style = PaintingStyle.stroke
-            ..color = fillColor,
-        );*/ 
-    if (hSettings.addPatterns) { // add patterns to assist color-blind users
-        // By default, patterns have a fixed number of features.  This should scale the number of features proportionally to the size of the area being filled
-        int featuresCount =  (((outerRadius-parentRadius)/(maxLevel *radPerLevel))* 50).round();
+   
+        if (hSettings.addPatterns) { // add patterns to assist color-blind users
+          // By default, patterns have a fixed number of features.  This should scale the number of features proportionally to the size of the area being filled
+          int featuresCount =  (((outerRadius-parentRadius)/(maxLevel *radPerLevel))* 50).round();
 
-        final Pattern p2 = Pattern.fromValues(patternType: patternType, fgColor: patternFg, bgColor: patternBg, featuresCount: featuresCount);
+          final Pattern p2 = Pattern.fromValues(patternType: patternType, fgColor: patternFg, bgColor: patternBg, featuresCount: featuresCount);
 
-        p2.paintOnPath(myCanvas, size, piePath);
-         // and see if we can fit the text in the outer edge of the wedge
-        _write_if_fits(
-          myCanvas,
-          Theme.of(context).textTheme,
-          nodeText,
-          myAngle,
-          parentRadius,
-          (maxLevel - startLevel) * radPerLevel,
-          (node.myArcEnd - node.myArcStart),
-          center,
-          Color(0xffffffff),
-          Color(0xff000000),
-          true,
-        );
-    } else { // don't
-       myCanvas.drawPath(
-          piePath,
-          paint
+          p2.paintOnPath(myCanvas, size, piePath);
+          // and see if we can fit the text in the outer edge of the wedge
+          _write_if_fits(
+            myCanvas,
+            Theme.of(context).textTheme,
+            nodeText,
+            myAngle,
+            parentRadius,
+            (maxLevel - startLevel) * radPerLevel,
+            (node.myArcEnd - node.myArcStart),
+            center,
+           Color(0xffffffff),
+           Color(0xff000000),
+            true,
+          );
+        }
+        else { // don't
+          myCanvas.drawPath(
+            piePath,
+            paint
             ..style = PaintingStyle.fill
             ..color = fillColor,
-        ); 
+          ); 
          // and see if we can fit the text in the outer edge of the wedge
-        _write_if_fits(
-          myCanvas,
-          Theme.of(context).textTheme,
-          nodeText,
-          myAngle,
-          parentRadius,
-          (maxLevel - startLevel) * radPerLevel,
-          (node.myArcEnd - node.myArcStart),
-          center,
-          fillTextColor,
-          Color(0x00000000), // transparent background for text
-          true
-        );
+          _write_if_fits(
+            myCanvas,
+            Theme.of(context).textTheme,
+            nodeText,
+            myAngle,
+            parentRadius,
+            (maxLevel - startLevel) * radPerLevel,
+            (node.myArcEnd - node.myArcStart),
+            center,
+            fillTextColor,
+            Color(0x00000000), // transparent background for text
+            true
+          );
     }
         // now, add the region for the node to each level in the wedge outside the
         //node's actual level
@@ -584,8 +555,28 @@ class GraphPainter extends CustomPainter {
       }
     }
     if (drawChildren) {
+      int minNodesBelow;
+      int hitsBelow=0;
+      for (var childId in node.children){ // count the hits below each child because this nodes hitsBelow includes any hits assigned directly to it
+        var childNode = graph[childId.toInt()]!;
+          hitsBelow += childNode.hitsBelow;
+      } 
+      hitsBelow = max(hitsBelow, 1);  // Make sure hitsBelow isn't zero
+      if (nodeId == parentId) { // root node of current graph, add hack to force minimum size of root children
+        minNodesBelow = (hitsBelow / minArcFrac).round(); // Compute the number of hits that would cause the node to take up the minimum arc
+      }
+      else{
+        minNodesBelow = 0;
+      }    
+      for (var childId in node.children){
+        var childNode = graph[childId.toInt()]!;
+        if (childNode.hitsBelow < minNodesBelow){ // We're going to force each child to act like it has at least
+        //minNodesBelow descendants, so adjust hitsBelow
+          hitsBelow += minNodesBelow - childNode.hitsBelow;
+        }
+      }
       double arcPerChild =
-          (node.myArcEnd - node.myArcStart) / max(node.hitsBelow, 1);
+          (node.myArcEnd - node.myArcStart) / hitsBelow;
      /* if (node.children.length > 1) {
         // Need to draw the arc for this node
         var rect = Rect.fromCircle(center: center, radius: myRadius);
@@ -623,7 +614,12 @@ class GraphPainter extends CustomPainter {
         }
         var childNode = graph[childId.toInt()]!;
         childNode.myArcStart = lastEnd;
-        childNode.myArcEnd = lastEnd + (arcPerChild *childNode.hitsBelow);
+        if (childId == node.children.last){ //force last child to end at the end of the parent's arc
+          childNode.myArcEnd = node.myArcEnd;
+        }
+        else{
+          childNode.myArcEnd = lastEnd + (arcPerChild *max(childNode.hitsBelow, minNodesBelow));
+        }
         lastEnd = childNode.myArcEnd;
 
         drawNode(
@@ -664,7 +660,8 @@ class GraphPainter extends CustomPainter {
     final Canvas logicalCanvas = canvas;
     if (graphData.graph[graphData.currentRoot] != null) {
       drawnLevels = min(
-      (graphData.depth - graphData.graph[graphData.currentRoot]!.ranknum),
+      ((graphData.depth-1) - graphData.graph[graphData.currentRoot]!.ranknum), 
+      // the -1 accounts for the fact that graph levels are zero-indexed
       graphData.maxLevels,
     );}
     else{
@@ -672,7 +669,7 @@ class GraphPainter extends CustomPainter {
     }
     double radPerLevel;
 
-    if (drawnLevels != 0) {
+    if (drawnLevels > 0) {
       // Here the drawnLevels -0.75 is drawnlevels -1 full levels + 0.25 for the root node
       radPerLevel =
           (1 - rootFrac) *

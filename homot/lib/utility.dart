@@ -1,20 +1,14 @@
-import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:homot/src/rust/frb_generated.dart';
 import 'package:homot/main.dart';
-import 'package:homot/pages.dart';
 
 import 'package:osler_icons/osler_icons.dart';
 import 'package:provider/provider.dart';
-import 'package:input_quantity/input_quantity.dart';
 import "dart:io";
 import "package:go_router/go_router.dart";
-import "dart:developer";
 
-import 'package:flutter/material.dart';
 import 'package:system_fonts/system_fonts.dart';
 import 'package:file_selector/file_selector.dart';
 
