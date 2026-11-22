@@ -4,7 +4,6 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/graph.dart';
-import 'api/simple.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
@@ -55,9 +54,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
       RustLibWire.fromExternalLibrary;
 
   @override
-  Future<void> executeRustInitializers() async {
-    await api.crateApiSimpleInitApp();
-  }
+  Future<void> executeRustInitializers() async {}
 
   @override
   ExternalLibraryLoaderConfig get defaultExternalLibraryLoaderConfig =>
@@ -67,7 +64,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 762539738;
+  int get rustContentHash => 1826726587;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -106,10 +103,6 @@ abstract class RustLibApi extends BaseApi {
     required Map<PlatformInt64, Node> graph,
     required List<int> hitStructures,
   });
-
-  String crateApiSimpleGreet({required String name});
-
-  Future<void> crateApiSimpleInitApp();
 
   RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_VecI64;
 
@@ -188,10 +181,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(annfile, serializer);
           sse_encode_list_String(domtbloutFiles, serializer);
-          sse_encode_f_32(evalMax, serializer);
-          sse_encode_f_32(evalMin, serializer);
-          sse_encode_f_32(domEvalMax, serializer);
-          sse_encode_f_32(domEvalMin, serializer);
+          sse_encode_f_64(evalMax, serializer);
+          sse_encode_f_64(evalMin, serializer);
+          sse_encode_f_64(domEvalMax, serializer);
+          sse_encode_f_64(domEvalMin, serializer);
           sse_encode_data_file_type(fileType, serializer);
           sse_encode_bool(interproShowSuperfamily, serializer);
           sse_encode_bool(interproShowFamily, serializer);
@@ -285,56 +278,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         argNames: ["root", "graph", "hitStructures"],
       );
 
-  @override
-  String crateApiSimpleGreet({required String name}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4)!;
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiSimpleGreetConstMeta,
-        argValues: [name],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiSimpleGreetConstMeta =>
-      const TaskConstMeta(debugName: "greet", argNames: ["name"]);
-
-  @override
-  Future<void> crateApiSimpleInitApp() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 5,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiSimpleInitAppConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiSimpleInitAppConstMeta =>
-      const TaskConstMeta(debugName: "init_app", argNames: []);
-
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_VecI64 =>
       wire.rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerVeci64;
@@ -418,12 +361,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       pfamName: dco_decode_String(arr[15]),
       iType: dco_decode_i_entry_type(arr[16]),
     );
-  }
-
-  @protected
-  double dco_decode_f_32(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw as double;
   }
 
   @protected
@@ -720,12 +657,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       pfamName: var_pfamName,
       iType: var_iType,
     );
-  }
-
-  @protected
-  double sse_decode_f_32(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getFloat32();
   }
 
   @protected
@@ -1056,12 +987,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.ipLong, serializer);
     sse_encode_String(self.pfamName, serializer);
     sse_encode_i_entry_type(self.iType, serializer);
-  }
-
-  @protected
-  void sse_encode_f_32(double self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putFloat32(self);
   }
 
   @protected

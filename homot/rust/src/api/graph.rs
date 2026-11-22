@@ -3,14 +3,13 @@ use serde::{Serialize, Deserialize};
 use fjall::{Config, PartitionCreateOptions,UserValue, Slice, PartitionHandle};
 use std::sync::atomic::AtomicI64;
 use std::{collections::HashMap};
-use std::i64::MAX;
+use std::f64::MAX;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Seek};
 use dashmap::DashMap;
 use std::cmp::Reverse;
 use rayon::prelude::*;
 use std::sync::{Arc, Mutex};
-use std::cmp;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Dmap{
@@ -35,7 +34,7 @@ impl From<&Dmap> for Slice{
 
 impl From<&UserValue> for Dmap{
     fn from(value: &UserValue) -> Self{
-        let item: Dmap = rmp_serde::from_slice(&value).expect("Deserialization error for Dmap");
+        let item: Dmap = rmp_serde::from_slice(value).expect("Deserialization error for Dmap");
         item
     }
 }
@@ -52,7 +51,7 @@ impl From<&AnnotationType> for Slice{
 
 impl From<&UserValue> for AnnotationType{
     fn from(value: &UserValue) -> Self{
-        let item: AnnotationType = rmp_serde::from_slice(&value).expect("Deserialization error for AnnotationType");
+        let item: AnnotationType = rmp_serde::from_slice(value).expect("Deserialization error for AnnotationType");
         item
     }
 }
@@ -69,7 +68,7 @@ impl From<&IEntryType> for Slice{
 
 impl From<&UserValue> for IEntryType{
     fn from(value: &UserValue) -> Self{
-        let item: IEntryType = rmp_serde::from_slice(&value).expect("Deserialization error for IEntryType");
+        let item: IEntryType = rmp_serde::from_slice(value).expect("Deserialization error for IEntryType");
         item
     }
 }
@@ -102,7 +101,7 @@ impl From<&Node> for Slice{
 
 impl From<&UserValue> for Node{
     fn from(value: &UserValue) -> Self{
-        let item: Node = rmp_serde::from_slice(&value).expect("Deserialization error for Node");
+        let item: Node = rmp_serde::from_slice(value).expect("Deserialization error for Node");
         item
     }
 }
@@ -135,7 +134,7 @@ impl From<&Domain> for Slice{
 
 impl From<&UserValue> for Domain{
     fn from(value: &UserValue) -> Self{
-        let item: Domain = rmp_serde::from_slice(&value).expect("Deserialization error for Domain");
+        let item: Domain = rmp_serde::from_slice(value).expect("Deserialization error for Domain");
         item
     }
 }
@@ -161,7 +160,7 @@ impl From<&Hit> for Slice{
 
 impl From<&UserValue> for Hit{
     fn from(value: &UserValue) -> Self{
-        let item: Hit = rmp_serde::from_slice(&value).expect("Deserialization error for Hit");
+        let item: Hit = rmp_serde::from_slice(value).expect("Deserialization error for Hit");
         item
     }
 }
@@ -193,7 +192,7 @@ impl From<&HitResults> for Slice{
 
 impl From<&UserValue> for HitResults{
     fn from(value: &UserValue) -> Self{
-        let item: HitResults = rmp_serde::from_slice(&value).expect("Deserialization error for SigCategory");
+        let item: HitResults = rmp_serde::from_slice(value).expect("Deserialization error for SigCategory");
         item
     }
 }
@@ -213,7 +212,7 @@ impl From<&SigCategory> for Slice{
 
 impl From<&UserValue> for SigCategory{
     fn from(value: &UserValue) -> Self{
-        let item: SigCategory = rmp_serde::from_slice(&value).expect("Deserialization error for SigCategory");
+        let item: SigCategory = rmp_serde::from_slice(value).expect("Deserialization error for SigCategory");
         item
     }
 }
@@ -245,7 +244,7 @@ impl From<&SearchResults> for Slice{
 }
 impl From<&UserValue> for SearchResults{
     fn from(value: &UserValue) -> Self{
-        let item: SearchResults = rmp_serde::from_slice(&value).expect("Deserialization error for SearchResults");
+        let item: SearchResults = rmp_serde::from_slice(value).expect("Deserialization error for SearchResults");
         item
     }
 }
@@ -258,7 +257,7 @@ struct DbDomain{
     alito: u32,  // End of the hit to the domain
     hmmfrom: u32, // Start of the hit to the HMM
     hmmto: u32, // End of the hit to the HMM
-    eval: f32, // evalue of the hit
+    eval: f64, // evalue of the hit
     full_match_start: bool,  // Was the domain a full match to the start of HMM
     full_match_end: bool,  // and/or th end
 }
@@ -271,7 +270,7 @@ impl From<&DbDomain> for Vec<u8>{
 
 impl From<&UserValue> for DbDomain{
     fn from(value: &UserValue) -> Self{
-        let item: DbDomain = rmp_serde::from_slice(&value).expect("Deserialization error for Domain");
+        let item: DbDomain = rmp_serde::from_slice(value).expect("Deserialization error for Domain");
         item
     }
 }
@@ -295,7 +294,7 @@ impl From<&AnnotatedSequence> for Slice{
 
 impl From<&UserValue> for AnnotatedSequence{
     fn from(value: &UserValue) -> Self{
-        let item: AnnotatedSequence = rmp_serde::from_slice(&value).expect("Deserialization error for AnnotatedSequence");
+        let item: AnnotatedSequence = rmp_serde::from_slice(value).expect("Deserialization error for AnnotatedSequence");
         item
     }
 }
@@ -303,7 +302,7 @@ impl From<&UserValue> for AnnotatedSequence{
 fn count_hits(graph: &mut HashMap<i64, Node>, id: i64) -> Result<i64, String>  {
     let mut total: i64=0;   
     let children: Vec<i64>;
-    if (id == -1)||(graph.len()== 0){ // empty graph
+    if (id == -1)||(graph.is_empty()){ // empty graph
         return Ok(0);
     }
     if let Some(node) = graph.get(&id) {
@@ -315,7 +314,7 @@ fn count_hits(graph: &mut HashMap<i64, Node>, id: i64) -> Result<i64, String>  {
     }
 
     for child_id in children {
-        match count_hits(graph, child_id as i64){
+        match count_hits(graph, child_id){
             Ok(v) => total +=v,
             Err(msg) => return Err(msg),
         }
@@ -331,7 +330,7 @@ fn count_hits(graph: &mut HashMap<i64, Node>, id: i64) -> Result<i64, String>  {
 
 
 #[frb(serialize)]
-pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32, eval_min: f32, dom_eval_max:f32, dom_eval_min: f32, fileType: DataFileType, 
+pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64, eval_min: f64, dom_eval_max:f64, dom_eval_min: f64, fileType: DataFileType, 
     interpro_show_superfamily: bool, interpro_show_family: bool, interpro_show_domain: bool, interpro_show_repeat: bool, interpro_show_site: bool, 
     interpro_show_other: bool, interpro_show_pfam_names: bool) -> SearchResults{
    // println!("Starting fetch_graph");
@@ -470,8 +469,15 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
 
 
     // check that everyone agrees on how many hits there are
-    assert!(num_domtbl_hits == total_hits);
-    assert!(total_hits as usize == hits.len());
+    if num_domtbl_hits != total_hits {
+        results.message = "Error: number of hits in graph did not match number of hits in input files".to_string();
+        return results;
+    }
+    if total_hits as usize != hits.len(){
+        results.message = "Error: number of hits in hitlist didn't match number of counted hits".to_string();
+        return results;
+    }
+
     (results.structures, results.hit_structures) = compute_signatures(&hits, &interpro_show_superfamily, &interpro_show_family,
          &interpro_show_domain, &interpro_show_repeat, &interpro_show_site, &interpro_show_other, &interpro_show_pfam_names);
     assert!(results.hit_structures.len() == hits.len());
@@ -489,7 +495,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f32,
 
 
 // Wrapper that calls the right read_hits function based on file type
-fn read_hits_from_file(filename: &str, hits: &mut DashMap<String, Hit>, min_seq_evalue: f32, max_seq_evalue: f32, min_dom_evalue: f32, max_dom_evalue: f32, 
+fn read_hits_from_file(filename: &str, hits: &mut DashMap<String, Hit>, min_seq_evalue: f64, max_seq_evalue: f64, min_dom_evalue: f64, max_dom_evalue: f64, 
     annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap>, fileType: &DataFileType) -> Result<i64, String>{
 
 
@@ -507,7 +513,9 @@ fn read_hits_from_file(filename: &str, hits: &mut DashMap<String, Hit>, min_seq_
         Some(Err(e)) => return Err(format!("Error reading first line of file {}: {}", filename, e)),
         
         Some(Ok(line)) => {
-           if line.starts_with('#'){
+            let fields: Vec<&str> = line.split_whitespace().collect();
+
+           if line.starts_with('#') && fields.len() > 3 && fields[2] == "full" && fields[3] == "sequence"{
                 inferred_filetype = DataFileType::DomTblOut;
            }
            else{
@@ -522,19 +530,19 @@ fn read_hits_from_file(filename: &str, hits: &mut DashMap<String, Hit>, min_seq_
             Ok(_v) =>{},
             Err(msg)=> return Err(format!("Unable to rewind input file, error was : {}", msg)),
         } // Back up to the start of the file
-        return read_hits_from_domtblout(filename, reader, hits, min_seq_evalue, max_seq_evalue, min_dom_evalue, max_dom_evalue, annotation_db, domain_map);
+        read_hits_from_domtblout(filename, reader, hits, min_seq_evalue, max_seq_evalue, min_dom_evalue, max_dom_evalue, annotation_db, domain_map)
     }
     else{
         match reader.rewind(){
             Ok(_v) =>{},
             Err(msg)=> return Err(format!("Unable to rewind input file, error was : {}",msg)),
         } // Back up to the start of the file
-        return read_hits_from_blast(filename, reader, hits, min_seq_evalue, max_seq_evalue, annotation_db, domain_map);
+        read_hits_from_blast(filename, reader, hits, min_seq_evalue, max_seq_evalue, annotation_db, domain_map)
     }
 }
 
 // Read the hits from a HMMER domtblout file
-fn read_hits_from_domtblout(filename: &str, reader: BufReader<File>, hits: &mut DashMap<String, Hit>, min_seq_evalue: f32, max_seq_evalue: f32, min_dom_evalue: f32, max_dom_evalue: f32,
+fn read_hits_from_domtblout(filename: &str, reader: BufReader<File>, hits: &mut DashMap<String, Hit>, min_seq_evalue: f64, max_seq_evalue: f64, min_dom_evalue: f64, max_dom_evalue: f64,
 annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64, String>{
     // domain_map should be safe as a HashMap because it doesn't get modified in this code
 
@@ -548,8 +556,14 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
             Ok(l) => l,
         }; */
 
-        reader.lines().filter_map(|line_result| line_result.ok()).par_bridge().for_each(|line| {
-        if !line.starts_with('#') { // Skip comment lines
+        // Read the whole file up front so that I/O and UTF-8 errors are reported rather than silently skipped
+        let lines: Vec<String> = reader
+            .lines()
+            .collect::<Result<_, _>>()
+            .map_err(|e| format!("Error reading {}: {}", filename, e))?;
+
+        lines.par_iter().for_each(|line| {
+        if !line.starts_with('#') && !line.trim().is_empty() { // Skip comment lines
         let my_errMsg = Arc::clone(&errMsg);
 
         let fields: Vec<&str> = line.split_whitespace().collect();
@@ -657,12 +671,12 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 name: query_name.clone(),
                 clan: String::new(), // Clan information not available for queries
                 description: String::new(), // Description information not available for queries
-                hmm_length: hmm_length,  // HMM length not available for queries
-                seq_start: seq_start,
-                seq_end: seq_end,
-                hmm_start: hmm_start,
-                hmm_end: hmm_end, 
-                dom_evalue: dom_evalue,
+                hmm_length,  // HMM length not available for queries
+                seq_start,
+                seq_end,
+                hmm_start,
+                hmm_end, 
+                dom_evalue,
                 full_match_start: hmm_start == 1,
                 full_match_end: hmm_end==hmm_length,
                 from_blast: false,
@@ -723,7 +737,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                             alito: seq_end,
                             hmmfrom: 1,
                             hmmto: seq_end,
-                            eval: MAX as f32,
+                            eval: MAX as f64,
                             full_match_start: true,
                             full_match_end: true,
                         };
@@ -824,7 +838,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 sequence: seq_ann.sequence,
                 description: seq_ann.description,
                 seq_evalue: seq_evalue as f64,
-                structure_domains: structure_domains,
+                structure_domains,
                 domains: our_domains, // For simplicity, just include the one domain
                 queries: vec![domain.clone()], // one hit
             };
@@ -832,13 +846,18 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
             { // Create a block so that the fetched entry gets dropped as fast as possible
                 // https://github.com/xacrimon/dashmap/issues/169 describes this pattern for insert-or-modify
                 hits.entry(seq_ann.name).and_modify(|existing_hit| {
-                    (*existing_hit).queries.push(domain.clone());
-                    if (*existing_hit).seq_evalue > hit.seq_evalue{
-                        (*existing_hit).seq_evalue = hit.seq_evalue;
+                    existing_hit.queries.push(domain.clone());
+                    if existing_hit.seq_evalue > hit.seq_evalue{
+                        existing_hit.seq_evalue = hit.seq_evalue;
                     }
-                    if (*existing_hit).seq_length < hit.seq_length{
-                            (* existing_hit).seq_length = hit.seq_length;
-                            (* existing_hit).sequence = hit.sequence.clone();
+                    if existing_hit.seq_length < hit.seq_length{
+                            existing_hit.seq_length = hit.seq_length;
+                            existing_hit.sequence = hit.sequence.clone();
+                            // copy the structure domains and domains over so that the hit draws correctly
+                            // This should be rare (only happens on hits not in the database), 
+                            // so the time for the clone shouldn't matter
+                            existing_hit.structure_domains = hit.structure_domains.clone();
+                            existing_hit.domains = hit.domains.clone();
                         }
                     hit_count.fetch_add(-1,std::sync::atomic::Ordering::SeqCst); // we aren't adding a new hit after all
                 }  ).or_insert(hit);  // entry has a write guard on its shard to prevent concurrency issues
@@ -869,14 +888,14 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
   // closes loop over lines in domtblout file
     let msg = errMsg.lock().unwrap();
     if msg.is_empty(){ // no error detected
-        return Ok(hit_count.load(std::sync::atomic::Ordering::SeqCst));
+        Ok(hit_count.load(std::sync::atomic::Ordering::SeqCst))
     }
     else{
-        return Err((*msg).clone());
+        Err((*msg).clone())
     }
 }
 
-fn read_hits_from_blast(filename: &str, reader: BufReader<File>, hits: &mut DashMap<String, Hit>, min_seq_evalue: f32, max_seq_evalue: f32,
+fn read_hits_from_blast(filename: &str, reader: BufReader<File>, hits: &mut DashMap<String, Hit>, min_seq_evalue: f64, max_seq_evalue: f64,
 annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64, String>{
     // domain_map should be safe as a HashMap because it doesn't get modified in this code
 
@@ -884,8 +903,14 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
     let errMsg = Arc::new(Mutex::new(String::new()));
  
 
-        reader.lines().filter_map(|line_result| line_result.ok()).par_bridge().for_each(|line| {
-        if !line.starts_with('#') { // Skip comment lines
+        // Read the whole file up front so that I/O and UTF-8 errors are reported rather than silently skipped
+        let lines: Vec<String> = reader
+            .lines()
+            .collect::<Result<_, _>>()
+            .map_err(|e| format!("Error reading {}: {}", filename, e))?;
+
+        lines.par_iter().for_each(|line| {
+        if !line.starts_with('#') && !line.trim().is_empty() { // Skip comment lines
           let my_errMsg = Arc::clone(&errMsg);
      //   println!("Examining line {}", line);
         let fields: Vec<&str> = line.split_whitespace().collect();
@@ -971,12 +996,12 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 name: query_name.clone(),
                 clan: String::new(), // Clan information not available for queries
                 description: String::new(), // Description information not available for queries
-                hmm_length: hmm_length,  // HMM length not available for queries
-                seq_start: seq_start,
-                seq_end: seq_end,
-                hmm_start: hmm_start,
-                hmm_end: hmm_end, 
-                dom_evalue: dom_evalue,
+                hmm_length,  // HMM length not available for queries
+                seq_start,
+                seq_end,
+                hmm_start,
+                hmm_end, 
+                dom_evalue,
                 full_match_start: true, // Don't have HMM information from BLAST, so assume full match
                 full_match_end: true,   // ditto
                 from_blast: true,
@@ -1136,7 +1161,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 sequence: seq_ann.sequence,
                 description: seq_ann.description,
                 seq_evalue: seq_evalue as f64,
-                structure_domains: structure_domains,
+                structure_domains,
                 domains: our_domains, // For simplicity, just include the one domain
                 queries: vec![domain.clone()], // one hit
             };
@@ -1145,13 +1170,13 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
             { // Create a block so that the fetched entry gets dropped as fast as possible
                 // https://github.com/xacrimon/dashmap/issues/169 describes this pattern for insert-or-modify
                 hits.entry(seq_ann.name).and_modify(|existing_hit| {
-                    (*existing_hit).queries.push(domain.clone());
-                    if (*existing_hit).seq_evalue > hit.seq_evalue{
-                        (*existing_hit).seq_evalue = hit.seq_evalue;
+                    existing_hit.queries.push(domain.clone());
+                    if existing_hit.seq_evalue > hit.seq_evalue{
+                        existing_hit.seq_evalue = hit.seq_evalue;
                     }
-                    if (*existing_hit).seq_length < hit.seq_length{
-                            (* existing_hit).seq_length = hit.seq_length;
-                            (* existing_hit).sequence = hit.sequence.clone();
+                    if existing_hit.seq_length < hit.seq_length{
+                            existing_hit.seq_length = hit.seq_length;
+                            existing_hit.sequence = hit.sequence.clone();
                         }
                     hit_count.fetch_add(-1,std::sync::atomic::Ordering::SeqCst); // we aren't adding a new hit after all
                 }  ).or_insert(hit); 
@@ -1183,10 +1208,10 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
 
 let msg = errMsg.lock().unwrap();
     if msg.is_empty(){ // no error detected
-        return Ok(hit_count.load(std::sync::atomic::Ordering::SeqCst));
+        Ok(hit_count.load(std::sync::atomic::Ordering::SeqCst))
     }
     else{
-        return Err((*msg).clone());
+        Err((*msg).clone())
     }
 }
 
@@ -1194,7 +1219,7 @@ let msg = errMsg.lock().unwrap();
 // Assumes the hits vector is sorted in ascending order by e-value
 // builds a graph from the list of hits
 fn build_graph_from_hits(hits: &Vec<Hit>, graph_db: &PartitionHandle)-> Result<(HashMap<i64, Node>, u32, i64), String> {
-    let mut root:i64 = MAX;
+    let mut root:i64 = -1;
     let mut depth: u32 = 0;
     let mut ret_graph:HashMap<i64, Node> = HashMap::new();
 
@@ -1205,7 +1230,7 @@ fn build_graph_from_hits(hits: &Vec<Hit>, graph_db: &PartitionHandle)-> Result<(
                 node.hits.push(hit_num);
             }
             else{ // Need to fetch the appropriate node and possibly all its parents from the graph db
-                let res1 = match graph_db.get(&hit.taxid.to_string()){
+                let res1 = match graph_db.get(hit.taxid.to_string()){
                     Err(why) => return Err(format!("Error looking up taxid {} in graph DB, reason was: {}", hit.taxid, why)),
                     Ok(d) => d,
                 };
@@ -1219,7 +1244,7 @@ fn build_graph_from_hits(hits: &Vec<Hit>, graph_db: &PartitionHandle)-> Result<(
                 if node.ranknum >= depth {
                     depth = node.ranknum+1;
                 }
-                if hit.taxid < root{
+                if node.parent == node.taxid{
                     root = node.taxid;
                 }
                 node.children = Vec::new(); // we'll build new children list as we go for the pruned DB
@@ -1240,7 +1265,7 @@ fn build_graph_from_hits(hits: &Vec<Hit>, graph_db: &PartitionHandle)-> Result<(
                         },
                         None => return Err(format!("Couldn't find taxid {} in node DB", node.parent)),
                     };
-                    if parent.taxid < root{
+                    if parent.taxid == parent.parent{
                         root = parent.taxid;
                     }
                     parent.children = vec!(node.taxid); // we'll build the pruned tree as we go
@@ -1288,7 +1313,7 @@ fn create_domain_list(hits: &Vec<Hit>) -> Vec<String>{
 
 
     let mut domains:Vec<(String, u64)> = domain_map.into_iter().collect();
-    domains.sort_by_key(|x| Reverse(x.1));
+    domains.sort_by_key(|x| (Reverse(x.1), x.0.clone()));
     let mut result = Vec::new();
     for (name, _) in domains{
         result.push(name);
@@ -1302,7 +1327,7 @@ fn create_domain_list(hits: &Vec<Hit>) -> Vec<String>{
 // order by start position within the sequence
 fn domains_to_structure(domains: &Vec<Domain>, interpro_show_superfamily: &bool, interpro_show_family: &bool, interpro_show_domain: &bool, interpro_show_repeat: &bool, interpro_show_site: &bool, 
     interpro_show_other: &bool, interpro_show_pfam_names: &bool)->String{
-    if domains.len() == 0{
+    if domains.is_empty(){
         // sequence contained no standard domains
         return "No Annotated Domains".to_string();
        //println!("Warning: sequence contained no standard domains, returning 'None' as structure");
@@ -1335,7 +1360,7 @@ fn domains_to_structure(domains: &Vec<Domain>, interpro_show_superfamily: &bool,
             }
         }
        // println!(" Adding domain {} with type {:?} to structure", domain.name, domain.i_type);
-        if structure != ""{
+        if !structure.is_empty(){
             // There's already at least one domain in it
             structure.push_str(", ");
         }
@@ -1362,8 +1387,8 @@ fn compute_signatures(hits: &Vec<Hit>, interpro_show_superfamily: &bool, interpr
 
     for hit in hits{
        // print!("{}", hit.name);
-        let structure = domains_to_structure(&hit.structure_domains, &interpro_show_superfamily, &interpro_show_family, &interpro_show_domain, 
-            &interpro_show_repeat, &interpro_show_site, &interpro_show_other, &interpro_show_pfam_names);
+        let structure = domains_to_structure(&hit.structure_domains, interpro_show_superfamily, interpro_show_family, interpro_show_domain, 
+            interpro_show_repeat, interpro_show_site, interpro_show_other, interpro_show_pfam_names);
         match hit_map.get(&structure){
             Some(sig_number) => { // We already have a category for this signature, so assign the hit to that category
                 hit_structures.push(*sig_number);
@@ -1427,7 +1452,7 @@ pub fn find_hits_below_node(root: i64, graph: &HashMap<i64, Node>, hit_structure
         categories.push(category);
     }
 //println!("3");
-    categories.sort_by_key(|x| Reverse(x.hits.len()));
+    categories.sort_by_key(|x| (Reverse(x.hits.len()), x.signature));
     let res: HitResults = HitResults{
         categories: categories,
         hits: hits,
@@ -1437,11 +1462,11 @@ pub fn find_hits_below_node(root: i64, graph: &HashMap<i64, Node>, hit_structure
 
 // traverses the graph starting at root and gathers all of the hits at root or below into a single list
 pub fn collect_hits(root: &i64, graph: &HashMap<i64, Node>, hits: &mut Vec<i64>){
-    if(*root == -1 )||(graph.len() == 0){
+    if(*root == -1 )||(graph.is_empty()){
         // empty graph
         return;
     }
-    let node = &graph[&root];
+    let node = &graph[root];
     for hit in &node.hits{
   //  println!("Found hit {} as child of node{}", hit, root);
 
@@ -1473,7 +1498,7 @@ fn create_domain_id_map(db: &fjall::PartitionHandle) -> Result<HashMap<u32, Dmap
             None => {return Err("Couldn't find domain that we know exists in annotations DB".to_string());},
         };
 
-        map.insert(ddata.domain.clone(), ddata.clone());
+        map.insert(ddata.domain, ddata.clone());
 
     }
    Ok(map)

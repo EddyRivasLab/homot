@@ -1,7 +1,4 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:homot/main.dart';
 
 import 'package:osler_icons/osler_icons.dart';
@@ -63,7 +60,7 @@ class _HmmotSystemFontSelectorState extends State<HmmotSystemFontSelector> {
     }
   }
 
-  _loadAllFonts() async {
+  Future<void> _loadAllFonts() async {
     fontNames = await SystemFonts().loadAllFonts();
     setState(() {
       init = widget.initial;
@@ -117,8 +114,8 @@ class _HmmotSystemFontSelectorState extends State<HmmotSystemFontSelector> {
   }
 }
 
-class homotAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const homotAppBar({super.key, required this.text});
+class HomotAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const HomotAppBar({super.key, required this.text});
 
   final String text;
   @override
@@ -197,118 +194,119 @@ class MainNavBar extends StatelessWidget {
           ),
           child: TooltipVisibility(
             visible: false,
-            child:NavigationBar(
-            backgroundColor: Theme.of(context).primaryColor,
-            onDestinationSelected: (int index) {
-              ScaffoldMessenger.of(
-                context,
-              ).clearSnackBars(); // clean up any snack bars
-              context.go(_routes[index]);
-            },
-            destinations: <Widget>[
-              NavigationDestination(
-                icon: Icon(
-                  Icons.folder,
-                  color:
-                      whereAmI != WhichPage.home
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).disabledColor,
+            child: NavigationBar(
+              backgroundColor: Theme.of(context).primaryColor,
+              onDestinationSelected: (int index) {
+                ScaffoldMessenger.of(
+                  context,
+                ).clearSnackBars(); // clean up any snack bars
+                context.go(_routes[index]);
+              },
+              destinations: <Widget>[
+                NavigationDestination(
+                  icon: Icon(
+                    Icons.folder,
+                    color:
+                        whereAmI != WhichPage.home
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : Theme.of(context).disabledColor,
+                  ),
+                  enabled: whereAmI != WhichPage.home,
+                  tooltip: "",
+                  label: 'Select Data',
                 ),
-                enabled: whereAmI != WhichPage.home,
-                tooltip: "",
-                label: 'Select Data',
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Icons.account_tree_rounded,
-                  color:
-                      (whereAmI != WhichPage.graph) && (graphdata.depth != 0)
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).disabledColor,
+                NavigationDestination(
+                  icon: Icon(
+                    Icons.account_tree_rounded,
+                    color:
+                        (whereAmI != WhichPage.graph) && (graphdata.depth != 0)
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : Theme.of(context).disabledColor,
+                  ),
+                  enabled:
+                      (whereAmI != WhichPage.graph) && (graphdata.depth != 0),
+                  tooltip: null,
+                  label: 'Taxonomic Display',
                 ),
-                enabled:
-                    (whereAmI != WhichPage.graph) && (graphdata.depth != 0),
-                tooltip: null,
-                label: 'Taxonomic Display',
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Icons.category,
-                  color:
+                NavigationDestination(
+                  icon: Icon(
+                    Icons.category,
+                    color:
+                        (whereAmI != WhichPage.allstructure) &&
+                                searchdata.resultsLoaded
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : Theme.of(context).disabledColor,
+                  ),
+                  enabled:
                       (whereAmI != WhichPage.allstructure) &&
-                              searchdata.resultsLoaded
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).disabledColor,
+                      searchdata.resultsLoaded,
+                  tooltip: "",
+                  label: 'All Hits by Domain Structure',
                 ),
-                enabled:
-                    (whereAmI != WhichPage.allstructure) &&
-                    searchdata.resultsLoaded,
-                tooltip: "",
-                label: 'All Hits by Domain Structure',
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Icons.swap_vert,
-                  color:
+                NavigationDestination(
+                  icon: Icon(
+                    Icons.swap_vert,
+                    color:
+                        (whereAmI != WhichPage.allevalue) &&
+                                searchdata.resultsLoaded
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : Theme.of(context).disabledColor,
+                  ),
+                  enabled:
                       (whereAmI != WhichPage.allevalue) &&
-                              searchdata.resultsLoaded
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).disabledColor,
+                      searchdata.resultsLoaded,
+                  tooltip: "",
+                  label: 'All Hits by e-value',
                 ),
-                enabled:
-                    (whereAmI != WhichPage.allevalue) &&
-                    searchdata.resultsLoaded,
-                tooltip: "",
-                label: 'All Hits by e-value',
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Icons.category,
-                  color:
+                NavigationDestination(
+                  icon: Icon(
+                    Icons.category,
+                    color:
+                        (whereAmI != WhichPage.subgraphstructure) &&
+                                graphdata.currentRoot != graphdata.graphRoot
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : Theme.of(context).disabledColor,
+                  ),
+                  enabled:
                       (whereAmI != WhichPage.subgraphstructure) &&
-                              graphdata.currentRoot != graphdata.graphRoot
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).disabledColor,
+                      graphdata.currentRoot != graphdata.graphRoot,
+                  tooltip: "",
+                  label: 'Selected Subtree by Domain Structure',
                 ),
-                enabled:
-                    (whereAmI != WhichPage.subgraphstructure) &&
-                    graphdata.currentRoot != graphdata.graphRoot,
-                tooltip: "",
-                label: 'Selected Subtree by Domain Structure',
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Icons.swap_vert,
-                  color:
+                NavigationDestination(
+                  icon: Icon(
+                    Icons.swap_vert,
+                    color:
+                        (whereAmI != WhichPage.subtreeevalue) &&
+                                searchdata.selectedBy != SelectedBy.none
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : Theme.of(context).disabledColor,
+                  ),
+                  enabled:
                       (whereAmI != WhichPage.subtreeevalue) &&
-                              searchdata.selectedBy != selectedby.none
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).disabledColor,
+                      searchdata.selectedBy != SelectedBy.none,
+                  tooltip: "",
+                  label: 'Selected hits by e-value',
                 ),
-                enabled:
-                    (whereAmI != WhichPage.subtreeevalue) &&
-                    searchdata.selectedBy != selectedby.none,
-                tooltip: "",
-                label: 'Selected hits by e-value',
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  OslerMonotoneIcons.dna,
-                  color:
+                NavigationDestination(
+                  icon: Icon(
+                    OslerMonotoneIcons.dna,
+                    color:
+                        (whereAmI != WhichPage.sequence) &&
+                                searchdata.selectedHit >= 0
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : Theme.of(context).disabledColor,
+                  ),
+                  enabled:
                       (whereAmI != WhichPage.sequence) &&
-                              searchdata.selectedHit >= 0
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).disabledColor,
+                      searchdata.selectedHit >= 0,
+                  tooltip: "",
+                  label: 'Selected Sequence',
                 ),
-                enabled:
-                    (whereAmI != WhichPage.sequence) &&
-                    searchdata.selectedHit >= 0,
-                tooltip: "",
-                label: 'Selected Sequence',
-              ),
-            ],
+              ],
+            ),
           ),
-        ),);
+        );
       },
     );
   }
@@ -338,6 +336,7 @@ class _AnnDbSelectState extends State<AnnDbSelect> {
     }
   }
 
+  @override
   Widget build(BuildContext context) {
     return Consumer<FileData>(
       builder: (context, filedata, child) {
@@ -380,7 +379,6 @@ class _AnnDbSelectState extends State<AnnDbSelect> {
                       myController.text = dTemp;
                     }
                   }
-                  ;
                 },
               ),
             ],
@@ -406,6 +404,7 @@ class _DomtblSelectState extends State<DomtblSelect> {
     myController.text = "Select or enter search result file(s)";
   }
 
+  @override
   Widget build(BuildContext context) {
     return Consumer<FileData>(
       builder: (context, filedata, child) {
@@ -442,15 +441,11 @@ class _DomtblSelectState extends State<DomtblSelect> {
                     initialDirectory: filedata.domtbloutFileDir,
                     confirmButtonText: "Select search result file(s)",
                   );
-                  if (dTemp == null) {
-                  } else {
-                    for (XFile xfile in dTemp) {
-                      if (xfile.path != null && File(xfile.path).existsSync()) {
-                        filedata.addDomtbloutFile(xfile.path);
-                      }
+                  for (XFile xfile in dTemp) {
+                    if (File(xfile.path).existsSync()) {
+                      filedata.addDomtbloutFile(xfile.path);
                     }
                   }
-                  ;
                   null;
                 },
               ),
@@ -470,6 +465,7 @@ class DomtblEdit extends StatefulWidget {
 }
 
 class _DomtblEditState extends State<DomtblEdit> {
+  @override
   Widget build(BuildContext context) {
     return Consumer<FileData>(
       builder: (context, filedata, child) {
@@ -527,7 +523,7 @@ void showExportDialog(BuildContext context) {
   showDialog(
     context: context,
     builder: (BuildContext context) {
-        return AlertDialog(
+      return AlertDialog(
         title: const Text("Export Page Contents to CsV"),
         backgroundColor: Theme.of(context).colorScheme.onPrimary,
         titleTextStyle: TextStyle(color: Theme.of(context).colorScheme.primary),
@@ -558,7 +554,7 @@ void showExportDialog(BuildContext context) {
                         autovalidateMode: AutovalidateMode.onUserInteraction,
                         onFieldSubmitted: (String? value) async {
                           if (value != null) {
-                            filedata.exportFile;
+                            filedata.exportFile = value;
                             myController.text = filedata.exportFile;
                           }
                         },
@@ -575,7 +571,7 @@ void showExportDialog(BuildContext context) {
                             } else {
                               dir = "";
                             }
-                            return (!Directory(dir).existsSync())
+                            return dir != "" && (!Directory(dir).existsSync())
                                 ? "Directory does not exist"
                                 : null;
                           }
@@ -592,7 +588,6 @@ void showExportDialog(BuildContext context) {
                           filedata.exportFile = loc.path;
                           myController.text = loc.path;
                         }
-                        ;
                       },
                     ),
                   ],
@@ -603,21 +598,41 @@ void showExportDialog(BuildContext context) {
         ),
         actions: <Widget>[
           Consumer3<FileData, HSettings, SearchData>(
-            builder: (context, filedata, hsettings, searchdata, child) =>
-          ElevatedButton(
-            style: MenuItemButton.styleFrom(
-              backgroundColor: filedata.exportFile != "" ?Theme.of(context).colorScheme.primary : Theme.of(context).disabledColor,
-            ),
-            onPressed: filedata.exportFile != "" ? () {
-              filedata.exportCurrentPage(currentLocation, searchdata, hsettings.showNamesFrom == ShowNamesFrom.pfam, hsettings.showInterproSuperfamily, hsettings.showInterproFamily,
-              hsettings.showInterproDomain, hsettings.showInterproRepeat, hsettings.showInterproSite, hsettings.showInterproOther, context);
-              Navigator.pop(context, 'Cancel');
-            } : null,
-            child: Text(
-              "Export",
-              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
-            ),
-          ),),
+            builder:
+                (context, filedata, hsettings, searchdata, child) =>
+                    ElevatedButton(
+                      style: MenuItemButton.styleFrom(
+                        backgroundColor:
+                            filedata.exportFile != ""
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).disabledColor,
+                      ),
+                      onPressed:
+                          filedata.exportFile != ""
+                              ? () {
+                                filedata.exportCurrentPage(
+                                  currentLocation,
+                                  searchdata,
+                                  hsettings.showNamesFrom == ShowNamesFrom.pfam,
+                                  hsettings.showInterproSuperfamily,
+                                  hsettings.showInterproFamily,
+                                  hsettings.showInterproDomain,
+                                  hsettings.showInterproRepeat,
+                                  hsettings.showInterproSite,
+                                  hsettings.showInterproOther,
+                                  context,
+                                );
+                                Navigator.pop(context, 'Cancel');
+                              }
+                              : null,
+                      child: Text(
+                        "Export",
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                    ),
+          ),
           ElevatedButton(
             style: MenuItemButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.primary,
@@ -633,6 +648,5 @@ void showExportDialog(BuildContext context) {
         ],
       );
     },
-  
   );
 }

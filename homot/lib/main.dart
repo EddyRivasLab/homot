@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:homot/src/rust/frb_generated.dart';
 import 'package:homot/src/rust/api/graph.dart';
@@ -19,6 +20,7 @@ import 'package:patterns_canvas/patterns_canvas.dart';
 // List of pairs of background and foregrund colors for displaying
 // domains.  Taken from the ColorBrewer example color sets.
 // Format is (BGcolor, FG color)
+enum SelectedBy { none, structure, subtree, subtreeStructure }
 
 const domainColors = [
   (
@@ -121,29 +123,6 @@ const domainColors = [
   ),
 ];
 
-const domainColorsOld = [
-  (Color(0xff9e0142), Color(0xffffffff)),
-  (Color(0xff5475b4), Color(0xffffffff)),
-  (Color(0xff40004b), Color(0xffffffff)),
-  (Color(0xff006837), Color(0xffffffff)),
-  (Color(0xffd53e4f), Color(0xffffffff)),
-  (Color(0xff1a9850), Color(0xffffffff)),
-  (Color(0xff0000ff), Color(0xffffffff)),
-  (Color(0xfff46d43), Color(0xffffffff)),
-  (Color(0xff6a3d9a), Color(0xffffffff)),
-  (Color(0xffabd9e9), Color(0xff000000)),
-  (Color(0xff68bd63), Color(0xffffffff)),
-  (Color(0xfffdae61), Color(0xffffffff)),
-  (Color(0xffff0000), Color(0xff000000)),
-  (Color(0xfffee08b), Color(0xff000000)),
-  (Color(0xffbc80bd), Color(0xff000000)),
-  (Color(0xffffffbf), Color(0xff000000)),
-  (Color(0xffa6d96a), Color(0xff000000)),
-  (Color(0xffcab2d6), Color(0xff000000)),
-  (Color(0xfffdaaac), Color(0xff000000)),
-  (Color(0xff00ff00), Color(0xff000000)),
-];
-
 ColorScheme lightScheme = ColorScheme.fromSeed(
   seedColor: const Color(0xff5475b4),
   primary: const Color(0xff5475b4),
@@ -171,9 +150,7 @@ ColorScheme darkScheme = ColorScheme.fromSeed(
 const numColors = 8;
 const shadesPerColor = 4;
 
-var lightGraphColors = [(Colors.amber[100], Colors.black, "blort")];
-
-var darkGraphColors = [
+var graphColorList = [
   (
     Color(0xff009292),
     Color(0xffffffff),
@@ -378,78 +355,31 @@ var darkGraphColors = [
     Color(0xFF000000),
   ),
   (
-    Color(0xAFFFFFF6D),
+    Color(0xafffff6d),
     Color(0xff000000),
     PatternType.checkers,
-    Color(0xAFFFFFF6D),
+    Color(0xafffff6d),
     Color(0xFF000000),
   ),
   (
-    Color(0x6FFFFFF6D),
+    Color(0x6fffff6d),
     Color(0xff000000),
     PatternType.raindrops,
-    Color(0x6FFFFFF6D),
+    Color(0x6fffff6d),
     Color(0xFF000000),
   ),
   (
-    Color(0xcFFFFFF6D),
+    Color(0xcfffff6d),
     Color(0xff000000),
     PatternType.texture,
-    Color(0xcFFFFFF6D),
+    Color(0xcfffff6d),
     Color(0xFF000000),
   ),
 ];
 
-var darkGraphColorsOld = [
-  (Colors.amber[100], Colors.black),
-  (Colors.amber[300], Colors.black),
-  (Colors.amber[500], Colors.black),
-  (Colors.amber[200], Colors.black),
-  (Colors.amber[400], Colors.black),
-  (Colors.blue[100], Colors.black),
-  (Colors.blue[300], Colors.black),
-  (Colors.blue[500], Colors.black),
-  (Colors.blue[200], Colors.black),
-  (Colors.blue[400], Colors.white),
-  (Colors.red[100], Colors.black),
-  (Colors.red[300], Colors.black),
-  (Colors.red[500], Colors.white),
-  (Colors.red[200], Colors.white),
-  (Colors.red[400], Colors.white),
-  (Colors.purple[100], Colors.black),
-  (Colors.purple[300], Colors.black),
-  (Colors.purple[500], Colors.white),
-  (Colors.purple[200], Colors.white),
-  (Colors.purple[400], Colors.white),
-  (Colors.green[100], Colors.black),
-  (Colors.green[300], Colors.black),
-  (Colors.green[500], Colors.black),
-  (Colors.green[200], Colors.black),
-  (Colors.green[400], Colors.black),
-  (Colors.cyan[100], Colors.black),
-  (Colors.cyan[300], Colors.black),
-  (Colors.cyan[500], Colors.black),
-  (Colors.cyan[200], Colors.black),
-  (Colors.cyan[400], Colors.black),
-  (Colors.orange[100], Colors.black),
-  (Colors.orange[300], Colors.black),
-  (Colors.orange[500], Colors.black),
-  (Colors.orange[200], Colors.black),
-  (Colors.orange[400], Colors.black),
-  (Colors.pink[100], Colors.black),
-  (Colors.pink[300], Colors.black),
-  (Colors.pink[500], Colors.white),
-  (Colors.pink[200], Colors.white),
-  (Colors.pink[400], Colors.white),
-  (Colors.teal[100], Colors.black),
-  (Colors.teal[300], Colors.black),
-  (Colors.teal[500], Colors.black),
-  (Colors.teal[200], Colors.white),
-  (Colors.teal[400], Colors.white),
-];
 Future<void> main() async {
-  await RustLib.init();
   WidgetsFlutterBinding.ensureInitialized();
+  await RustLib.init();
   final SharedPreferencesAsync prefs = SharedPreferencesAsync();
   String font = await prefs.getString("homot_font") ?? "Roboto";
   double evalMax = await prefs.getDouble("homot_evalMax") ?? 10.0;
@@ -459,7 +389,7 @@ Future<void> main() async {
   double scale = await prefs.getDouble("homot_scale") ?? 1.0;
   double lineWidth = await prefs.getDouble("homot_lineWidth") ?? 2.0;
   int mode = await prefs.getInt("homot_mode") ?? 3;
-  int DataFileType = await prefs.getInt("homot_datatype") ?? 3;
+  int dataFileType = await prefs.getInt("homot_datatype") ?? 3;
   bool addPatterns = await prefs.getBool("homot_patterns") ?? false;
   bool showInterproSuperfamily =
       await prefs.getBool("homot_show_superfamily") ?? true;
@@ -476,9 +406,9 @@ Future<void> main() async {
     case 0:
       showInterproIDAs = ShowInterproIdEnum.id;
     case 1:
-      showInterproIDAs = ShowInterproIdEnum.short_name;
+      showInterproIDAs = ShowInterproIdEnum.shortName;
     case 2:
-      showInterproIDAs = ShowInterproIdEnum.long_name;
+      showInterproIDAs = ShowInterproIdEnum.longName;
     default:
       showInterproIDAs = ShowInterproIdEnum.id;
   }
@@ -486,7 +416,7 @@ Future<void> main() async {
   ShowNamesFrom namesFrom = temp ? ShowNamesFrom.pfam : ShowNamesFrom.interpro;
   int temp3 = await prefs.getInt("homot_drawtype") ?? 2;
   GraphDrawType drawType;
-  switch(temp3){
+  switch (temp3) {
     case 0:
       drawType = GraphDrawType.line;
     case 1:
@@ -515,7 +445,7 @@ Future<void> main() async {
                 domEvalMax,
                 domEvalMin,
                 lineWidth,
-                DataFileType,
+                dataFileType,
                 addPatterns,
                 showInterproSuperfamily,
                 showInterproFamily,
@@ -564,19 +494,18 @@ class _TopLevelState extends State<TopLevel> {
   }
 }
 
-enum brightModes { light, dark, system }
+enum BrightModes { light, dark, system }
 
 enum GraphDrawType { line, outline, fill }
 
 enum ShowNamesFrom { pfam, interpro }
 
-enum ShowInterproIdEnum { id, short_name, long_name }
+enum ShowInterproIdEnum { id, shortName, longName }
 
 // ChangeNotifier for theme state
 class HSettings with ChangeNotifier {
-  brightModes _mode = brightModes.light;
+  BrightModes _mode = BrightModes.light;
   DataFileType _dataType = DataFileType.infer;
-  ThemeData? _themeData;
 
   String _font = "Roboto";
   double _scale = 1.0;
@@ -600,12 +529,7 @@ class HSettings with ChangeNotifier {
   GraphDrawType _drawType = GraphDrawType.fill;
   late SharedPreferencesAsync _prefs;
   List<(Color, Color, PatternType, Color, Color)> get graphColors {
-    if (_mode == brightModes.light ||
-        (_mode == brightModes.system && ThemeMode.system == ThemeMode.light)) {
-      return darkGraphColors;
-    } else {
-      return darkGraphColors;
-    }
+    return graphColorList;
   }
 
   HSettings(
@@ -655,13 +579,13 @@ class HSettings with ChangeNotifier {
 
     switch (mode) {
       case 1:
-        _mode = brightModes.light;
+        _mode = BrightModes.light;
       case 2:
-        _mode = brightModes.dark;
+        _mode = BrightModes.dark;
       case 3:
-        _mode = brightModes.system;
+        _mode = BrightModes.system;
       default:
-        print("Illegal value passed to mode in HSettings");
+        _mode = BrightModes.system;
     }
     switch (dataType) {
       case 1:
@@ -671,13 +595,15 @@ class HSettings with ChangeNotifier {
       case 3:
         _dataType = DataFileType.infer;
       default:
-        print("Illegal value passed to dataType in HSettings");
+        _dataType = DataFileType.infer;
     }
   }
 
   ThemeData _updateTheme() {
-    if (_mode == brightModes.light ||
-        (_mode == brightModes.system && ThemeMode.system == ThemeMode.light)) {
+    if (_mode == BrightModes.light ||
+        (_mode == BrightModes.system &&
+            PlatformDispatcher.instance.platformBrightness ==
+                Brightness.light)) {
       return ThemeData(
         colorScheme: lightScheme,
         fontFamily: _font,
@@ -770,9 +696,9 @@ class HSettings with ChangeNotifier {
     }
   }
 
-  void set drawType(GraphDrawType newType) {
+  set drawType(GraphDrawType newType) {
     _drawType = newType;
-    switch(newType){
+    switch (newType) {
       case GraphDrawType.line:
         _prefs.setInt("homot_drawtype", 0);
       case GraphDrawType.outline:
@@ -783,20 +709,20 @@ class HSettings with ChangeNotifier {
     notifyListeners();
   }
 
-  void set mode(brightModes newmode) {
+  set mode(BrightModes newmode) {
     _mode = newmode;
     switch (newmode) {
-      case brightModes.light:
+      case BrightModes.light:
         _prefs.setInt("homot_mode", 1);
-      case brightModes.dark:
+      case BrightModes.dark:
         _prefs.setInt("homot_mode", 2);
-      case brightModes.system:
+      case BrightModes.system:
         _prefs.setInt("homot_mode", 3);
     }
     notifyListeners();
   }
 
-  void set dataType(DataFileType newtype) {
+  set dataType(DataFileType newtype) {
     _dataType = newtype;
     switch (newtype) {
       case DataFileType.domTblOut:
@@ -809,110 +735,111 @@ class HSettings with ChangeNotifier {
     notifyListeners();
   }
 
-  void set font(String font) {
+  set font(String font) {
     _font = font;
     _prefs.setString("homot_font", font);
     notifyListeners();
   }
 
-  void set scale(double scale) {
+  set scale(double scale) {
     _scale = scale;
     _prefs.setDouble("homot_scale", scale);
     notifyListeners();
   }
 
-  void set evalMax(double newMax) {
+  set evalMax(double newMax) {
     _evalMax = newMax;
     _prefs.setDouble("homot_evalMax", newMax);
     notifyListeners();
   }
 
-  void set domEvalMax(double newMax) {
+  set domEvalMax(double newMax) {
     _domEvalMax = newMax;
     _prefs.setDouble("homot_domEvalMax", newMax);
     notifyListeners();
   }
 
-  void set evalMin(double newMin) {
+  set evalMin(double newMin) {
     _evalMin = newMin;
     _prefs.setDouble("homot_evalMin", newMin);
     notifyListeners();
   }
 
-  void set domEvalMin(double newMin) {
+  set domEvalMin(double newMin) {
     _domEvalMin = newMin;
     _prefs.setDouble("homot_domEvalMin", newMin);
     notifyListeners();
   }
 
-  void set lineWidth(double newWidth) {
+  set lineWidth(double newWidth) {
     if (newWidth > 0) {
       _lineWidth = newWidth;
     }
     _prefs.setDouble("homot_lineWidth", newWidth);
+    notifyListeners();
   }
 
-  void set addPatterns(bool val) {
+  set addPatterns(bool val) {
     _addPatterns = val;
     _prefs.setBool("homot_patterns", val);
     notifyListeners();
   }
 
-  void set showInterproSuperfamily(bool val) {
+  set showInterproSuperfamily(bool val) {
     _showInterproSuperfamily = val;
     _prefs.setBool("homot_show_superfamily", val);
     notifyListeners();
   }
 
-  void set showInterproFamily(bool val) {
+  set showInterproFamily(bool val) {
     _showInterproFamily = val;
     _prefs.setBool("homot_show_family", val);
     notifyListeners();
   }
 
-  void set showInterproDomain(bool val) {
+  set showInterproDomain(bool val) {
     _showInterproDomain = val;
     _prefs.setBool("homot_show_domain", val);
     notifyListeners();
   }
 
-  void set showInterproRepeat(bool val) {
+  set showInterproRepeat(bool val) {
     _showInterproRepeat = val;
     _prefs.setBool("homot_show_repeat", val);
     notifyListeners();
   }
 
-  void set showInterproSite(bool val) {
+  set showInterproSite(bool val) {
     _showInterproSite = val;
     _prefs.setBool("homot_show_site", val);
     notifyListeners();
   }
 
-  void set showInterproOther(bool val) {
+  set showInterproOther(bool val) {
     _showInterproOther = val;
     _prefs.setBool("homot_show_other", val);
     notifyListeners();
   }
 
-  void set useSeqEvals(bool val) {
+  set useSeqEvals(bool val) {
     _useSeqEvals = val;
     _prefs.setBool("homot_use_seq_evals", val);
     notifyListeners();
   }
 
-  void set useDomEvals(bool val) {
+  set useDomEvals(bool val) {
     _useDomEvals = val;
     _prefs.setBool("homot_use_dom_evals", val);
     notifyListeners();
   }
 
-  void set showInterproIdAs(ShowInterproIdEnum val) {
+  set showInterproIdAs(ShowInterproIdEnum val) {
     _showInterproIDAs = val;
     _prefs.setInt("homot_interpro_show_id_as", val.index);
     notifyListeners();
   }
 
-  void set showNamesFrom(ShowNamesFrom val) {
+  set showNamesFrom(ShowNamesFrom val) {
     _namesFrom = val;
     if (val == ShowNamesFrom.pfam) {
       _prefs.setBool("homot_interpro_names_from_pfam", true);
@@ -925,7 +852,7 @@ class HSettings with ChangeNotifier {
   ThemeData get themeData => _updateTheme();
   double get scale => _scale;
   String get font => _font;
-  brightModes get mode => _mode;
+  BrightModes get mode => _mode;
   double get evalMax => _evalMax;
   double get domEvalMax => _domEvalMax;
   double get evalMin => _evalMin;
@@ -974,13 +901,12 @@ class GraphData with ChangeNotifier {
 
   List<PlatformInt64> get deletedNodes => _deletedNodes;
 
-  TrackRegions get trackRegions => _trackRegions;
   final TransformationController _tController = TransformationController();
   final ItemScrollController _sController = ItemScrollController();
 
   ItemScrollController get itemScrollController => _sController;
   TransformationController get tController => _tController;
-  double get radPerLevel => _radPerLevel;
+
   set radPerLevel(double rad) {
     _radPerLevel = rad;
   }
@@ -1019,6 +945,8 @@ class GraphData with ChangeNotifier {
     }
   }
 
+  TrackRegions get trackRegions => _trackRegions;
+  Size get size => _size;
   void setHistoryIndex(int newIndex) {
     if (newIndex >= 0 && newIndex < _history.length) {
       _historyIndex = newIndex;
@@ -1030,32 +958,30 @@ class GraphData with ChangeNotifier {
 
   int get historyLength => _history.length;
   int get historyIndex => _historyIndex;
-  Size get size => _size;
   Matrix4 get transform => _transform;
   double get translateX => _translateX;
   double get translateY => _translateY;
   double get scale => _scale;
-  double get rootRadius => rootRadius;
   set rootRadius(double rad) {
     _rootRadius = rad;
   }
 
-  void set translateX(double x) {
+  set translateX(double x) {
     _translateX = x;
     updateTransform();
   }
 
-  void set translateY(double y) {
+  set translateY(double y) {
     _translateY = y;
     updateTransform();
   }
 
-  void set scale(double s) {
+  set scale(double s) {
     _scale = s;
     updateTransform();
   }
 
-  void set trackRegions(TrackRegions tr) {
+  set trackRegions(TrackRegions tr) {
     _trackRegions = tr;
   }
 
@@ -1141,7 +1067,7 @@ class GraphData with ChangeNotifier {
     }
   }
 
-  void set graphRoot(PlatformInt64 newRoot) {
+  set graphRoot(PlatformInt64 newRoot) {
     if (_graph.containsKey(newRoot)) {
       _graphRoot = newRoot;
       notifyListeners();
@@ -1192,7 +1118,6 @@ class GraphData with ChangeNotifier {
   PlatformInt64 restoreNode(PlatformInt64 nodeId) {
     if (!_graph.containsKey(nodeId) || !_deletedNodes.contains(nodeId)) {
       // node either doesn't exist or wasn't deleted
-      print("Unable to delete node");
       return -2;
     }
     Node nodeToRestore = _graph[nodeId]!;
@@ -1266,7 +1191,7 @@ class GraphData with ChangeNotifier {
   // removes elements of the history that are past the current pointer so that we
   // can go deeper
   void popPastIndex() {
-    if (_history.length == 0 || _historyIndex < 0) {
+    if (_history.isEmpty || _historyIndex < 0) {
       // nothing to pop
       return;
     }
@@ -1301,7 +1226,7 @@ class GraphData with ChangeNotifier {
   }
 
   void setRotation(double newRotation) {
-    if (newRotation > 0 && newRotation <= 2 * pi) {
+    if (newRotation >= 0 && newRotation <= 2 * pi) {
       _rotation = newRotation;
       updateTransform();
     }
@@ -1342,7 +1267,7 @@ class FileData with ChangeNotifier {
   }
 
   String get exportFile => _exportFile;
-  void set exportFile(String newExportFile) {
+  set exportFile(String newExportFile) {
     _exportFile = newExportFile;
     notifyListeners();
   }
@@ -1481,6 +1406,7 @@ class FileData with ChangeNotifier {
       await outSink.flush();
       await outSink.close();
     } catch (e) {
+      if (!context.mounted) return;
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -1620,13 +1546,13 @@ class FileData with ChangeNotifier {
     outSink.writeln(_header());
     Int64List hitIndices = Int64List(0);
     switch (searchdata.selectedBy) {
-      case selectedby.subtree:
+      case SelectedBy.subtree:
         hitIndices = searchdata.currentHitsByEvalue;
         break;
-      case selectedby.subtree_structure:
+      case SelectedBy.subtreeStructure:
         hitIndices = searchdata.currentHits[searchdata.selectedStructure].hits;
         break;
-      case selectedby.structure:
+      case SelectedBy.structure:
         hitIndices = searchdata.rootHits[searchdata.selectedStructure].hits;
         break;
       default:
@@ -1756,13 +1682,6 @@ void _exportSequence(
   outSink.writeln(outString);
 }
 
-// Wrapper that selects the correct menu bar for the platform
-class MenuWrapper extends StatelessWidget {
-  Widget build(BuildContext context) {
-    return (Platform.isMacOS) ? MacMenu() : TopLevel();
-  }
-}
-
 // about dialog function
 void showMyAboutDialog(BuildContext context) {
   showDialog(
@@ -1855,9 +1774,8 @@ class _MacMenuBarState extends State<MacMenu> {
       GoRoute(path: '/sequence', builder: (context, state) => SequencePage()),
     ],
   );
+  @override
   Widget build(BuildContext context) {
-    final currentLocation =
-        _router.routerDelegate.currentConfiguration.uri.toString();
     return PlatformMenuBar(
       menus: <PlatformMenuItem>[
         PlatformMenu(
@@ -1992,7 +1910,7 @@ class MenuEntry {
 }
 
 class NonMacMenuBar extends StatefulWidget {
-  const NonMacMenuBar();
+  const NonMacMenuBar({super.key});
 
   @override
   State<NonMacMenuBar> createState() => _NonMacMenuBarState();
@@ -2106,7 +2024,7 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
     );
   }
 
-  List<MenuEntry> _getMenus(BuildContext context) {
+  /*List<MenuEntry> _getMenus(BuildContext context) {
     return [
       MenuEntry(
         label: 'Menu',
@@ -2136,7 +2054,7 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
                         },
                         child: const Text("Quit"),
                       ),
-                      TextButton(
+                      TextButton
                         onPressed: () {
                           Navigator.pop(context, 'Cancel');
                         },
@@ -2151,15 +2069,12 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
         ],
       ),
     ];
-  }
+  }*/
 }
-
-enum selectedby { none, structure, subtree, subtree_structure }
 
 // class that holds the results of a search
 class SearchData with ChangeNotifier {
   List<Hit> _hits = [];
-  List<int> _lengths = [];
 
   Uint32List _hitStructures = Uint32List(0);
   List<String> _structures = [];
@@ -2170,22 +2085,22 @@ class SearchData with ChangeNotifier {
   bool _resultsLoaded = false;
   bool _currentLoaded = false;
   int _selectedStructure = -1;
-  selectedby _selectedBy = selectedby.none;
-  selectedby _previousSelectedBy = selectedby.none;
+  SelectedBy _selectedBy = SelectedBy.none;
+  SelectedBy _previousSelectedBy = SelectedBy.none;
   HashMap<String, (Color, Color, PatternType, Color, Color)> _domainColors =
       HashMap();
   PlatformInt64 _selectedHit = -1;
-  selectedby get selectedBy => _selectedBy;
-  selectedby get previousSelectedBy => _previousSelectedBy;
-  void set selectedBy(selectedby method) {
+  SelectedBy get selectedBy => _selectedBy;
+  set selectedBy(SelectedBy method) {
     _selectedBy = method;
     notifyListeners();
   }
 
-  void set previousSelectedBy(selectedby method) {
+  set previousSelectedBy(SelectedBy method) {
     _previousSelectedBy = method;
   }
 
+  SelectedBy get previousSelectedBy => _previousSelectedBy;
   PlatformInt64 get selectedHit => _selectedHit;
   List<Hit> get hits => _hits;
   Uint32List get hitStructures => _hitStructures;
@@ -2197,12 +2112,12 @@ class SearchData with ChangeNotifier {
   bool get currentLoaded => _currentLoaded;
   int get selectedStructure => _selectedStructure;
   Int64List get currentHitsByEvalue => _currentHitsByEvalue;
-  void set currentHitsByEvalue(Int64List hits) {
+  set currentHitsByEvalue(Int64List hits) {
     _currentHitsByEvalue = hits;
     notifyListeners();
   }
 
-  void set selectedHit(PlatformInt64 theHit) {
+  set selectedHit(PlatformInt64 theHit) {
     if (-1 <= theHit && theHit < _hits.length) {
       _selectedHit = theHit;
       notifyListeners();
@@ -2239,7 +2154,7 @@ class SearchData with ChangeNotifier {
     notifyListeners();
   }
 
-  void set currentHits(List<SigCategory> hits) {
+  set currentHits(List<SigCategory> hits) {
     _currentHits = hits;
     _currentLoaded = true;
     notifyListeners();
@@ -2250,14 +2165,14 @@ class SearchData with ChangeNotifier {
     notifyListeners();
   }
 
-  void set selectedStructure(int newCat) {
+  set selectedStructure(int newCat) {
     if (newCat >= 0 && newCat < _structures.length) {
       _selectedStructure = newCat;
       notifyListeners();
     }
   }
 
-  (Color, Color, PatternType, Color, Color) get_colors(String domain) {
+  (Color, Color, PatternType, Color, Color) getColors(String domain) {
     if (_domainColors.containsKey(domain)) {
       return _domainColors[domain]!;
     } else {

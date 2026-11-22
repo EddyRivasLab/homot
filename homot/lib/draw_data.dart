@@ -9,8 +9,6 @@ NPC: 4/23/25 [The Cushy Office]
 
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:homot/src/rust/api/graph.dart';
 import 'package:homot/main.dart';
 import 'package:homot/pages.dart';
@@ -18,20 +16,23 @@ import 'package:provider/provider.dart';
 import "package:go_router/go_router.dart";
 import 'package:patterns_canvas/patterns_canvas.dart';
 
-const EDGEPAD = 3.0; // padding to leave at the edge of the screen when drawing a hit
+const edgePad =
+    3.0; // padding to leave at the edge of the screen when drawing a hit
 
-double pixelsPerResidue(int maxLength, TextTheme textTheme, BuildContext context) {
-  double textWidth, textHeight;
-  (textWidth, textHeight) = _calc_legend_dimensions(
-    textTheme,
-  );
+double pixelsPerResidue(
+  int maxLength,
+  TextTheme textTheme,
+  BuildContext context,
+) {
+  double textWidth;
+  (textWidth, _) = _calcLegendDimensions(textTheme);
 
   double screenWidth = MediaQuery.sizeOf(context).width;
   return (screenWidth - textWidth) / maxLength;
 }
 
-String _iType_to_string(IEntryType iType){
-  switch (iType){
+String _itypeToString(IEntryType iType) {
+  switch (iType) {
     case IEntryType.superfamily:
       return "Superfamily";
     case IEntryType.family:
@@ -46,7 +47,8 @@ String _iType_to_string(IEntryType iType){
       return "Other";
   }
 }
-(double, double) _calc_legend_dimensions(TextTheme textTheme) {
+
+(double, double) _calcLegendDimensions(TextTheme textTheme) {
   // The easiest way to get the dimensions of some
   // text seems to be to try rendering them and then measure the result.
   TextPainter testPainter = TextPainter(
@@ -54,11 +56,10 @@ String _iType_to_string(IEntryType iType){
     textDirection: TextDirection.ltr,
   );
   testPainter.text = TextSpan(
-      text: "Structure\nQuery\nHomology\nSequence ",
-      style: textTheme.bodyMedium,
-    );
-  
-  
+    text: "Structure\nQuery\nHomology\nSequence ",
+    style: textTheme.bodyMedium,
+  );
+
   testPainter.layout();
   return (testPainter.width, testPainter.preferredLineHeight);
 }
@@ -77,78 +78,70 @@ void _addButton(
   BuildContext context,
 ) {
   String tooltipText;
- if (domain.source == AnnotationType.interpro){
-  tooltipText = _iType_to_string(domain.iType)+ ":";
-  if (domain.iType == "Domain" && usePfamNames && domain.pfamName != ""){
-    tooltipText += " "+ domain.pfamName;
-  }
-  else{
-    tooltipText += " "+ domain.name;
-  }
-  if(domain.ipShort != ""){
-    tooltipText += "\nInterPro Short Name: " + domain.ipShort;
-  }
-  else{
-    tooltipText += "\nInterPro Short Name: none";
-  }
-  if(domain.ipLong != ""){
-    tooltipText += "\nInterPro Long Name: " + domain.ipLong;
-  }
-  else{
-    tooltipText += "\nInterPro Long Name: none";
-  }
-  tooltipText += "\nDescription: " + domain.description;
-  tooltipText += "\nTarget sequence length: " + seqLength.toString();
+  if (domain.source == AnnotationType.interpro) {
+    tooltipText = "${_itypeToString(domain.iType)}:";
+    if (domain.iType == IEntryType.domain &&
+        usePfamNames &&
+        domain.pfamName != "") {
+      tooltipText += " ${domain.pfamName}";
+    } else {
+      tooltipText += " ${domain.name}";
+    }
+    if (domain.ipShort != "") {
+      tooltipText += "\nInterPro Short Name: ${domain.ipShort}";
+    } else {
+      tooltipText += "\nInterPro Short Name: none";
+    }
+    if (domain.ipLong != "") {
+      tooltipText += "\nInterPro Long Name: ${domain.ipLong}";
+    } else {
+      tooltipText += "\nInterPro Long Name: none";
+    }
+    tooltipText += "\nDescription: ${domain.description}";
+    tooltipText += "\nTarget sequence length: $seqLength";
 
-  tooltipText += "\n"+_iType_to_string(domain.iType)+ " occupied sequence positions "+
-      domain.seqStart.toString() +
-      "-" +
-      domain.seqEnd.toString();
- }
- else{
+    tooltipText +=
+        "\n${_itypeToString(domain.iType)} occupied sequence positions ${domain.seqStart}-${domain.seqEnd}";
+  } else {
     if (query) {
-      tooltipText = "Query: "+ domain.name;
-      if (!domain.fromBlast){
-        tooltipText += "\nDomain E-value: " + domain.domEvalue.toStringAsExponential(2);
+      tooltipText = "Query: ${domain.name}";
+      if (!domain.fromBlast) {
+        tooltipText +=
+            "\nDomain E-value: ${domain.domEvalue.toStringAsExponential(2)}";
       }
-      tooltipText += "\nSequence e-value: " + seqEvalue.toStringAsExponential(2);
-      tooltipText += "\nTarget sequence length: " + seqLength.toString();
-      if(!domain.fromBlast){
-        tooltipText += "\nDomain HMM length: " + domain.hmmLength.toString();
+      tooltipText +=
+          "\nSequence e-value: ${seqEvalue.toStringAsExponential(2)}";
+      tooltipText += "\nTarget sequence length: $seqLength";
+      if (!domain.fromBlast) {
+        tooltipText += "\nDomain HMM length: ${domain.hmmLength}";
       }
-      tooltipText += "\nQuery matched sequence positions "+
-          domain.seqStart.toString() +
-          "-" +
-          domain.seqEnd.toString();
-      if (!domain.fromBlast){
-        tooltipText += "\nDomain matched HMM positions " +
-            domain.hmmStart.toString() +
-            "-" +
-            domain.hmmEnd.toString();
+      tooltipText +=
+          "\nQuery matched sequence positions ${domain.seqStart}-${domain.seqEnd}";
+      if (!domain.fromBlast) {
+        tooltipText +=
+            "\nDomain matched HMM positions ${domain.hmmStart}-${domain.hmmEnd}";
       }
-    }
-    else{tooltipText = "Domain: "+ domain.name;
-      tooltipText += "\nDescription: " + domain.description;
-      if (!domain.fromBlast){
-        tooltipText += "\nDomain E-value: " + domain.domEvalue.toStringAsExponential(2);
+    } else {
+      tooltipText = "Domain: ${domain.name}";
+      tooltipText += "\nDescription: ${domain.description}";
+      if (!domain.fromBlast) {
+        tooltipText +=
+            "\nDomain E-value: ${domain.domEvalue.toStringAsExponential(2)}";
       }
-      tooltipText += "\nSequence e-value: " + seqEvalue.toStringAsExponential(2);
-      tooltipText += "\nTarget sequence length: " + seqLength.toString();
-      if(!domain.fromBlast){
-        tooltipText += "\nDomain HMM length: " + domain.hmmLength.toString();
+      tooltipText +=
+          "\nSequence e-value: ${seqEvalue.toStringAsExponential(2)}";
+      tooltipText += "\nTarget sequence length: $seqLength";
+      if (!domain.fromBlast) {
+        tooltipText += "\nDomain HMM length: ${domain.hmmLength}";
       }
-      tooltipText += "\nQuery matched sequence positions "+
-          domain.seqStart.toString() +
-          "-" +
-          domain.seqEnd.toString();
-      if (!domain.fromBlast){
-        tooltipText += "\nDomain matched HMM positions " +
-            domain.hmmStart.toString() +
-            "-" +
-            domain.hmmEnd.toString();
+      tooltipText +=
+          "\nQuery matched sequence positions ${domain.seqStart}-${domain.seqEnd}";
+      if (!domain.fromBlast) {
+        tooltipText +=
+            "\nDomain matched HMM positions ${domain.hmmStart}-${domain.hmmEnd}";
       }
     }
-  };
+  }
   buttons.add(
     Positioned(
       top: top,
@@ -171,10 +164,10 @@ void _addButton(
 }
 
 /// DrawDomains: draws a representation of the domains that a sequence contains
-typedef dCoord = ({int domain, int start, int end});
+typedef DCoord = ({int domain, int start, int end});
 
 class DrawDomains extends StatelessWidget {
-  DrawDomains({
+  const DrawDomains({
     super.key,
     required this.context,
     required this.sequence,
@@ -201,35 +194,44 @@ class DrawDomains extends StatelessWidget {
   final double seqEvalue;
   final bool allDomains;
   final double pixelsPerResidue;
-  List<List<int>> _map_domains_to_rows(List<Domain> domains) {
-    List<List<dCoord>> Lines = [[]];
+  List<List<int>> _mapDomainsToRows(List<Domain> domains) {
+    List<List<DCoord>> lines = [[]];
     int whichDomain = 0;
-    final bool showSuperfamilies = Provider.of<HSettings>(context, listen: false).showInterproSuperfamily;
-    final bool showFamilies = Provider.of<HSettings>(context, listen: false).showInterproFamily;
-    final bool showDomains = Provider.of<HSettings>(context, listen: false).showInterproDomain;
-    final bool showRepeats = Provider.of<HSettings>(context, listen: false).showInterproRepeat;
-    final bool showSites = Provider.of<HSettings>(context, listen: false).showInterproSite;
-    final bool showOther = Provider.of<HSettings>(context, listen: false).showInterproOther;  
+    final bool showSuperfamilies =
+        Provider.of<HSettings>(context, listen: false).showInterproSuperfamily;
+    final bool showFamilies =
+        Provider.of<HSettings>(context, listen: false).showInterproFamily;
+    final bool showDomains =
+        Provider.of<HSettings>(context, listen: false).showInterproDomain;
+    final bool showRepeats =
+        Provider.of<HSettings>(context, listen: false).showInterproRepeat;
+    final bool showSites =
+        Provider.of<HSettings>(context, listen: false).showInterproSite;
+    final bool showOther =
+        Provider.of<HSettings>(context, listen: false).showInterproOther;
     for (var domain in domains) {
-      whichDomain += 1; // increment here so that this gets incremented even when we skip a domain
+      whichDomain +=
+          1; // increment here so that this gets incremented even when we skip a domain
       // means we have to subtract one from the domain number when we insert, though.
-      if (domain.source == AnnotationType.interpro){
-        // This is an InterPro domain; see if we should show it 
-        if (domain.iType == IEntryType.superfamily && !showSuperfamilies) continue;
+      if (domain.source == AnnotationType.interpro) {
+        // This is an InterPro domain; see if we should show it
+        if (domain.iType == IEntryType.superfamily && !showSuperfamilies) {
+          continue;
+        }
         if (domain.iType == IEntryType.family && !showFamilies) continue;
         if (domain.iType == IEntryType.domain && !showDomains) continue;
         if (domain.iType == IEntryType.repeat && !showRepeats) continue;
         if (domain.iType == IEntryType.site && !showSites) continue;
-        if (domain.iType == IEntryType.other  && !showOther) continue;
-        }
+        if (domain.iType == IEntryType.other && !showOther) continue;
+      }
 
       bool foundSpot = false;
       //print("Placing domain ${domain.name} at ${domain.seqStart}-${domain.seqEnd} ");
-      for (var i = 0; i < Lines.length; i++) {
+      for (var i = 0; i < lines.length; i++) {
         // first, see if the domain fits at the beginning of the row
-        if (Lines[i].isEmpty || domain.seqEnd < Lines[i][0].start) {
-          Lines[i].insert(0, (
-            domain: whichDomain-1,
+        if (lines[i].isEmpty || domain.seqEnd < lines[i][0].start) {
+          lines[i].insert(0, (
+            domain: whichDomain - 1,
             start: domain.seqStart,
             end: domain.seqEnd,
           ));
@@ -237,10 +239,10 @@ class DrawDomains extends StatelessWidget {
           break;
         }
         // then, see if it fits at the end
-        if (domain.seqStart > Lines[i][Lines[i].length - 1].end) {
+        if (domain.seqStart > lines[i][lines[i].length - 1].end) {
           // fits at the end of the row
-          Lines[i].add((
-            domain: whichDomain-1,
+          lines[i].add((
+            domain: whichDomain - 1,
             start: domain.seqStart,
             end: domain.seqEnd,
           ));
@@ -248,12 +250,12 @@ class DrawDomains extends StatelessWidget {
           break;
         }
         // If it doesn't fit at the start or the end, see if it fits between existing ones
-        for (var j = 0; j < Lines[i].length - 1; j++) {
-          if (domain.seqStart > Lines[i][j].end &&
-              domain.seqEnd < Lines[i][j + 1].start) {
+        for (var j = 0; j < lines[i].length - 1; j++) {
+          if (domain.seqStart > lines[i][j].end &&
+              domain.seqEnd < lines[i][j + 1].start) {
             // fits between items j and J+1
-            Lines[i].insert(j + 1, (
-              domain: whichDomain-1,
+            lines[i].insert(j + 1, (
+              domain: whichDomain - 1,
               start: domain.seqStart,
               end: domain.seqEnd,
             ));
@@ -261,20 +263,23 @@ class DrawDomains extends StatelessWidget {
             break;
           }
         }
+        if (foundSpot) {
+          break;
+        }
       }
       // if we get here without finding a spot, we need to start a new row
       if (!foundSpot) {
-        Lines.add([
-          (domain: whichDomain-1, start: domain.seqStart, end: domain.seqEnd),
+        lines.add([
+          (domain: whichDomain - 1, start: domain.seqStart, end: domain.seqEnd),
         ]);
       }
     }
     List<List<int>> retval = [];
-    for (var i = 0; i < Lines.length; i++) {
+    for (var i = 0; i < lines.length; i++) {
       retval.add([]);
-      for (var j = 0; j < Lines[i].length; j++) {
+      for (var j = 0; j < lines[i].length; j++) {
         // add the row number to the domain
-        retval[i].add(Lines[i][j].domain);
+        retval[i].add(lines[i][j].domain);
       }
     }
 
@@ -285,12 +290,12 @@ class DrawDomains extends StatelessWidget {
   Widget build(BuildContext context) {
     //  print("DrawDomains called with length = $length and width = $width");
     double textHeight, textWidth;
-    (textWidth, textHeight) = _calc_legend_dimensions(
+    (textWidth, textHeight) = _calcLegendDimensions(
       Theme.of(context).textTheme,
     );
     var newDomains = List<Domain>.from(domains);
     // Handle the case where there are no domains
-  /*  if (newDomains.isEmpty) {
+    /*  if (newDomains.isEmpty) {
       newDomains.add(
         Domain(
           name: "No Structure",
@@ -315,14 +320,14 @@ class DrawDomains extends StatelessWidget {
     } */
     // Sort the domains by start position
 
-    var domainRows = _map_domains_to_rows(newDomains);
-    var queryRows = _map_domains_to_rows(queries);
+    var domainRows = _mapDomainsToRows(newDomains);
+    var queryRows = _mapDomainsToRows(queries);
     // now, figure out how many lines are needed for the queries.  This is harder,
     // because they aren't pre-sorted
     var queryStartRow = domainRows.isNotEmpty ? domainRows.length : 1;
     var numLines = queryRows.isNotEmpty ? queryStartRow + queryRows.length : 1;
     //print("width = $width textWidth = $textWidth length = $length");
-    List<Widget> buttons = CreateButtons(
+    List<Widget> buttons = createButtons(
       newDomains,
       domainRows,
       width,
@@ -336,7 +341,7 @@ class DrawDomains extends StatelessWidget {
       context,
       pixelsPerResidue,
     );
-    var _myPainter = DomainPainter(
+    var myPainter = DomainPainter(
       context: context,
       domains: newDomains,
       domainRows: domainRows,
@@ -361,7 +366,7 @@ class DrawDomains extends StatelessWidget {
                 width,
                 textHeight * (numLines * lineSpace + (lineSpace / 2)),
               ),
-              painter: _myPainter,
+              painter: myPainter,
             ),
           ] +
           buttons,
@@ -371,7 +376,7 @@ class DrawDomains extends StatelessWidget {
 
 const double lineSpace = 1.4;
 
-List<Widget> CreateButtons(
+List<Widget> createButtons(
   final List<Domain> domains,
   final List<List<int>> domainRows,
   final double totalWidth,
@@ -386,8 +391,7 @@ List<Widget> CreateButtons(
   final double pixelsPerResidue,
 ) {
   List<Widget> buttons = [];
-  var row = 0;
-  double oldEnd = widthOffset;
+
   for (var i = 0; i < domainRows.length; i++) {
     for (var j = 0; j < domainRows[i].length; j++) {
       final domain = domains[domainRows[i][j]];
@@ -404,7 +408,8 @@ List<Widget> CreateButtons(
         false,
         seqLength,
         seqEvalue,
-        Provider.of<HSettings>(context, listen: false).showNamesFrom == ShowNamesFrom.pfam,
+        Provider.of<HSettings>(context, listen: false).showNamesFrom ==
+            ShowNamesFrom.pfam,
         context,
       );
     }
@@ -426,7 +431,8 @@ List<Widget> CreateButtons(
         true,
         seqLength,
         seqEvalue,
-        Provider.of<HSettings>(context, listen: false).showNamesFrom == ShowNamesFrom.pfam,
+        Provider.of<HSettings>(context, listen: false).showNamesFrom ==
+            ShowNamesFrom.pfam,
         context,
       );
     }
@@ -451,7 +457,6 @@ class DomainPainter extends CustomPainter {
   final bool allDomains;
   final double pixelsPerResidue;
 
-
   DomainPainter({
     required this.context,
     required this.domains,
@@ -470,7 +475,7 @@ class DomainPainter extends CustomPainter {
     required this.pixelsPerResidue,
   });
 
-  _drawDomains(
+  void _drawDomains(
     BuildContext context,
     Canvas canvas,
     Paint paint,
@@ -485,20 +490,30 @@ class DomainPainter extends CustomPainter {
     double pixelsPerResidue,
   ) {
     List<double> lastEnds = List<double>.filled(domainRows.length, widthOffset);
-    bool addPatterns = Provider.of<HSettings>(context, listen: false).addPatterns;
-    bool pfamNames = Provider.of<HSettings>(context, listen: false).showNamesFrom == ShowNamesFrom.pfam;
-    ShowInterproIdEnum showInterproIdAs = Provider.of<HSettings>(context, listen: false).showInterproIdAs;
+    bool addPatterns =
+        Provider.of<HSettings>(context, listen: false).addPatterns;
+    bool pfamNames =
+        Provider.of<HSettings>(context, listen: false).showNamesFrom ==
+        ShowNamesFrom.pfam;
+    ShowInterproIdEnum showInterproIdAs =
+        Provider.of<HSettings>(context, listen: false).showInterproIdAs;
     for (var i = 0; i < domainRows.length; i++) {
-      if(!query){
-        final p3 = Offset(widthOffset, ((startRow + i) * lineSpace) * heightPerLine);
-        final p4 = Offset(widthOffset, ((startRow + i) * (lineSpace) + lineSpace) * heightPerLine);
-   
+      if (!query) {
+        final p3 = Offset(
+          widthOffset,
+          ((startRow + i) * lineSpace) * heightPerLine,
+        );
+        final p4 = Offset(
+          widthOffset,
+          ((startRow + i) * (lineSpace) + lineSpace) * heightPerLine,
+        );
+
         canvas.drawLine(
           p3,
           p4,
           paint
-          ..color = Theme.of(context).colorScheme.onSurface
-          ..strokeWidth = 2.0,
+            ..color = Theme.of(context).colorScheme.onSurface
+            ..strokeWidth = 2.0,
         );
       }
       for (var j = 0; j < domainRows[i].length; j++) {
@@ -507,7 +522,7 @@ class DomainPainter extends CustomPainter {
         final double end = domain.seqEnd * pixelsPerResidue + widthOffset;
         final double domainWidth = end - start;
         //
-        _draw_domain(
+        _drawDomain(
           canvas,
           paint,
           Offset(start, ((startRow + i) * lineSpace) * heightPerLine),
@@ -521,14 +536,14 @@ class DomainPainter extends CustomPainter {
           pfamNames,
           showInterproIdAs,
           size,
-          query
+          query,
         );
         lastEnds[i] = end;
       }
     }
     for (int j = 0; j < lastEnds.length; j++) {
       if (lastEnds[j] <= endWidth && !query) {
-       final p1 = Offset(
+        final p1 = Offset(
           lastEnds[j],
           ((startRow + j) * lineSpace + (lineSpace / 2)) * heightPerLine,
         );
@@ -544,20 +559,27 @@ class DomainPainter extends CustomPainter {
             ..strokeWidth = 2.0,
         );
 
-        final p3 = Offset(endWidth, ((startRow + j) * lineSpace) * heightPerLine);
-        final p4 = Offset(endWidth, ((startRow + j) * (lineSpace) + lineSpace) * heightPerLine);
-   
+        final p3 = Offset(
+          endWidth,
+          ((startRow + j) * lineSpace) * heightPerLine,
+        );
+        final p4 = Offset(
+          endWidth,
+          ((startRow + j) * (lineSpace) + lineSpace) * heightPerLine,
+        );
+
         canvas.drawLine(
           p3,
           p4,
           paint
-          ..color = Theme.of(context).colorScheme.onSurface
-          ..strokeWidth = 2.0,
+            ..color = Theme.of(context).colorScheme.onSurface
+            ..strokeWidth = 2.0,
         );
       }
     }
   }
-  _draw_domain(
+
+  void _drawDomain(
     Canvas canvas,
     Paint paint,
     Offset position,
@@ -571,22 +593,28 @@ class DomainPainter extends CustomPainter {
     bool pfamNames,
     ShowInterproIdEnum showInterproIdAs,
     Size size,
-    bool query
+    bool query,
   ) {
     // set this up once in case we need it
     int featuresCount = 5;
-    if (searchdata.get_colors(domain.name).$3 != PatternType.horizontalLight) {
+    if (searchdata.getColors(domain.name).$3 != PatternType.horizontalLight) {
       featuresCount = (width / 10).round();
     }
-    Pattern p1 = Pattern.fromValues(patternType: searchdata.get_colors(domain.name).$3, fgColor: searchdata.get_colors(domain.name).$5, 
-    bgColor: searchdata.get_colors(domain.name).$4, featuresCount: featuresCount);
+    Pattern p1 = Pattern.fromValues(
+      patternType: searchdata.getColors(domain.name).$3,
+      fgColor: searchdata.getColors(domain.name).$5,
+      bgColor: searchdata.getColors(domain.name).$4,
+      featuresCount: featuresCount,
+    );
     // First, the line preceeding the domain
     final double start = position.dx;
     final double startY =
-       query? position.dy + (heightPerLine*lineSpace)/2:  position.dy + 
-       (heightPerLine *
-            (lineSpace - 1) /
-            2); // adjust for spacing between rows
+        query
+            ? position.dy + (heightPerLine * lineSpace) / 2
+            : position.dy +
+                (heightPerLine *
+                    (lineSpace - 1) /
+                    2); // adjust for spacing between rows
     if (start > lastEnd && !query) {
       final p1 = Offset(
         lastEnd,
@@ -601,20 +629,24 @@ class DomainPainter extends CustomPainter {
           ..strokeWidth = 2.0,
       );
     }
-    if (width <= height) {// domain too small to draw pretty edges
+    if (width <= height) {
+      // domain too small to draw pretty edges
       final theRect = Rect.fromLTWH(position.dx, startY, width, height);
-     if (addPatterns){
-      p1.paintOnRect(canvas, size, theRect);
-     }
-     else{ // solid fill
-      canvas.drawRect(
-        theRect,
-        paint
-          ..color = query? Theme.of(context).colorScheme.onSurface:searchdata.get_colors(domain.name).$1
-          ..style = PaintingStyle.fill,
-      );
-     }
-     // outline region either way
+      if (addPatterns) {
+        p1.paintOnRect(canvas, size, theRect);
+      } else {
+        // solid fill
+        canvas.drawRect(
+          theRect,
+          paint
+            ..color =
+                query
+                    ? Theme.of(context).colorScheme.onSurface
+                    : searchdata.getColors(domain.name).$1
+            ..style = PaintingStyle.fill,
+        );
+      }
+      // outline region either way
       canvas.drawRect(
         Rect.fromLTWH(position.dx, startY, width, height),
         paint
@@ -669,16 +701,18 @@ class DomainPainter extends CustomPainter {
         path.lineTo(position.dx + (width - height / 2), startY + height);
       }
       path.lineTo(position.dx + height / 2, startY + height);
-      if(addPatterns) {
+      if (addPatterns) {
         p1.paintOnPath(canvas, size, path);
-      }
-      else {
-      canvas.drawPath(
-        path,
-        paint
-          ..color = query? Theme.of(context).colorScheme.onSurface:searchdata.get_colors(domain.name).$1
-          ..style = PaintingStyle.fill,
-      );
+      } else {
+        canvas.drawPath(
+          path,
+          paint
+            ..color =
+                query
+                    ? Theme.of(context).colorScheme.onSurface
+                    : searchdata.getColors(domain.name).$1
+            ..style = PaintingStyle.fill,
+        );
       }
       // outline the domain either way
       canvas.drawPath(
@@ -697,50 +731,49 @@ class DomainPainter extends CustomPainter {
     );
     String name = "";
     double textOffset = position.dx + (width / 2);
-    String evalString = (domain.fromBlast || domain.source == AnnotationType.interpro) ? "":" ("+domain.domEvalue.toStringAsExponential(2)+")";
-    Color textFG = searchdata.get_colors(domain.name).$2;
+
+    Color textFG = searchdata.getColors(domain.name).$2;
     Color textBG = Color(0x00000000); // transparent
-    if(addPatterns){ // text becomes white on black background for visibility
+    if (addPatterns) {
+      // text becomes white on black background for visibility
       textFG = Color(0xFFFFFFFF); // white
       textBG = Color(0xFF000000); // black
     }
     // see if all the data we'd like to display fits in the domain
-    if(domain.source == AnnotationType.interpro){
+    if (domain.source == AnnotationType.interpro) {
       // InterPro domain; see how to display the name
-      switch (domain.iType){
+      switch (domain.iType) {
         case IEntryType.domain:
-          if (pfamNames && domain.pfamName != ""){
+          if (pfamNames && domain.pfamName != "") {
             name = domain.pfamName;
-          }
-          else{
-            switch (showInterproIdAs){
+          } else {
+            switch (showInterproIdAs) {
               case ShowInterproIdEnum.id:
                 name = domain.name;
                 break;
-              case ShowInterproIdEnum.short_name:
-                name = domain.ipShort != "" ? domain.ipShort: domain.name;
+              case ShowInterproIdEnum.shortName:
+                name = domain.ipShort != "" ? domain.ipShort : domain.name;
                 break;
-              case ShowInterproIdEnum.long_name:
-                name = domain.ipLong != "" ? domain.ipLong: domain.name;
+              case ShowInterproIdEnum.longName:
+                name = domain.ipLong != "" ? domain.ipLong : domain.name;
                 break;
             }
           }
           break;
-        default: 
-          switch (showInterproIdAs){
-              case ShowInterproIdEnum.id:
-                name = domain.name;
-                break;
-              case ShowInterproIdEnum.short_name:
-                name = domain.ipShort != "" ? domain.ipShort: domain.name;
-                break;
-              case ShowInterproIdEnum.long_name:
-                name = domain.ipLong != "" ? domain.ipLong: domain.name;
-                break;
-            }
-        }
-    }
-    else{
+        default:
+          switch (showInterproIdAs) {
+            case ShowInterproIdEnum.id:
+              name = domain.name;
+              break;
+            case ShowInterproIdEnum.shortName:
+              name = domain.ipShort != "" ? domain.ipShort : domain.name;
+              break;
+            case ShowInterproIdEnum.longName:
+              name = domain.ipLong != "" ? domain.ipLong : domain.name;
+              break;
+          }
+      }
+    } else {
       name = domain.name;
     }
     //name = (domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "") ? domain.pfamName: domain.name + evalString;
@@ -748,8 +781,9 @@ class DomainPainter extends CustomPainter {
         painter.text = TextSpan(
           text: name,
           style: textTheme.bodyMedium!.copyWith(
-            color: query?Theme.of(context).colorScheme.surface: textFG,
-            backgroundColor: query?Theme.of(context).colorScheme.onSurface:textBG
+            color: query ? Theme.of(context).colorScheme.surface : textFG,
+            backgroundColor:
+                query ? Theme.of(context).colorScheme.onSurface : textBG,
           ),
         );
     painter.layout();
@@ -759,23 +793,34 @@ class DomainPainter extends CustomPainter {
       painter.paint(canvas, textPosition);
     } else {
       //see if the domain name fits
-    //  name = domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "" ? domain.pfamName : domain.name;
+      //  name = domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "" ? domain.pfamName : domain.name;
       var baseFontSize = textTheme.bodyMedium!.fontSize ?? 14.0;
-      for (var size in [baseFontSize, baseFontSize * 0.9, baseFontSize * 0.8, baseFontSize * 0.7, baseFontSize * 0.6, baseFontSize * 0.5]) {
+      for (var size in [
+        baseFontSize,
+        baseFontSize * 0.9,
+        baseFontSize * 0.8,
+        baseFontSize * 0.7,
+        baseFontSize * 0.6,
+        baseFontSize * 0.5,
+      ]) {
         painter.text = TextSpan(
           text: name,
           style: textTheme.bodyMedium!.copyWith(
             fontSize: size,
-            color: query?Theme.of(context).colorScheme.surface:textFG,
-            backgroundColor: query?Theme.of(context).colorScheme.onSurface:textBG
+            color: query ? Theme.of(context).colorScheme.surface : textFG,
+            backgroundColor:
+                query ? Theme.of(context).colorScheme.onSurface : textBG,
           ),
         );
         painter.layout();
         if (painter.width <= (width - heightPerLine)) {
-          Offset textPosition = Offset(textOffset - painter.width / 2, startY+(heightPerLine - painter.height)/2);
+          Offset textPosition = Offset(
+            textOffset - painter.width / 2,
+            startY + (heightPerLine - painter.height) / 2,
+          );
           painter.paint(canvas, textPosition);
           break;
-          }
+        }
       }
       /*else {
         //Cram in what we can
@@ -801,7 +846,7 @@ class DomainPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Draw domain structure of the sequence that the hit matched
-    Paint paint = new Paint()..style = PaintingStyle.fill;
+    Paint paint = Paint()..style = PaintingStyle.fill;
     TextPainter legendPainter = TextPainter(
       textAlign: TextAlign.start,
       textDirection: TextDirection.ltr,
@@ -831,10 +876,7 @@ class DomainPainter extends CustomPainter {
     legendPainter.layout();
     legendPainter.paint(
       canvas,
-      Offset(
-        0,
-        (queryStartRow * lineSpace) * heightPerLine,
-      ),
+      Offset(0, (queryStartRow * lineSpace) * heightPerLine),
     );
     // draw the structure/annotated domains
     _drawDomains(
@@ -849,7 +891,7 @@ class DomainPainter extends CustomPainter {
       size,
       totalWidth,
       false,
-      pixelsPerResidue
+      pixelsPerResidue,
     );
     // draw the queries
 
@@ -866,7 +908,7 @@ class DomainPainter extends CustomPainter {
       size,
       totalWidth,
       true,
-      pixelsPerResidue
+      pixelsPerResidue,
     );
   }
 
@@ -881,7 +923,9 @@ bool abbreviationRequired(
   BuildContext context,
   double pixelsPerResidue,
 ) {
-  bool pfamNames = Provider.of<HSettings>(context, listen: false).showNamesFrom == ShowNamesFrom.pfam;
+  bool pfamNames =
+      Provider.of<HSettings>(context, listen: false).showNamesFrom ==
+      ShowNamesFrom.pfam;
   //textWidth here is the width of the legend text
   TextPainter painter;
   painter = TextPainter(
@@ -894,11 +938,15 @@ bool abbreviationRequired(
   );
   painter.layout();
   double heightPerLine = painter.preferredLineHeight;
-  double widthPerChar = 0.0;
   for (var domain in hit.queries) {
     // figure out how long the domain needs to be to fit the text we'll put in it
-    String evalString = "("+domain.domEvalue.toStringAsExponential(2)+ ") ";
-    String name = (domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "") ? domain.pfamName: domain.name + evalString;
+    String evalString = "(${domain.domEvalue.toStringAsExponential(2)}) ";
+    String name =
+        (domain.source == AnnotationType.interpro &&
+                pfamNames &&
+                domain.pfamName != "")
+            ? domain.pfamName
+            : domain.name + evalString;
     painter.text = TextSpan(
       text: name,
       style: Theme.of(context).textTheme.bodyMedium,
@@ -907,7 +955,9 @@ bool abbreviationRequired(
     double domainWidth =
         painter.width +
         heightPerLine; // add heightperline to make room for rounded edges
-    if (domainWidth/pixelsPerResidue > ((domain.seqEnd - domain.seqStart)+1)){ // the text is too big to fit
+    if (domainWidth / pixelsPerResidue >
+        ((domain.seqEnd - domain.seqStart) + 1)) {
+      // the text is too big to fit
       return true;
     }
   }
@@ -915,7 +965,7 @@ bool abbreviationRequired(
   for (var domain in allDomains ? hit.domains : hit.structureDomains) {
     // figure out how long the domain needs to be to fit the text we'll put in it
     String evalString = domain.domEvalue.toStringAsExponential(2);
-    String name = domain.name + " (" + evalString + ")";
+    String name = "${domain.name} ($evalString)";
     painter.text = TextSpan(
       text: name,
       style: Theme.of(context).textTheme.bodyMedium,
@@ -924,7 +974,9 @@ bool abbreviationRequired(
     double domainWidth =
         painter.width +
         heightPerLine; // add heightperline to make room for rounded edges
-    if (domainWidth/pixelsPerResidue > ((domain.seqEnd - domain.seqStart)+1)){ // the text is too big to fit
+    if (domainWidth / pixelsPerResidue >
+        ((domain.seqEnd - domain.seqStart) + 1)) {
+      // the text is too big to fit
       return true;
     }
   }
@@ -936,8 +988,8 @@ bool abbreviationRequired(
       style: Theme.of(context).textTheme.bodyMedium,
     );
     painter.layout();
-    double seqWidth = painter.width/hit.sequence.length;
-    if (seqWidth > pixelsPerResidue){ 
+    double seqWidth = painter.width / hit.sequence.length;
+    if (seqWidth > pixelsPerResidue) {
       return true;
     }
   }
@@ -950,7 +1002,9 @@ double requiredHitWidth(
   bool showSequence,
   BuildContext context,
 ) {
-  bool pfamNames = Provider.of<HSettings>(context, listen: false).showNamesFrom == ShowNamesFrom.pfam;
+  bool pfamNames =
+      Provider.of<HSettings>(context, listen: false).showNamesFrom ==
+      ShowNamesFrom.pfam;
   //textWidth here is the width of the legend text
   TextPainter painter;
   painter = TextPainter(
@@ -966,7 +1020,12 @@ double requiredHitWidth(
   double widthPerChar = 0.0;
   for (var domain in hit.queries) {
     // figure out how long the domain needs to be to fit the text we'll put in it
-    String name = (domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "") ? domain.pfamName: domain.name;
+    String name =
+        (domain.source == AnnotationType.interpro &&
+                pfamNames &&
+                domain.pfamName != "")
+            ? domain.pfamName
+            : domain.name;
     painter.text = TextSpan(
       text: name,
       style: Theme.of(context).textTheme.bodyMedium,
@@ -975,7 +1034,8 @@ double requiredHitWidth(
     double domainWidth =
         painter.width +
         heightPerLine; // add heightperline to make room for rounded edges
-    double domainWidthPerChar = domainWidth / (domain.seqEnd - domain.seqStart);
+    double domainWidthPerChar =
+        domainWidth / ((domain.seqEnd - domain.seqStart) + 1);
     if (domainWidthPerChar > widthPerChar) {
       //this domain needs more room per character than previous ones
       widthPerChar = domainWidthPerChar;
@@ -992,12 +1052,12 @@ double requiredHitWidth(
     double domainWidth =
         painter.width +
         heightPerLine; // add heightperline to make room for rounded edges
-    double domainWidthPerChar = domainWidth / (domain.seqEnd - domain.seqStart);
+    double domainWidthPerChar =
+        domainWidth / ((domain.seqEnd - domain.seqStart) + 1);
     if (domainWidthPerChar > widthPerChar) {
       //this domain needs more room per character than previous ones
       widthPerChar = domainWidthPerChar;
     }
-    ;
   }
   if (showSequence) {
     // also consider the width needed to show the sequence
@@ -1013,7 +1073,7 @@ double requiredHitWidth(
     }
   }
   return (widthPerChar * hit.seqLength) +
-      _calc_legend_dimensions(Theme.of(context).textTheme).$1;
+      _calcLegendDimensions(Theme.of(context).textTheme).$1;
 }
 
 //Widget to draw the data for a hit
@@ -1027,7 +1087,7 @@ class DrawHit extends StatefulWidget {
     this.showSequence = false,
     this.sequence = "",
     required this.maxLength,
-    required this.pixelsPerResidue
+    required this.pixelsPerResidue,
   });
   final Hit hit;
   final bool allDomains;
@@ -1035,8 +1095,9 @@ class DrawHit extends StatefulWidget {
   final SearchData searchdata;
   final bool showSequence;
   final String sequence;
-  final int maxLength;  
+  final int maxLength;
   final double pixelsPerResidue;
+  @override
   State<DrawHit> createState() => _DrawHitState();
 }
 
@@ -1046,12 +1107,11 @@ class _DrawHitState extends State<DrawHit> {
   @override
   Widget build(BuildContext context) {
     //   print("Drawing hit: " + widget.hit.name+ "With  "+ widget.hit.queries.length.toString() + " queriy hits");
-    final width;
-    double textWidth, textHeight;
-    (textWidth, textHeight) = _calc_legend_dimensions(
-      Theme.of(context).textTheme,
-    );
-    double widthPerChar = requiredHitWidth(
+    final double width;
+    double textWidth;
+    (textWidth, _) = _calcLegendDimensions(Theme.of(context).textTheme);
+    double widthPerChar =
+        requiredHitWidth(
           widget.hit,
           widget.allDomains,
           widget.showSequence,
@@ -1059,61 +1119,72 @@ class _DrawHitState extends State<DrawHit> {
         ) /
         widget.hit.seqLength;
     if (widget.fullWidth) {
-      double expandedPixelsPerResidue = widthPerChar > widget.pixelsPerResidue ? widthPerChar : widget.pixelsPerResidue;
-      int expandedLength = widget.hit.seqLength > widget.maxLength ? widget.hit.seqLength : widget.maxLength;
+      double expandedPixelsPerResidue =
+          widthPerChar > widget.pixelsPerResidue
+              ? widthPerChar
+              : widget.pixelsPerResidue;
+      int expandedLength =
+          widget.hit.seqLength > widget.maxLength
+              ? widget.hit.seqLength
+              : widget.maxLength;
       width = expandedLength * expandedPixelsPerResidue + textWidth;
-    //  print("fullwidth for hit ${widget.hit.name} with expanded length $expandedLength and expanded pixels per residue $expandedPixelsPerResidue gives width $width");
-      return 
-      Padding(
-        padding: EdgeInsets.only(right:EDGEPAD),
-        child: 
-      Scrollbar(
-        controller: _scrollController,
-        thumbVisibility: true,
-        scrollbarOrientation: ScrollbarOrientation.bottom,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
+      //  print("fullwidth for hit ${widget.hit.name} with expanded length $expandedLength and expanded pixels per residue $expandedPixelsPerResidue gives width $width");
+      return Padding(
+        padding: EdgeInsets.only(right: edgePad),
+        child: Scrollbar(
           controller: _scrollController,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DrawDomains(
-                context: context,
-                sequence: widget.hit.sequence,
-                length: expandedLength,
-                domains:
-                    widget.allDomains
-                        ? widget.hit.domains
-                        : widget.hit.structureDomains,
-                width: width,
-                queries: widget.hit.queries,
-                searchdata: widget.searchdata,
-                seqLength: widget.hit.seqLength,
-                seqEvalue: widget.hit.seqEvalue,
-                allDomains: widget.allDomains,
-                pixelsPerResidue: expandedPixelsPerResidue,
-              ),
-              if (widget.showSequence)
-                Padding(
-                  padding: EdgeInsets.only(left: textWidth),
-                  child: Text(
-                    style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    widget.sequence,
-                  ),
+          thumbVisibility: true,
+          scrollbarOrientation: ScrollbarOrientation.bottom,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            controller: _scrollController,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DrawDomains(
+                  context: context,
+                  sequence: widget.hit.sequence,
+                  length: expandedLength,
+                  domains:
+                      widget.allDomains
+                          ? widget.hit.domains
+                          : widget.hit.structureDomains,
+                  width: width,
+                  queries: widget.hit.queries,
+                  searchdata: widget.searchdata,
+                  seqLength: widget.hit.seqLength,
+                  seqEvalue: widget.hit.seqEvalue,
+                  allDomains: widget.allDomains,
+                  pixelsPerResidue: expandedPixelsPerResidue,
                 ),
-            ],
+                if (widget.showSequence)
+                  Padding(
+                    padding: EdgeInsets.only(left: textWidth),
+                    child: Text(
+                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      widget.sequence,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
-      ),);
-    } 
-    
-    else {
+      );
+    } else {
       // make the hit fit in the window
-      width = widget.hit.seqLength >= widget.maxLength ? MediaQuery.sizeOf(context).width-EDGEPAD: widget.hit.seqLength * widget.pixelsPerResidue + textWidth;
+      width =
+          widget.hit.seqLength >= widget.maxLength
+              ? MediaQuery.sizeOf(context).width - edgePad
+              : widget.hit.seqLength * widget.pixelsPerResidue + textWidth;
       textWidth = 0.0;
-      double adjustedPixelsPerResidue = widget.hit.seqLength > widget.maxLength ? widget.pixelsPerResidue * (widget.maxLength.toDouble() / widget.hit.seqLength.toDouble())  : widget.pixelsPerResidue;
+      double adjustedPixelsPerResidue =
+          widget.hit.seqLength > widget.maxLength
+              ? widget.pixelsPerResidue *
+                  (widget.maxLength.toDouble() /
+                      widget.hit.seqLength.toDouble())
+              : widget.pixelsPerResidue;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1158,38 +1229,38 @@ class _DrawHitState extends State<DrawHit> {
 
 // Widget to display the information for a category of hits
 class DrawCategory extends StatefulWidget {
-  DrawCategory({
+  const DrawCategory({
     super.key,
     required this.which,
     required this.from,
     required this.context,
     required this.maxLength,
-    required this.pixelsPerResidue
+    required this.pixelsPerResidue,
   });
 
   final int which;
-  final selectedby from;
+  final SelectedBy from;
   final int maxLength;
   final double pixelsPerResidue;
-  BuildContext context;
-   @override
+  final BuildContext context;
+  @override
   State<DrawCategory> createState() => _DrawCategory();
 }
 
-class _DrawCategory extends State<DrawCategory>{
-  @override
+class _DrawCategory extends State<DrawCategory> {
   late bool fullWidth;
-  void initState(){
+  @override
+  void initState() {
     super.initState();
     fullWidth = false;
   }
+
   @override
   Widget build(BuildContext context) {
-
     return Consumer3<SearchData, HSettings, GraphData>(
       builder: (context, searchdata, hsettings, graphdata, child) {
         final SigCategory category =
-            widget.from == selectedby.structure
+            widget.from == SelectedBy.structure
                 ? searchdata.rootHits[widget.which]
                 : searchdata.currentHits[widget.which];
         final String hitText = category.hits.length == 1 ? "hit" : "hits";
@@ -1197,86 +1268,87 @@ class _DrawCategory extends State<DrawCategory>{
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(child:Text(
-                          style: Theme.of(
-                            context,
-                          ).textTheme.titleLarge!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
+            Center(
+              child: Text(
+                style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
 
-                          ),
-                          
-                              "${category.hits.length} $hitText with domain structure ${searchdata.structures[category.signature]}"
-                        ),),
+                "${category.hits.length} $hitText with domain structure ${searchdata.structures[category.signature]}",
+              ),
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Column(
-                 crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                
-                   Text(
-                          overflow: TextOverflow.clip,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
+                    Text(
+                      overflow: TextOverflow.clip,
+                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      "Example: ${searchdata.hits[category.hits[0].toInt()].name}\nTaxon: ${graphdata.graph[searchdata.hits[category.hits[0].toInt()].taxid]!.name}\nDescription: ${searchdata.hits[category.hits[0].toInt()].description}",
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    (theHit.seqLength > widget.maxLength ||
+                            abbreviationRequired(
+                              theHit,
+                              false,
+                              false,
+                              context,
+                              widget.pixelsPerResidue,
+                            ))
+                        ? RotatedBox(
+                          quarterTurns: 1,
+                          child: IconButton.outlined(
+                            iconSize: 24 * hsettings.scale,
+                            onPressed: () {
+                              setState(() {
+                                fullWidth = !fullWidth;
+                              });
+                            },
+                            icon:
+                                fullWidth
+                                    ? Icon(
+                                      Icons.compress,
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                    )
+                                    : Icon(
+                                      Icons.expand,
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                    ),
                           ),
-                          "Example: " +
-                              searchdata.hits[category.hits[0].toInt()].name +
-                              "\nTaxon: " +
-                              graphdata.graph[searchdata.hits[category.hits[0].toInt()].taxid]!.name+
-                      
-                          "\nDescription: " +
-                              searchdata.hits[category.hits[0].toInt()].description
+                        )
+                        : SizedBox.shrink(),
+                    IconButton.outlined(
+                      iconSize: 24 * hsettings.scale,
+                      onPressed: () {
+                        searchdata.selectedStructure = widget.which;
+                        searchdata.selectedBy = widget.from;
+                        selectedEvalueScrollOffset = 0.0;
+                        context.go("/subtreeevalue");
+                      },
+                      icon: Icon(
+                        Icons.search,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
 
-                        ),
-                        
-                        ],),
-               Row( children:[(theHit.seqLength > widget.maxLength || abbreviationRequired(theHit, false, false, context, widget.pixelsPerResidue)) ?  
-                RotatedBox(
-                                  quarterTurns: 1,
-                                  child: IconButton.outlined(
-                                    iconSize: 24 * hsettings.scale,
-                                    onPressed: () {
-                                    setState(() {
-                                      fullWidth = !fullWidth;});},
-                                    icon:
-                                        fullWidth
-                                            ? Icon(
-                                              Icons.compress,
-                                              color:
-                                                  Theme.of(
-                                                    context,
-                                                  ).colorScheme.onSurface,
-                                            )
-                                            : Icon(
-                                              Icons.expand,
-                                              color:
-                                                  Theme.of(
-                                                    context,
-                                                  ).colorScheme.onSurface,
-                                            ),
-                                  ),
-                                )
-                                : SizedBox.shrink(),
-                            IconButton.outlined(
-                              iconSize: 24 * hsettings.scale,
-                              onPressed: () {
-                                searchdata.selectedStructure = widget.which;
-                                searchdata.selectedBy = widget.from;
-                                selectedEvalueScrollOffset = 0.0;
-                                context.go("/subtreeevalue");
-                              },
-                              icon: Icon(
-                                Icons.search,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ],
-                        ),],),
-
-              
-          DrawHit(
+            DrawHit(
               hit: searchdata.hits[category.hits[0].toInt()],
               searchdata: searchdata,
               fullWidth: fullWidth,

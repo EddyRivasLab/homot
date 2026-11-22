@@ -12,8 +12,6 @@ NPC: 8/19/25 [The Cushy Office]
 
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:homot/main.dart';
 import 'package:homot/utility.dart';
 import 'package:homot/graph_painter.dart';
@@ -56,7 +54,7 @@ class _MainPageState extends State<MainPage> {
     return SelectionArea(
       child: Scaffold(
         backgroundColor: Theme.of(context).colorScheme.primary,
-        appBar: homotAppBar(text: "Select Data"),
+        appBar: HomotAppBar(text: "Select Data"),
         body: Consumer4<FileData, GraphData, SearchData, HSettings>(
           builder: (
             context,
@@ -110,7 +108,6 @@ class _MainPageState extends State<MainPage> {
                           filedata.domtbloutFiles.isNotEmpty
                               ? () async {
                                 filedata.clearDomtbloutFiles();
-                                filedata.notifyListeners();
                               }
                               : null,
                       child: Text("Clear"),
@@ -123,13 +120,11 @@ class _MainPageState extends State<MainPage> {
                         filedata.annFileSet &&
                                 filedata.domtbloutFiles.isNotEmpty
                             ? () async {
-                              const loadingSnackBar = SnackBar(
-                                duration: Duration(days: 1),
-                                backgroundColor: Colors.yellow,
-                                content: Center(child: Text("Loading Data")),
-                              );
-
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              // Grab the messenger before the await so the
+                              // loading snackbar can be cleared even if this
+                              // page is disposed while the data loads.
+                              final messenger = ScaffoldMessenger.of(context);
+                              messenger.showSnackBar(
                                 SnackBar(
                                   duration: Duration(days: 1),
                                   backgroundColor: Colors.yellow,
@@ -143,7 +138,7 @@ class _MainPageState extends State<MainPage> {
                               );
                               //Gather hits from the domtblout files
                               var results = await (fetchGraph(
-                                annfile: filedata.annotationsFile!,
+                                annfile: filedata.annotationsFile,
                                 domtbloutFiles: filedata.domtbloutFiles,
                                 evalMax:
                                     hsettings.useSeqEvals
@@ -176,9 +171,10 @@ class _MainPageState extends State<MainPage> {
                                     (hsettings.showNamesFrom ==
                                         ShowNamesFrom.pfam),
                               ));
-                              ScaffoldMessenger.of(context).clearSnackBars();
+                              messenger.clearSnackBars();
+                              if (!context.mounted) return;
                               // Update the overview data
-                              if (!results.succeeded || results.graph.length == 0) {
+                              if (!results.succeeded || results.graph.isEmpty) {
                                 String message;
                                 if (results.succeeded) {
                                   message =
@@ -218,7 +214,7 @@ class _MainPageState extends State<MainPage> {
                                 graphdata.clearGraph();
                                 graphdata.setGraph(results.graph);
                                 graphdata.setDepth(results.depth);
-                                graphdata.setMaxLevels(results.depth-1);
+                                graphdata.setMaxLevels(results.depth);
                                 graphdata.clearDeletedNodes();
                                 graphdata.addRoot(
                                   results.root,
@@ -228,7 +224,7 @@ class _MainPageState extends State<MainPage> {
                                         .root; // and set the overall root as well.
                                 searchdata.setSearchResults(results);
                                 searchdata.selectedBy =
-                                    selectedby.none; // reset selection
+                                    SelectedBy.none; // reset selection
                                 searchdata.selectedHit = -1;
                                 context.go("/graph");
                               }
@@ -342,7 +338,7 @@ class _SettingsPageState extends State<SettingsPage> {
     super.dispose();
   }
 
-  _showReloadWarning() {
+  void _showReloadWarning() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: Colors.yellow,
@@ -359,14 +355,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final ScrollController _mainScrollController = ScrollController();
+    final ScrollController mainScrollController = ScrollController();
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.primary,
-      appBar: homotAppBar(text: "Settings"),
+      appBar: HomotAppBar(text: "Settings"),
       body: Consumer<HSettings>(
         builder: (context, hsettings, child) {
           return SingleChildScrollView(
-            controller: _mainScrollController,
+            controller: mainScrollController,
             child: Column(
               children: <Widget>[
                 Column(
@@ -384,9 +380,9 @@ class _SettingsPageState extends State<SettingsPage> {
                             ),
                             "Theme",
                           ),
-                          RadioGroup<brightModes>(
+                          RadioGroup<BrightModes>(
                             groupValue: hsettings.mode,
-                            onChanged: (brightModes? value) {
+                            onChanged: (BrightModes? value) {
                               if (value != null) {
                                 hsettings.mode = value;
                               }
@@ -395,21 +391,21 @@ class _SettingsPageState extends State<SettingsPage> {
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
                                 IntrinsicWidth(
-                                  child: RadioListTile<brightModes>(
+                                  child: RadioListTile<BrightModes>(
                                     title: Text('Light'),
-                                    value: brightModes.light,
+                                    value: BrightModes.light,
                                   ),
                                 ),
                                 IntrinsicWidth(
-                                  child: RadioListTile<brightModes>(
+                                  child: RadioListTile<BrightModes>(
                                     title: Text('Dark'),
-                                    value: brightModes.dark,
+                                    value: BrightModes.dark,
                                   ),
                                 ),
                                 IntrinsicWidth(
-                                  child: RadioListTile<brightModes>(
+                                  child: RadioListTile<BrightModes>(
                                     title: Text('System'),
-                                    value: brightModes.system,
+                                    value: BrightModes.system,
                                   ),
                                 ),
                               ],
@@ -444,7 +440,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                         color:
                                             Theme.of(
                                               context,
-                                          ).colorScheme.onSurface,
+                                            ).colorScheme.onSurface,
                                       ),
                                       "Font Family",
                                     ),
@@ -951,7 +947,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                           _showReloadWarning();
                                         } else {
                                           // If the value is invalid, reset the text field to the current valid value
-                                          eValMinTextController.text =
+                                          domEValMinTextController.text =
                                               hsettings.domEvalMin.toString();
                                         }
                                       },
@@ -1025,7 +1021,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                           _showReloadWarning();
                                         } else {
                                           // If the value is invalid, reset the text field to the current valid value
-                                          eValMaxTextController.text =
+                                          domEValMaxTextController.text =
                                               hsettings.domEvalMax.toString();
                                         }
                                       },
@@ -1293,9 +1289,9 @@ class _GraphPageState extends State<GraphPage> {
       GlobalKey(); // key used to measure size of the removedNodeOverlay
 
   double findX(GlobalKey theKey, Offset tapPosition, Size mySize) {
-    if (_myKey.currentContext != null) {
+    if (theKey.currentContext != null) {
       final RenderBox renderBox =
-          _myKey.currentContext!.findRenderObject() as RenderBox;
+          theKey.currentContext!.findRenderObject() as RenderBox;
       Size widgetSize = renderBox.size;
       if (widgetSize.width + tapPosition.dx > mySize.width) {
         return mySize.width - widgetSize.width;
@@ -1308,9 +1304,9 @@ class _GraphPageState extends State<GraphPage> {
   }
 
   double findY(GlobalKey theKey, Offset tapPosition, Size mySize) {
-    if (_myKey.currentContext != null) {
+    if (theKey.currentContext != null) {
       final RenderBox renderBox =
-          _myKey.currentContext!.findRenderObject() as RenderBox;
+          theKey.currentContext!.findRenderObject() as RenderBox;
       Size widgetSize = renderBox.size;
       if (widgetSize.height + tapPosition.dy > mySize.height) {
         return mySize.height - widgetSize.height;
@@ -1366,7 +1362,7 @@ class _GraphPageState extends State<GraphPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Taxon: ${theNode.name}\nRank: ${theNode.rank}\nParent: ${parentName}\nChildren: ${children}\n${theNode.hitsBelow} hits at or below this node\n",
+            "Taxon: ${theNode.name}\nRank: ${theNode.rank}\nParent: $parentName\nChildren: $children\n${theNode.hitsBelow} hits at or below this node\n",
             style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
           ),
           IntrinsicWidth(
@@ -1506,16 +1502,16 @@ class _GraphPageState extends State<GraphPage> {
     Node theNode,
   ) {
     //      String parentName = graphdata.getNode(theNode.parent).name;
-    ScrollController _mainScrollController = ScrollController();
+    ScrollController mainScrollController = ScrollController();
     // Declare this once because we have to render it twice
     Widget theWidget = Consumer<GraphData>(
       builder: (context, graphdata, child) {
         return Scrollbar(
           key: _secondKey,
-          controller: _mainScrollController,
+          controller: mainScrollController,
           child: ListView.builder(
             shrinkWrap: true,
-            controller: _mainScrollController,
+            controller: mainScrollController,
             itemCount: graphdata.deletedNodes.length,
             itemBuilder: (BuildContext context, int index) {
               return Card(
@@ -1612,18 +1608,18 @@ class _GraphPageState extends State<GraphPage> {
 
   @override
   Widget build(BuildContext context) {
-    double _value = max(context.watch<GraphData>().maxLevels.toDouble(), 1.0);
-    double _rotation = context.watch<GraphData>().rotation * (360 / (2 * pi));
-    double _scale = context.watch<GraphData>().scale;
-    double _xOffset = context.watch<GraphData>().translateX;
-    double _yOffset = context.watch<GraphData>().translateY;
+    double value = max(context.watch<GraphData>().maxLevels.toDouble(), 1.0);
+    double rotation = context.watch<GraphData>().rotation * (360 / (2 * pi));
+    double scale = context.watch<GraphData>().scale;
+    double xOffset = context.watch<GraphData>().translateX;
+    double yOffset = context.watch<GraphData>().translateY;
 
     final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
     //final GlobalKey<TooltipState> _tooltipKey = GlobalKey<TooltipState>();
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.primary,
-      appBar: homotAppBar(text: "Taxonomic Display"),
+      appBar: HomotAppBar(text: "Taxonomic Display"),
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           var width = constraints.maxWidth;
@@ -1668,17 +1664,7 @@ class _GraphPageState extends State<GraphPage> {
                       );
                       if (node >= 0 && node != graphdata.currentRoot) {
                         // click was in the graph and on a different node than the current root
-                        if (graphdata.getNode(node).children.length == 0) {
-                          _showNorootOverlay(
-                            context,
-                            details.globalPosition,
-                            node,
-                            graphdata.getNode(node),
-                          );
-                          Future.delayed(const Duration(seconds: 5), () {
-                            _removeNorootOverlay();
-                          });
-                        } //else {
+
                         graphdata.popPastIndex();
                         graphdata.addRoot(node);
                         HitResults hitResults = findHitsBelowNode(
@@ -1688,11 +1674,21 @@ class _GraphPageState extends State<GraphPage> {
                         );
                         searchdata.currentHitsByEvalue = hitResults.hits;
                         searchdata.currentHits = hitResults.categories;
-                        searchdata.selectedBy = selectedby.subtree;
+                        searchdata.selectedBy = SelectedBy.subtree;
                         selectedStructureScrollOffset = 0.0;
                         selectedEvalueScrollOffset = 0.0;
-                        //}
-                        //;
+                      }
+                      //;
+                      if (graphdata.getNode(node).children.isEmpty) {
+                        _showNorootOverlay(
+                          context,
+                          details.globalPosition,
+                          node,
+                          graphdata.getNode(node),
+                        );
+                        Future.delayed(const Duration(seconds: 5), () {
+                          _removeNorootOverlay();
+                        });
                       }
                     },
                     onSecondaryTapDown: (details) {
@@ -1774,7 +1770,30 @@ class _GraphPageState extends State<GraphPage> {
                                                   context,
                                                 ).colorScheme.onPrimary,
                                             icon: const Icon(Icons.arrow_back),
-                                            onPressed: graphdata.decrementIndex,
+                                            onPressed: () {
+                                              graphdata.decrementIndex();
+                                              HitResults
+                                              hitResults = findHitsBelowNode(
+                                                root:
+                                                    graphdata
+                                                        .getNode(
+                                                          graphdata.currentRoot,
+                                                        )
+                                                        .taxid,
+                                                graph: graphdata.graph,
+                                                hitStructures:
+                                                    searchdata.hitStructures,
+                                              );
+                                              searchdata.currentHitsByEvalue =
+                                                  hitResults.hits;
+                                              searchdata.currentHits =
+                                                  hitResults.categories;
+                                              searchdata.selectedBy =
+                                                  SelectedBy.subtree;
+                                              selectedStructureScrollOffset =
+                                                  0.0;
+                                              selectedEvalueScrollOffset = 0.0;
+                                            },
                                           ),
                                         ),
                                         Text(
@@ -1804,7 +1823,30 @@ class _GraphPageState extends State<GraphPage> {
                                             icon: const Icon(
                                               Icons.arrow_forward,
                                             ),
-                                            onPressed: graphdata.incrementIndex,
+                                            onPressed: () {
+                                              graphdata.incrementIndex();
+                                              HitResults
+                                              hitResults = findHitsBelowNode(
+                                                root:
+                                                    graphdata
+                                                        .getNode(
+                                                          graphdata.currentRoot,
+                                                        )
+                                                        .taxid,
+                                                graph: graphdata.graph,
+                                                hitStructures:
+                                                    searchdata.hitStructures,
+                                              );
+                                              searchdata.currentHitsByEvalue =
+                                                  hitResults.hits;
+                                              searchdata.currentHits =
+                                                  hitResults.categories;
+                                              searchdata.selectedBy =
+                                                  SelectedBy.subtree;
+                                              selectedStructureScrollOffset =
+                                                  0.0;
+                                              selectedEvalueScrollOffset = 0.0;
+                                            },
                                           ),
                                         ),
                                       ],
@@ -1827,8 +1869,7 @@ class _GraphPageState extends State<GraphPage> {
                                           String label;
                                           if (index == graphdata.historyIndex) {
                                             label =
-                                                "(Current) " +
-                                                graphdata.historyNames(index);
+                                                "(Current) ${graphdata.historyNames(index)}";
                                           } else {
                                             label = graphdata.historyNames(
                                               index,
@@ -1854,6 +1895,29 @@ class _GraphPageState extends State<GraphPage> {
                                                 graphdata.setHistoryIndex(
                                                   index,
                                                 );
+                                                HitResults
+                                                hitResults = findHitsBelowNode(
+                                                  root:
+                                                      graphdata
+                                                          .getNode(
+                                                            graphdata
+                                                                .currentRoot,
+                                                          )
+                                                          .taxid,
+                                                  graph: graphdata.graph,
+                                                  hitStructures:
+                                                      searchdata.hitStructures,
+                                                );
+                                                searchdata.currentHitsByEvalue =
+                                                    hitResults.hits;
+                                                searchdata.currentHits =
+                                                    hitResults.categories;
+                                                searchdata.selectedBy =
+                                                    SelectedBy.subtree;
+                                                selectedStructureScrollOffset =
+                                                    0.0;
+                                                selectedEvalueScrollOffset =
+                                                    0.0;
                                               }
                                             },
                                             child: Center(
@@ -1892,7 +1956,7 @@ class _GraphPageState extends State<GraphPage> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      "Graph Levels Shown: ${min(graphdata.maxLevels, (graphdata.depth-(graphdata.graph[graphdata.currentRoot]!.ranknum)-1))}",
+                                      "Graph Levels Shown: ${min(graphdata.maxLevels, (graphdata.depth - (graphdata.graph[graphdata.currentRoot]!.ranknum)))}",
                                       style: Theme.of(
                                         context,
                                       ).textTheme.bodyMedium!.copyWith(
@@ -1917,16 +1981,16 @@ class _GraphPageState extends State<GraphPage> {
                                         ),
                                         Expanded(
                                           child: Slider(
-                                            value: _value,
-                                            label: _value.round().toString(),
+                                            value: value,
+                                            label: value.round().toString(),
                                             min: 1.0,
                                             max: max(
                                               1.0,
-                                              graphdata.depth.toDouble()-1,
+                                              graphdata.depth.toDouble(),
                                             ),
                                             divisions: max(
                                               1,
-                                              graphdata.depth-2,
+                                              graphdata.depth - 2,
                                             ),
                                             onChanged: (double value) {
                                               setState(() {
@@ -1938,7 +2002,7 @@ class _GraphPageState extends State<GraphPage> {
                                           ),
                                         ),
                                         Text(
-                                          "${graphdata.depth-1}",
+                                          "${graphdata.depth - 1}",
                                           style: Theme.of(
                                             context,
                                           ).textTheme.bodyMedium!.copyWith(
@@ -1986,8 +2050,8 @@ class _GraphPageState extends State<GraphPage> {
                                         ),
                                         Expanded(
                                           child: Slider(
-                                            value: _xOffset,
-                                            label: _xOffset.round().toString(),
+                                            value: xOffset,
+                                            label: xOffset.round().toString(),
                                             min: -width,
                                             max: width,
                                             onChanged: (double xOffset) {
@@ -2014,13 +2078,13 @@ class _GraphPageState extends State<GraphPage> {
                                         ),
                                         Expanded(
                                           child: Slider(
-                                            value: _yOffset,
-                                            label: _yOffset.toStringAsFixed(2),
+                                            value: yOffset,
+                                            label: yOffset.toStringAsFixed(2),
                                             min: -height,
                                             max: height,
-                                            onChanged: (double _yOffset) {
+                                            onChanged: (double yOffset) {
                                               setState(() {
-                                                graphdata.translateY = _yOffset;
+                                                graphdata.translateY = yOffset;
                                               });
                                             },
                                           ),
@@ -2058,8 +2122,8 @@ class _GraphPageState extends State<GraphPage> {
                                         ),
                                         Expanded(
                                           child: Slider(
-                                            value: _rotation,
-                                            label: _rotation.round().toString(),
+                                            value: rotation,
+                                            label: rotation.round().toString(),
                                             min: 0.0,
                                             max: 360.0,
                                             onChanged: (double rotation) {
@@ -2100,13 +2164,13 @@ class _GraphPageState extends State<GraphPage> {
                                         ),
                                         Expanded(
                                           child: Slider(
-                                            value: _scale,
-                                            label: _scale.toStringAsFixed(2),
+                                            value: scale,
+                                            label: scale.toStringAsFixed(2),
                                             min: 0.25,
                                             max: 5.0,
-                                            onChanged: (double _scale) {
+                                            onChanged: (double scale) {
                                               setState(() {
-                                                graphdata.scale = _scale;
+                                                graphdata.scale = scale;
                                               });
                                             },
                                           ),
@@ -2161,13 +2225,6 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
   );
   List<int> lengths = [];
 
-  /* @override
-  dispose() {
-    print("disposing subtree structure page, saving scroll offset $selectedStructureScrollOffset");
-    //selectedStructureScrollOffset = _subtreeStructureScrollController.offset;
-    super.dispose();
-  }*/
-
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -2190,8 +2247,9 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
             lengths[i] = searchdata.hits[theHits[i].hits[0].toInt()].seqLength;
           }
           lengths.sort((a, b) => a < b ? -1 : 1);
-          int maxLength = lengths.reduce(max);
-          if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]) {
+          int maxLength = lengths.isNotEmpty ? lengths.reduce(max) : 1;
+          if (lengths.isNotEmpty &&
+              (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()])) {
             //       print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
             maxLength = lengths[(lengths.length * 0.9).toInt()];
           }
@@ -2204,9 +2262,9 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
           return SelectionArea(
             child: Scaffold(
               backgroundColor: Theme.of(context).colorScheme.primary,
-              appBar: homotAppBar(
+              appBar: HomotAppBar(
                 text:
-                    "${numHits} ${hitCount} found under ${graphdata.graph[graphdata.currentRoot]?.name}, with ${theHits.length} ${strucText}",
+                    "$numHits $hitCount found under ${graphdata.graph[graphdata.currentRoot]?.name}, with ${theHits.length} $strucText",
               ),
               body: Scrollbar(
                 controller: _subtreeStructureScrollController,
@@ -2222,7 +2280,7 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
                         children: [
                           DrawCategory(
                             which: index,
-                            from: selectedby.subtree_structure,
+                            from: SelectedBy.subtreeStructure,
                             context: context,
                             maxLength: maxLength,
                             pixelsPerResidue: ppr,
@@ -2277,9 +2335,10 @@ class _AllStructurePageState extends State<AllStructurePage> {
                       .hits[searchdata.rootHits[i].hits[0].toInt()]
                       .seqLength;
             }
-            int maxLength = lengths.reduce(max);
             lengths.sort((a, b) => a < b ? -1 : 1);
-            if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]) {
+            int maxLength = lengths.isNotEmpty ? lengths.reduce(max) : 1;
+            if (lengths.isNotEmpty &&
+                (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()])) {
               //     print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
               maxLength = lengths[(lengths.length * 0.9).toInt()];
             }
@@ -2294,12 +2353,12 @@ class _AllStructurePageState extends State<AllStructurePage> {
                 theHits.length != 1
                     ? "different domain structures"
                     : "domain structure";
-            final screenWidth = MediaQuery.sizeOf(context).width;
+
             return Scaffold(
               backgroundColor: Theme.of(context).colorScheme.primary,
-              appBar: homotAppBar(
+              appBar: HomotAppBar(
                 text:
-                    "${numHits} ${hitCount} found, with ${theHits.length} ${strucText}",
+                    "$numHits $hitCount found, with ${theHits.length} $strucText",
               ),
               body: Scrollbar(
                 controller: _allStructureScrollController,
@@ -2312,7 +2371,7 @@ class _AllStructurePageState extends State<AllStructurePage> {
                       color: Theme.of(context).colorScheme.surface,
                       child: DrawCategory(
                         which: index,
-                        from: selectedby.structure,
+                        from: SelectedBy.structure,
                         context: context,
                         maxLength: maxLength,
                         pixelsPerResidue: ppr,
@@ -2365,9 +2424,10 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
             for (int i = 0; i < searchdata.hits.length; i++) {
               lengths[i] = searchdata.hits[i].seqLength;
             }
-            maxLength = lengths.reduce(max);
+            maxLength = lengths.isNotEmpty ? lengths.reduce(max) : 1;
             lengths.sort((a, b) => a < b ? -1 : 1);
-            if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]) {
+            if (lengths.isNotEmpty &&
+                (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()])) {
               //       print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
               maxLength = lengths[(lengths.length * 0.9).toInt()];
             }
@@ -2379,7 +2439,7 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
             );
             return Scaffold(
               backgroundColor: Theme.of(context).colorScheme.primary,
-              appBar: homotAppBar(text: "${searchdata.hits.length} hits found"),
+              appBar: HomotAppBar(text: "${searchdata.hits.length} hits found"),
               body: Scrollbar(
                 controller: _allEvalueScrollController,
                 child: ListView.builder(
@@ -2412,17 +2472,10 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
                                   color:
                                       Theme.of(context).colorScheme.onSurface,
                                 ),
-                                "Sequence: " +
-                                    searchdata.hits[index].name +
-                                    "\nE-Value: " +
-                                    searchdata.hits[index].seqEvalue
-                                        .toStringAsExponential(4) +
-                                    "\nTaxon: " +
-                                    graphdata
-                                        .graph[searchdata.hits[index].taxid]!
-                                        .name +
-                                    '\nDescription: ' +
-                                    searchdata.hits[index].description,
+                                "Sequence: ${searchdata.hits[index].name}"
+                                "\nE-Value: ${searchdata.hits[index].seqEvalue.toStringAsExponential(4)}"
+                                "\nTaxon: ${graphdata.graph[searchdata.hits[index].taxid]!.name}"
+                                "\nDescription: ${searchdata.hits[index].description}",
                               ),
 
                               Row(
@@ -2500,7 +2553,7 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
 
 // Widget that displays a subtree's results by evalue
 class SubtreeEvaluePage extends StatefulWidget {
-  SubtreeEvaluePage({Key? key}) : super(key: key);
+  const SubtreeEvaluePage({super.key});
 
   @override
   State<SubtreeEvaluePage> createState() => _SubtreeEvaluePageState();
@@ -2524,18 +2577,18 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
           Int64List hitIndices = Int64List(0);
           String title = "";
           switch (searchdata.selectedBy) {
-            case selectedby.subtree:
+            case SelectedBy.subtree:
               hitIndices = searchdata.currentHitsByEvalue;
               title =
                   "${hitIndices.length} hits found under node ${graphdata.getNode(graphdata.currentRoot).name}";
               break;
-            case selectedby.subtree_structure:
+            case SelectedBy.subtreeStructure:
               hitIndices =
                   searchdata.currentHits[searchdata.selectedStructure].hits;
               title =
                   "${hitIndices.length} hits found with structure ${searchdata.structures[searchdata.currentHits[searchdata.selectedStructure].signature]} under node ${graphdata.getNode(graphdata.currentRoot).name}";
               break;
-            case selectedby.structure:
+            case SelectedBy.structure:
               hitIndices =
                   searchdata.rootHits[searchdata.selectedStructure].hits;
               title =
@@ -2556,10 +2609,11 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
           for (int i = 0; i < hitIndices.length; i++) {
             lengths[i] = searchdata.hits[hitIndices[i].toInt()].seqLength;
           }
-          int maxLength = lengths.reduce(max);
+          int maxLength = lengths.isNotEmpty ? lengths.reduce(max) : 1;
           //   print("max length is $maxLength");
           lengths.sort((a, b) => a < b ? -1 : 1);
-          if (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()]) {
+          if (lengths.isNotEmpty &&
+              (0.75 * maxLength > lengths[(lengths.length * 0.9).toInt()])) {
             //         print("changing maxlength from $maxLength to ${lengths[(lengths.length * 0.9).toInt()]}");
             maxLength = lengths[(lengths.length * 0.9).toInt()];
           }
@@ -2568,17 +2622,11 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
             Theme.of(context).textTheme,
             context,
           );
-          int count = 0;
-          for (int i = 0; i < hitIndices.length; i++) {
-            if (lengths[i] > maxLength) {
-              count++;
-            }
-          }
-          //  print("$count out of ${hitIndices.length} hits are longer than the max length of $maxLength");
+
           return SelectionArea(
             child: Scaffold(
               backgroundColor: Theme.of(context).colorScheme.primary,
-              appBar: homotAppBar(text: title),
+              appBar: HomotAppBar(text: title),
               body: Scrollbar(
                 controller: _subtreeEvalueScrollController,
                 child: ListView.builder(
@@ -2612,25 +2660,10 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                                   color:
                                       Theme.of(context).colorScheme.onSurface,
                                 ),
-                                "Sequence: " +
-                                    searchdata
-                                        .hits[hitIndices[index].toInt()]
-                                        .name +
-                                    "\nE-Value: " +
-                                    searchdata
-                                        .hits[hitIndices[index].toInt()]
-                                        .seqEvalue
-                                        .toStringAsExponential(4) +
-                                    "\nTaxon: " +
-                                    graphdata
-                                        .graph[searchdata
-                                            .hits[hitIndices[index].toInt()]
-                                            .taxid]!
-                                        .name +
-                                    '\nDescription: ' +
-                                    searchdata
-                                        .hits[hitIndices[index].toInt()]
-                                        .description,
+                                "Sequence: ${searchdata.hits[hitIndices[index].toInt()].name}"
+                                "\nE-Value: ${searchdata.hits[hitIndices[index].toInt()].seqEvalue.toStringAsExponential(4)}"
+                                "\nTaxon: ${graphdata.graph[searchdata.hits[hitIndices[index].toInt()].taxid]!.name}"
+                                "\nDescription: ${searchdata.hits[hitIndices[index].toInt()].description}",
                               ),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
@@ -2732,7 +2765,7 @@ class _SequencePageState extends State<SequencePage> {
           return SelectionArea(
             child: Scaffold(
               backgroundColor: Theme.of(context).colorScheme.primary,
-              appBar: homotAppBar(text: "Sequence ${theHit.name}"),
+              appBar: HomotAppBar(text: "Sequence ${theHit.name}"),
               body: SingleChildScrollView(
                 controller: _scrollController2,
                 child: Card(
@@ -2751,14 +2784,10 @@ class _SequencePageState extends State<SequencePage> {
                             ).textTheme.bodyMedium!.copyWith(
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
-                            "Sequence: " +
-                                theHit.name +
-                                "\nE-Value: " +
-                                theHit.seqEvalue.toStringAsExponential(4) +
-                                "\nTaxon: " +
-                                graphdata.graph[theHit.taxid]!.name +
-                                '\nDescription: ' +
-                                theHit.description,
+                            "Sequence: ${theHit.name}"
+                            "\nE-Value: ${theHit.seqEvalue.toStringAsExponential(4)}"
+                            "\nTaxon: ${graphdata.graph[theHit.taxid]!.name}"
+                            "\nDescription: ${theHit.description}",
                           ),
 
                           Row(
