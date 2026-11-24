@@ -2,7 +2,7 @@
  */
 
 import 'dart:math';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:homot/main.dart';
 import 'package:homot/utility.dart';
 import 'package:homot/draw_data.dart';

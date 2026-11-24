@@ -2,7 +2,7 @@
  */
 
 import 'dart:math';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:homot/main.dart';
 import 'package:homot/utility.dart';
 import 'package:homot/graph_painter.dart';
@@ -26,10 +26,6 @@ class _GraphPageState extends State<GraphPage> {
   OverlayEntry? _nodeOverlayEntry;
   OverlayEntry? _removedNodesOverlayEntry;
   OverlayEntry? _norootOverlayEntry;
-  final GlobalKey _myKey =
-      GlobalKey(); // key used to measure size of the nodeOverlay
-  final GlobalKey _secondKey =
-      GlobalKey(); // key used to measure size of the removedNodeOverlay
 
   // Recompute the "selected subtree" hit lists for the node now at the center of
   // the graph.  findHitsBelowNode throws (the Rust Err string) if the graph and hit
@@ -60,36 +56,6 @@ class _GraphPageState extends State<GraphPage> {
     }
   }
 
-  double findX(GlobalKey theKey, Offset tapPosition, Size mySize) {
-    if (theKey.currentContext != null) {
-      final RenderBox renderBox =
-          theKey.currentContext!.findRenderObject() as RenderBox;
-      Size widgetSize = renderBox.size;
-      if (widgetSize.width + tapPosition.dx > mySize.width) {
-        return mySize.width - widgetSize.width;
-      } else {
-        return tapPosition.dx;
-      }
-    } else {
-      return tapPosition.dx;
-    }
-  }
-
-  double findY(GlobalKey theKey, Offset tapPosition, Size mySize) {
-    if (theKey.currentContext != null) {
-      final RenderBox renderBox =
-          theKey.currentContext!.findRenderObject() as RenderBox;
-      Size widgetSize = renderBox.size;
-      if (widgetSize.height + tapPosition.dy > mySize.height) {
-        return mySize.height - widgetSize.height;
-      } else {
-        return tapPosition.dy;
-      }
-    } else {
-      return tapPosition.dy;
-    }
-  }
-
   void _removeAllOverlays() {
     _removeNorootOverlay();
     _removeNodeOverlay();
@@ -115,7 +81,6 @@ class _GraphPageState extends State<GraphPage> {
     String parentName = graphdata.getNode(theNode.parent).name;
     // Declare this once because we have to render it twice
     Widget theWidget = Container(
-      key: _myKey,
       constraints: BoxConstraints(maxWidth: graphdata.size.width / 2),
       padding: EdgeInsets.all(8),
       decoration: BoxDecoration(
@@ -131,6 +96,9 @@ class _GraphPageState extends State<GraphPage> {
         ],
       ),
       child: Column(
+        // Size to the contents: the pop-up's layout allows up to the full
+        // window height, which a default (max-size) Column would fill.
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
@@ -245,16 +213,8 @@ class _GraphPageState extends State<GraphPage> {
 
     _nodeOverlayEntry = OverlayEntry(
       builder: (context) {
-        Offstage(
-          // render widget offstage so we can measure it
-          offstage: true,
-          child: theWidget,
-        );
-        double xCoord = findX(_myKey, tapPosition, graphdata.size);
-        double yCoord = findY(_myKey, tapPosition, graphdata.size);
-        return Positioned(
-          left: xCoord,
-          top: yCoord,
+        return CustomSingleChildLayout(
+          delegate: _OnScreenPopupDelegate(tapPosition),
           child: Material(child: theWidget),
         );
       },
@@ -279,7 +239,6 @@ class _GraphPageState extends State<GraphPage> {
     Widget theWidget = Consumer<GraphData>(
       builder: (context, graphdata, child) {
         return Scrollbar(
-          key: _secondKey,
           controller: mainScrollController,
           child: ListView.builder(
             shrinkWrap: true,
@@ -311,18 +270,12 @@ class _GraphPageState extends State<GraphPage> {
       builder: (context) {
         return Consumer<GraphData>(
           builder: (context, graphdata, child) {
-            Offstage(
-              // render widget offstage so we can measure it
-              offstage: true,
-              child: theWidget,
-            );
-            double xCoord = findX(_secondKey, tapPosition, graphdata.size);
-            double yCoord = findY(_secondKey, tapPosition, graphdata.size);
-            return Positioned(
-              left: xCoord, //findX(_myKey, tapPosition, graphdata.size),
-              top: yCoord, //findY(_myKey, tapPosition, graphdata.size),
-              width: graphdata.size.width / 4,
-              child: Material(child: theWidget),
+            return CustomSingleChildLayout(
+              delegate: _OnScreenPopupDelegate(tapPosition),
+              child: SizedBox(
+                width: graphdata.size.width / 4,
+                child: Material(child: theWidget),
+              ),
             );
           },
         );
@@ -345,9 +298,8 @@ class _GraphPageState extends State<GraphPage> {
   ) {
     _norootOverlayEntry = OverlayEntry(
       builder:
-          (context) => Positioned(
-            left: tapPosition.dx,
-            top: tapPosition.dy,
+          (context) => CustomSingleChildLayout(
+            delegate: _OnScreenPopupDelegate(tapPosition),
             child: Material(
               color: Colors.transparent,
               child: Container(
@@ -440,7 +392,7 @@ class _GraphPageState extends State<GraphPage> {
                         graphdata.popPastIndex();
                         graphdata.addRoot(node);
                         _selectSubtree(graphdata, searchdata);
-                 
+
                         if (graphdata.getNode(node).children.isEmpty) {
                           _showNorootOverlay(
                             context,
@@ -698,10 +650,7 @@ class _GraphPageState extends State<GraphPage> {
                                               1.0,
                                               graphdata.depth.toDouble(),
                                             ),
-                                            divisions: max(
-                                              1,
-                                              graphdata.depth,
-                                            ),
+                                            divisions: max(1, graphdata.depth-1),
                                             onChanged: (double value) {
                                               setState(() {
                                                 graphdata.setMaxLevels(
@@ -760,7 +709,9 @@ class _GraphPageState extends State<GraphPage> {
                                         ),
                                         Expanded(
                                           child: Slider(
-                                            value: xOffset,
+                                            // Clamp so a window shrink can't put the
+                                            // value outside [min, max] (Slider asserts)
+                                            value: xOffset.clamp(-width, width),
                                             label: xOffset.round().toString(),
                                             min: -width,
                                             max: width,
@@ -788,7 +739,10 @@ class _GraphPageState extends State<GraphPage> {
                                         ),
                                         Expanded(
                                           child: Slider(
-                                            value: yOffset,
+                                            value: yOffset.clamp(
+                                              -height,
+                                              height,
+                                            ),
                                             label: yOffset.toStringAsFixed(2),
                                             min: -height,
                                             max: height,
@@ -916,4 +870,29 @@ class _GraphPageState extends State<GraphPage> {
       bottomNavigationBar: MainNavBar(whereAmI: WhichPage.graph),
     );
   }
+}
+
+// Positions a pop-up overlay at the tap location (in global coordinates, which
+// match the overlay's), but shifts it left/up as needed so that it stays
+// entirely on screen.  Flutter hands the delegate the pop-up's laid-out size,
+// so this works on the first frame without measuring the widget separately.
+class _OnScreenPopupDelegate extends SingleChildLayoutDelegate {
+  _OnScreenPopupDelegate(this.anchor);
+
+  final Offset anchor;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
+      constraints.loosen();
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    final double x = max(0.0, min(anchor.dx, size.width - childSize.width));
+    final double y = max(0.0, min(anchor.dy, size.height - childSize.height));
+    return Offset(x, y);
+  }
+
+  @override
+  bool shouldRelayout(_OnScreenPopupDelegate oldDelegate) =>
+      oldDelegate.anchor != anchor;
 }

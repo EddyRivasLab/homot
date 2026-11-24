@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:homot/main.dart';
 
 import 'package:osler_icons/osler_icons.dart';
@@ -123,7 +123,12 @@ class HomotAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Theme.of(context).primaryColor,
+      // Match the page background (colorScheme.primary).  Theme.primaryColor
+      // isn't used because in dark mode it's a dark surface colour, not our blue.
+      backgroundColor: Theme.of(context).colorScheme.primary,
+      // Don't tint the bar a different shade when content scrolls under it
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
       title: Text(
         style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
         text,
@@ -195,7 +200,9 @@ class MainNavBar extends StatelessWidget {
           child: TooltipVisibility(
             visible: false,
             child: NavigationBar(
-              backgroundColor: Theme.of(context).primaryColor,
+              // Match the page background, as the app bar does
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              surfaceTintColor: Colors.transparent,
               onDestinationSelected: (int index) {
                 ScaffoldMessenger.of(
                   context,
@@ -507,14 +514,46 @@ class _DomtblEditState extends State<DomtblEdit> {
   }
 }
 
-class Pair<T1, T2> {
-  final T1 a;
-  final T1 b;
-
-  Pair(this.a, this.b);
+void _showExportError(BuildContext context, String error) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text("Unable to Export Data"),
+        backgroundColor: Theme.of(context).colorScheme.error,
+        titleTextStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onError,
+          fontSize: 20.0,
+          fontWeight: FontWeight.bold,
+        ),
+        content: Text("Error was: $error"),
+        contentTextStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onError,
+          fontSize: 16.0,
+        ),
+        actions: [
+          ElevatedButton(
+            style: MenuItemButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text(
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+              "OK",
+            ),
+          ),
+        ],
+      );
+    },
+  );
 }
 
 void showExportDialog(BuildContext context) {
+  // The dialog builders below shadow `context`, so keep a handle on the page's
+  // context for reporting errors after the dialog has closed.
+  final BuildContext pageContext = context;
   final myController = TextEditingController();
   myController.text = "Enter or choose output file name";
   final currentLocation =
@@ -609,20 +648,26 @@ void showExportDialog(BuildContext context) {
                       ),
                       onPressed:
                           filedata.exportFile != ""
-                              ? () {
-                                filedata.exportCurrentPage(
-                                  currentLocation,
-                                  searchdata,
-                                  hsettings.showNamesFrom == ShowNamesFrom.pfam,
-                                  hsettings.showInterproSuperfamily,
-                                  hsettings.showInterproFamily,
-                                  hsettings.showInterproDomain,
-                                  hsettings.showInterproRepeat,
-                                  hsettings.showInterproSite,
-                                  hsettings.showInterproOther,
-                                  context,
-                                );
+                              ? () async {
                                 Navigator.pop(context, 'Cancel');
+                                final String? error = await filedata
+                                    .exportCurrentPage(
+                                      currentLocation,
+                                      searchdata,
+                                      hsettings.showNamesFrom ==
+                                          ShowNamesFrom.pfam,
+                                      hsettings.showInterproSuperfamily,
+                                      hsettings.showInterproFamily,
+                                      hsettings.showInterproDomain,
+                                      hsettings.showInterproRepeat,
+                                      hsettings.showInterproSite,
+                                      hsettings.showInterproOther,
+                                    );
+                                // This dialog is gone by now, so report errors
+                                // using the page that opened it.
+                                if (error != null && pageContext.mounted) {
+                                  _showExportError(pageContext, error);
+                                }
                               }
                               : null,
                       child: Text(

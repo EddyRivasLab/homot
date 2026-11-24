@@ -8,7 +8,7 @@ NPC: 4/23/25 [The Cushy Office]
 */
 
 import 'dart:math';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:homot/src/rust/api/graph.dart';
 import 'package:homot/main.dart';
 import 'package:homot/pages.dart';
@@ -48,6 +48,29 @@ String _itypeToString(IEntryType iType) {
   }
 }
 
+// The label drawn inside a domain. Used by the painter and by the width
+// calculations so that they always measure the same text.
+String domainLabel(
+  Domain domain,
+  bool pfamNames,
+  ShowInterproIdEnum showInterproIdAs,
+) {
+  if (domain.source != AnnotationType.interpro) {
+    return domain.name;
+  }
+  if (domain.iType == IEntryType.domain && pfamNames && domain.pfamName != "") {
+    return domain.pfamName;
+  }
+  switch (showInterproIdAs) {
+    case ShowInterproIdEnum.id:
+      return domain.name;
+    case ShowInterproIdEnum.shortName:
+      return domain.ipShort != "" ? domain.ipShort : domain.name;
+    case ShowInterproIdEnum.longName:
+      return domain.ipLong != "" ? domain.ipLong : domain.name;
+  }
+}
+
 (double, double) _calcLegendDimensions(TextTheme textTheme) {
   // The easiest way to get the dimensions of some
   // text seems to be to try rendering them and then measure the result.
@@ -56,7 +79,7 @@ String _itypeToString(IEntryType iType) {
     textDirection: TextDirection.ltr,
   );
   testPainter.text = TextSpan(
-    text: "Structure\nQuery\nHomology\nSequence ",
+    text: "Domains\nStructure\nQuery\nHomology\nSequence ",
     style: textTheme.bodyMedium,
   );
 
@@ -294,30 +317,6 @@ class DrawDomains extends StatelessWidget {
       Theme.of(context).textTheme,
     );
     var newDomains = List<Domain>.from(domains);
-    // Handle the case where there are no domains
-    /*  if (newDomains.isEmpty) {
-      newDomains.add(
-        Domain(
-          name: "No Structure",
-          description: "No structure found for this sequence",
-          clan: "No Clan",
-          seqStart: 0,
-          seqEnd: seqLength,
-          hmmStart: 0,
-          hmmEnd: length,
-          hmmLength: length,
-          domEvalue: double.infinity,
-          fullMatchStart: true,
-          fullMatchEnd: true,
-          fromBlast: false,
-          source: AnnotationType.other,
-          ipShort: "",
-          ipLong: "",
-          pfamName: "",
-          iType: IEntryType.other,
-        ),
-      );
-    } */
     // Sort the domains by start position
 
     var domainRows = _mapDomainsToRows(newDomains);
@@ -482,6 +481,7 @@ class DomainPainter extends CustomPainter {
     int startRow,
     List<Domain> domains,
     List<List<int>> domainRows,
+    double startHeight,
     TextTheme textTheme,
     List<Widget> buttons,
     Size size,
@@ -501,11 +501,11 @@ class DomainPainter extends CustomPainter {
       if (!query) {
         final p3 = Offset(
           widthOffset,
-          ((startRow + i) * lineSpace) * heightPerLine,
+          ((startRow + i) * lineSpace) * heightPerLine + startHeight,
         );
         final p4 = Offset(
           widthOffset,
-          ((startRow + i) * (lineSpace) + lineSpace) * heightPerLine,
+          ((startRow + i) * (lineSpace) + lineSpace) * heightPerLine + startHeight,
         );
 
         canvas.drawLine(
@@ -525,7 +525,7 @@ class DomainPainter extends CustomPainter {
         _drawDomain(
           canvas,
           paint,
-          Offset(start, ((startRow + i) * lineSpace) * heightPerLine),
+          Offset(start, ((startRow + i) * lineSpace) * heightPerLine + startHeight),
           domainWidth,
           heightPerLine,
           lastEnds[i],
@@ -729,7 +729,6 @@ class DomainPainter extends CustomPainter {
       textAlign: TextAlign.start,
       textDirection: TextDirection.ltr,
     );
-    String name = "";
     double textOffset = position.dx + (width / 2);
 
     Color textFG = searchdata.getColors(domain.name).$2;
@@ -740,43 +739,7 @@ class DomainPainter extends CustomPainter {
       textBG = Color(0xFF000000); // black
     }
     // see if all the data we'd like to display fits in the domain
-    if (domain.source == AnnotationType.interpro) {
-      // InterPro domain; see how to display the name
-      switch (domain.iType) {
-        case IEntryType.domain:
-          if (pfamNames && domain.pfamName != "") {
-            name = domain.pfamName;
-          } else {
-            switch (showInterproIdAs) {
-              case ShowInterproIdEnum.id:
-                name = domain.name;
-                break;
-              case ShowInterproIdEnum.shortName:
-                name = domain.ipShort != "" ? domain.ipShort : domain.name;
-                break;
-              case ShowInterproIdEnum.longName:
-                name = domain.ipLong != "" ? domain.ipLong : domain.name;
-                break;
-            }
-          }
-          break;
-        default:
-          switch (showInterproIdAs) {
-            case ShowInterproIdEnum.id:
-              name = domain.name;
-              break;
-            case ShowInterproIdEnum.shortName:
-              name = domain.ipShort != "" ? domain.ipShort : domain.name;
-              break;
-            case ShowInterproIdEnum.longName:
-              name = domain.ipLong != "" ? domain.ipLong : domain.name;
-              break;
-          }
-      }
-    } else {
-      name = domain.name;
-    }
-    //name = (domain.source == AnnotationType.interpro && pfamNames && domain.pfamName != "") ? domain.pfamName: domain.name + evalString;
+    String name = domainLabel(domain, pfamNames, showInterproIdAs);
     painter.text =
         painter.text = TextSpan(
           text: name,
@@ -822,24 +785,6 @@ class DomainPainter extends CustomPainter {
           break;
         }
       }
-      /*else {
-        //Cram in what we can
-        int numChars = name.length;
-        while (painter.width > (width - heightPerLine) && numChars > 0) {
-          numChars -= 1;
-          name = name.substring(0, numChars);
-          painter.text = TextSpan(
-            text: name,
-            style: textTheme.bodyMedium!.copyWith(
-              color: query?Theme.of(context).colorScheme.surface:textFG,
-              backgroundColor: query?Theme.of(context).colorScheme.onSurface:textBG
-            ),
-          );
-          painter.layout();
-        }
-        Offset textPosition = Offset(textOffset - painter.width / 2, startY);
-        painter.paint(canvas, textPosition);
-      }*/
     }
   }
 
@@ -850,23 +795,35 @@ class DomainPainter extends CustomPainter {
     TextPainter legendPainter = TextPainter(
       textAlign: TextAlign.start,
       textDirection: TextDirection.ltr,
+      textHeightBehavior: const TextHeightBehavior(
+      applyHeightToFirstAscent: false,
+      applyHeightToLastDescent: false,
+      leadingDistribution: TextLeadingDistribution.even,
+      ),
     );
     if (allDomains) {
       legendPainter.text = TextSpan(
-        text: "Structure",
+        text: "Sequence\nDomains",
         style: textTheme.bodyMedium!.copyWith(color: colorScheme.onSurface),
+        
       );
     } else {
       legendPainter.text = TextSpan(
-        text: "Structure",
+        text: "Domain\nStructure",
         style: textTheme.bodyMedium!.copyWith(color: colorScheme.onSurface),
       );
     }
 
     legendPainter.layout();
+    double textHeight = legendPainter.height; // Height of legend text
+    double structureHeight = (((domainRows.length.toDouble() -1.0)*lineSpace) +1) *heightPerLine; 
+
+    double textOffset = max((structureHeight-textHeight), 0) /2;
+    double structureOffset = max((textHeight-structureHeight), 0) /2;
+    print("structureHeight = $structureHeight, textHeight = $textHeight, textOffset = $textOffset, structureOddset = $structureOffset");
     legendPainter.paint(
       canvas,
-      Offset(0, ((lineSpace - 1) / 2) * heightPerLine),
+      Offset(0, textOffset),
     );
     legendPainter.text = TextSpan(
       text: "Query\nHomology",
@@ -886,6 +843,7 @@ class DomainPainter extends CustomPainter {
       0,
       domains,
       domainRows,
+      structureOffset,
       textTheme,
       buttons,
       size,
@@ -903,6 +861,7 @@ class DomainPainter extends CustomPainter {
       queryStartRow,
       queries,
       queryRows,
+      0,
       textTheme,
       buttons,
       size,
@@ -926,6 +885,8 @@ bool abbreviationRequired(
   bool pfamNames =
       Provider.of<HSettings>(context, listen: false).showNamesFrom ==
       ShowNamesFrom.pfam;
+  ShowInterproIdEnum showInterproIdAs =
+      Provider.of<HSettings>(context, listen: false).showInterproIdAs;
   //textWidth here is the width of the legend text
   TextPainter painter;
   painter = TextPainter(
@@ -940,15 +901,8 @@ bool abbreviationRequired(
   double heightPerLine = painter.preferredLineHeight;
   for (var domain in hit.queries) {
     // figure out how long the domain needs to be to fit the text we'll put in it
-    String evalString = "(${domain.domEvalue.toStringAsExponential(2)}) ";
-    String name =
-        (domain.source == AnnotationType.interpro &&
-                pfamNames &&
-                domain.pfamName != "")
-            ? domain.pfamName
-            : domain.name + evalString;
     painter.text = TextSpan(
-      text: name,
+      text: domainLabel(domain, pfamNames, showInterproIdAs),
       style: Theme.of(context).textTheme.bodyMedium,
     );
     painter.layout();
@@ -964,10 +918,8 @@ bool abbreviationRequired(
   // Now repeat for the sequence domains
   for (var domain in allDomains ? hit.domains : hit.structureDomains) {
     // figure out how long the domain needs to be to fit the text we'll put in it
-    String evalString = domain.domEvalue.toStringAsExponential(2);
-    String name = "${domain.name} ($evalString)";
     painter.text = TextSpan(
-      text: name,
+      text: domainLabel(domain, pfamNames, showInterproIdAs),
       style: Theme.of(context).textTheme.bodyMedium,
     );
     painter.layout();
@@ -1005,6 +957,8 @@ double requiredHitWidth(
   bool pfamNames =
       Provider.of<HSettings>(context, listen: false).showNamesFrom ==
       ShowNamesFrom.pfam;
+  ShowInterproIdEnum showInterproIdAs =
+      Provider.of<HSettings>(context, listen: false).showInterproIdAs;
   //textWidth here is the width of the legend text
   TextPainter painter;
   painter = TextPainter(
@@ -1020,14 +974,8 @@ double requiredHitWidth(
   double widthPerChar = 0.0;
   for (var domain in hit.queries) {
     // figure out how long the domain needs to be to fit the text we'll put in it
-    String name =
-        (domain.source == AnnotationType.interpro &&
-                pfamNames &&
-                domain.pfamName != "")
-            ? domain.pfamName
-            : domain.name;
     painter.text = TextSpan(
-      text: name,
+      text: domainLabel(domain, pfamNames, showInterproIdAs),
       style: Theme.of(context).textTheme.bodyMedium,
     );
     painter.layout();
@@ -1045,7 +993,7 @@ double requiredHitWidth(
   for (var domain in allDomains ? hit.domains : hit.structureDomains) {
     // figure out how long the domain needs to be to fit the text we'll put in it
     painter.text = TextSpan(
-      text: domain.name,
+      text: domainLabel(domain, pfamNames, showInterproIdAs),
       style: Theme.of(context).textTheme.bodyMedium,
     );
     painter.layout();

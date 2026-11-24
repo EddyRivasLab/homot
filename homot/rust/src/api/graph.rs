@@ -331,11 +331,10 @@ fn count_hits(graph: &mut HashMap<i64, Node>, id: i64) -> Result<i64, String>  {
 
 
 #[frb(serialize)]
-pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64, eval_min: f64, dom_eval_max:f64, dom_eval_min: f64, fileType: DataFileType, 
+pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64, eval_min: f64, dom_eval_max:f64, dom_eval_min: f64, file_type: DataFileType, 
     interpro_show_superfamily: bool, interpro_show_family: bool, interpro_show_domain: bool, interpro_show_repeat: bool, interpro_show_site: bool, 
     interpro_show_other: bool, interpro_show_pfam_names: bool) -> SearchResults{
    // println!("Starting fetch_graph");
-
     let mut results = SearchResults{
         succeeded: false,
         message: String::from(""),
@@ -421,7 +420,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64,
     for domtbloutfile in domtblout_files{
        // println!("searching {}", domtbloutfile);
         match read_hits_from_file(&domtbloutfile,  &mut hit_map, eval_min, eval_max, dom_eval_min, dom_eval_max, &db, 
-            &domain_map, &fileType){  
+            &domain_map, &file_type){  
             Ok(v) => {
                         num_domtbl_hits += v;
             }
@@ -508,7 +507,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64,
 
 // Wrapper that calls the right read_hits function based on file type
 fn read_hits_from_file(filename: &str, hits: &mut DashMap<String, Hit>, min_seq_evalue: f64, max_seq_evalue: f64, min_dom_evalue: f64, max_dom_evalue: f64, 
-    annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap>, fileType: &DataFileType) -> Result<i64, String>{
+    annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap>, file_type: &DataFileType) -> Result<i64, String>{
 
 
     let file = match File::open(filename){
@@ -537,7 +536,7 @@ fn read_hits_from_file(filename: &str, hits: &mut DashMap<String, Hit>, min_seq_
         None => return Err(format!("File {} is empty", filename)),
     }
 
-    if *fileType == DataFileType::DomTblOut || (*fileType == DataFileType::Infer && inferred_filetype == DataFileType::DomTblOut){
+    if *file_type == DataFileType::DomTblOut || (*file_type == DataFileType::Infer && inferred_filetype == DataFileType::DomTblOut){
         match reader.rewind(){
             Ok(_v) =>{},
             Err(msg)=> return Err(format!("Unable to rewind input file, error was : {}", msg)),
@@ -559,14 +558,9 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
     // domain_map should be safe as a HashMap because it doesn't get modified in this code
 
     let hit_count = AtomicI64::new(0);
-    let errMsg = Arc::new(Mutex::new(String::new()));
+    let err_msg = Arc::new(Mutex::new(String::new()));
     // Parse the lines in the domtblout file
-// old serial iterator
-  /*   for l in reader.lines() {
-        let line = match l{
-            Err(e) => return Err(format!("Error reading line in file {}: {}", filename, e)),
-            Ok(l) => l,
-        }; */
+
 
         // Read the whole file up front so that I/O and UTF-8 errors are reported rather than silently skipped
         let lines: Vec<String> = reader
@@ -576,11 +570,11 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
 
         lines.par_iter().for_each(|line| {
         if !line.starts_with('#') && !line.trim().is_empty() { // Skip comment lines
-        let my_errMsg = Arc::clone(&errMsg);
+        let my_err_msg = Arc::clone(&err_msg);
 
         let fields: Vec<&str> = line.split_whitespace().collect();
         if fields.len() < 23 {
-            let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+            let mut msg = my_err_msg.lock().unwrap(); // get the lock on the error message
             if msg.is_empty() { // haven't already found an error
                 *msg = format!("Unable to parse {} as domtblout file due to malformed line {}", filename, line);
             }
@@ -592,7 +586,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
             let target_name = fields[0].to_string();
             let target_length: u32 = match fields[2].parse(){
                 Err(e) => {
-                    let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    let mut msg = my_err_msg.lock().unwrap(); // get the lock on the error message
                     if msg.is_empty() { // haven't already found an error
                         *msg = format!("Error {} encountered when trying to parse tlen field of {} in line {} of {}", e, fields[2], line, filename);
                         error_found = true;
@@ -605,7 +599,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
             let query_name = fields[3].to_string();
             let hmm_length:u32 = match fields[5].parse(){
                 Err(e) => {
-                    let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    let mut msg = my_err_msg.lock().unwrap(); // get the lock on the error message
                     if msg.is_empty() { // haven't already found an error
                         *msg = format!("Error {} encountered when trying to parse hmm_length field of {} in line {} of {}", e, fields[5], line, filename);
                         error_found = true;
@@ -618,7 +612,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
             let seq_evalue: f64 = match fields[6].parse(){
                 Ok(v) => v,
                 Err(e) => {//errmsg = format!("Error parsing seq_evalue in file {}: {}", filename, e);
-                    let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    let mut msg = my_err_msg.lock().unwrap(); // get the lock on the error message
                     if msg.is_empty() { // haven't already found an error
                         *msg = format!("Error {} encountered when trying to parse seq_evalue field of {} in line {} of {}", e, fields[6], line, filename);
                         error_found = true;
@@ -631,7 +625,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
             let seq_start: u32 = match fields[17].parse(){
                 Ok(v) => v,
                 Err(e) => {//errmsg = format!("Error parsing seq_start in file {}: {}", filename, e);
-                let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                let mut msg = my_err_msg.lock().unwrap(); // get the lock on the error message
                     if msg.is_empty() { // haven't already found an error
                         *msg = format!("Error {} encountered when trying to parse seq_start field of {} in line {} of {}", e, fields[17], line, filename);
                         error_found = true;
@@ -643,7 +637,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
             let seq_end: u32 = match fields[18].parse(){
                 Ok(v) => v,
                 Err(e) =>{
-                    let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    let mut msg = my_err_msg.lock().unwrap(); // get the lock on the error message
                     if msg.is_empty() { // haven't already found an error
                         *msg = format!("Error {} encountered when trying to parse seq_end field of {} in line {} of {}", e, fields[18], line, filename);
                         error_found = true;
@@ -655,7 +649,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
             let hmm_start: u32 = match fields[15].parse(){
                 Ok(v) => v,
                 Err(e) => {
-                    let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    let mut msg = my_err_msg.lock().unwrap(); // get the lock on the error message
                         if msg.is_empty() { // haven't already found an error
                             *msg = format!("Error {} encountered when trying to parse hmm_start field of {} in line {} of {}", e, fields[15], line, filename);
                             error_found = true;
@@ -667,7 +661,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
         let hmm_end: u32 = match fields[16].parse(){
             Ok(v) => v,
             Err(e) => {
-                let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                let mut msg = my_err_msg.lock().unwrap(); // get the lock on the error message
                     if msg.is_empty() { // haven't already found an error
                         *msg = format!("Error {} encountered when trying to parse hmm_end field of {} in line {} of {}", e, fields[16], line, filename);
                         error_found = true;
@@ -678,7 +672,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
 
         let dom_evalue: f64= match fields[12].parse(){
             Ok(v) => v,
-            Err(e) => {let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+            Err(e) => {let mut msg = my_err_msg.lock().unwrap(); // get the lock on the error message
                     if msg.is_empty() { // haven't already found an error
                         *msg = format!("Error {} encountered when trying to parse dom_evalue field of {} in line {} of {}", e, fields[12], line, filename);
                         error_found = true;
@@ -733,9 +727,9 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                      //errmsg = format!("Deserialization error for Annotated Sequence, reason was: {}" , &msg.to_string());
                         AnnotatedSequence{
                             name: target_name.clone(),
-                            sequence: str::repeat("X", seq_end as usize),
+                            sequence: str::repeat("X", target_length as usize),
                             description: String::new(),
-                            length: seq_end, // This is a fake sequence, not in the database
+                            length: target_length, // This is a fake sequence, not in the database
                             taxid: UNKNOWN_TAXID,  // Unknown for now, will be patched to graph root in build_graph_from_hits
                             domains: Vec::new(),
                             structure_domains: Vec::new(),
@@ -746,9 +740,9 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 None => {
                     let mut fake_sequence = AnnotatedSequence{
                         name: target_name.clone(),
-                        sequence: str::repeat("X", seq_end as usize),
+                        sequence: str::repeat("X", target_length as usize),
                         description: String::new(),
-                        length: seq_end, // This is a fake sequence, not in the database
+                        length: target_length, // This is a fake sequence, not in the database
                         taxid: UNKNOWN_TAXID,  // Unknown for now, will be patched to graph root in build_graph_from_hits
                         domains: Vec::new(),
                         structure_domains: Vec::new(),
@@ -774,85 +768,8 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
             };
 
             // Convert the sequence's domain lists from database format into viewer format
-            let mut our_domains = Vec::new();
-            for db_domain in seq_ann.domains{
-                let ddata =match domain_map.get(&db_domain.domain) {
-                    None => Dmap{
-                        domain: 0xffff,
-                        name: "Sequence not in annotation database".to_string(),
-                        description: "".to_string(),
-                        clan_name: "".to_string(),
-                        hmm_length: 0,
-                        source: AnnotationType::Other,
-                        ip_short: "".to_string(),
-                        ip_long: "".to_string(),
-                        pfam_name: "".to_string(),
-                        i_type: IEntryType::Other,
-                    },
-                    Some(v) => v.clone(),
-                };
-                let the_domain = Domain{
-                    name: ddata.name,
-                    hmm_length: ddata.hmm_length,
-                    clan: ddata.clan_name,
-                    description: ddata.description,
-                    seq_start: db_domain.alifrom,
-                    seq_end: db_domain.alito,
-                    hmm_start: db_domain.hmmfrom,
-                    hmm_end: db_domain.hmmto,
-                    dom_evalue: f64::from(db_domain.eval),
-                    full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
-                    full_match_end: db_domain.full_match_end,
-                    from_blast: false,
-                    source: ddata.source,
-    // fields below here are only used for Interpro annotations
-                    ip_short: ddata.ip_short,
-                    ip_long: ddata.ip_long,
-                    pfam_name: ddata.pfam_name,
-                    i_type: ddata.i_type,        
-                };
-                our_domains.push(the_domain);
-            }
-
-            let mut structure_domains = Vec::new();
-            for db_domain in seq_ann.structure_domains{
-                let ddata =match domain_map.get(&db_domain.domain) {
-                    None => Dmap{
-                        domain: 0xffff,
-                        name: "Sequence not in annotation database".to_string(),
-                        description: "".to_string(),
-                        clan_name: "".to_string(),
-                        hmm_length: 0,
-                        source: AnnotationType::Other,
-                        ip_short: "".to_string(),
-                        ip_long: "".to_string(),
-                        pfam_name: "".to_string(),
-                        i_type: IEntryType::Other,
-                    },
-                    Some(v) => v.clone(),
-                };
-                let the_domain = Domain{
-                    name: ddata.name,
-                    seq_start: db_domain.alifrom,
-                    seq_end: db_domain.alito,
-                    hmm_start: db_domain.hmmfrom,
-                    hmm_end: db_domain.hmmto,
-                    clan: ddata.clan_name,
-                    description: ddata.description,
-                    hmm_length: ddata.hmm_length,
-                    dom_evalue: f64::from(db_domain.eval),
-                    full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
-                    full_match_end: db_domain.full_match_end,
-                    from_blast: false,
-                    source: ddata.source,
-                    // fields below here are only used for Interpro annotations
-                    ip_short: ddata.ip_short,
-                    ip_long: ddata.ip_long,
-                    pfam_name: ddata.pfam_name,
-                    i_type: ddata.i_type,        
-                };
-                structure_domains.push(the_domain);
-            }
+            let our_domains = db_domains_to_domains(&seq_ann.domains, domain_map);
+            let structure_domains = db_domains_to_domains(&seq_ann.structure_domains, domain_map);
 
             // Create a hit structure for the hit that this domtblout line described
             let hit = Hit {
@@ -885,23 +802,6 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                         }
                     hit_count.fetch_add(-1,std::sync::atomic::Ordering::SeqCst); // we aren't adding a new hit after all
                 }  ).or_insert(hit);  // entry has a write guard on its shard to prevent concurrency issues
-  /*               match entry{
-                    dashmap::mapref::entry::Entry::Occupied(mut h)=>{
-                        let existing_hit = h.get_mut();
-                        hit_count.fetch_add(-1,std::sync::atomic::Ordering::SeqCst); // we aren't adding a new hit after all
-                        existing_hit.queries.push(domain.clone());
-                        if existing_hit.seq_length < hit.seq_length{
-                            existing_hit.seq_length = hit.seq_length;
-                            existing_hit.sequence = hit.sequence.clone();
-                        }
-                        if hit.seq_evalue < existing_hit.seq_evalue{
-                            existing_hit.seq_evalue = hit.seq_evalue
-                        }
-                    },
-                    dashmap::mapref::entry::Entry::Vacant(vacant) => {vacant.insert(hit);
-                        ()
-                    }
-                };*/
 
             }
 
@@ -910,7 +810,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
     } // closes if that skips comment lines
   }); // closes parallel iterator over lines in file
   // closes loop over lines in domtblout file
-    let msg = errMsg.lock().unwrap();
+    let msg = err_msg.lock().unwrap();
     if msg.is_empty(){ // no error detected
         Ok(hit_count.load(std::sync::atomic::Ordering::SeqCst))
     }
@@ -924,7 +824,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
     // domain_map should be safe as a HashMap because it doesn't get modified in this code
 
     let hit_count = AtomicI64::new(0);
-    let errMsg = Arc::new(Mutex::new(String::new()));
+    let err_msg = Arc::new(Mutex::new(String::new()));
  
 
         // Read the whole file up front so that I/O and UTF-8 errors are reported rather than silently skipped
@@ -935,11 +835,11 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
 
         lines.par_iter().for_each(|line| {
         if !line.starts_with('#') && !line.trim().is_empty() { // Skip comment lines
-          let my_errMsg = Arc::clone(&errMsg);
+          let my_err_msg = Arc::clone(&err_msg);
      //   println!("Examining line {}", line);
         let fields: Vec<&str> = line.split_whitespace().collect();
-        if fields.len() != 12 {
-            let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+        if fields.len() < 12 {
+            let mut msg = my_err_msg.lock().unwrap(); // get the lock on the error message
             if msg.is_empty() { // haven't already found an error
                 *msg = format!("Unable to parse {} as BLAST tabular output file due to malformed line {}", filename, line);
             }
@@ -954,7 +854,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
         let seq_evalue: f64 = match fields[10].parse(){
             Ok(v) => v,
             Err(e) => {
-                    let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    let mut msg = my_err_msg.lock().unwrap(); // get the lock on the error message
                     if msg.is_empty() { // haven't already found an error
                         *msg = format!("Error {} encountered when trying to parse seq_evalue field of {} in line {} of {}", e, fields[10], line, filename);
                         error_found = true;
@@ -967,7 +867,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
         //println!("seq_evalue: {} ", seq_evalue);
         let seq_start: u32 = match fields[8].parse(){
             Ok(v) => v,
-            Err(e) => {let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+            Err(e) => {let mut msg = my_err_msg.lock().unwrap(); // get the lock on the error message
                     if msg.is_empty() { // haven't already found an error
                         *msg = format!("Error {} encountered when trying to parse seq_start field of {} in line {} of {}", e, fields[8], line, filename);
                         error_found = true;
@@ -978,7 +878,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
         
         let seq_end: u32 = match fields[9].parse(){
             Ok(v) => v,
-            Err(e) => {let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+            Err(e) => {let mut msg = my_err_msg.lock().unwrap(); // get the lock on the error message
                     if msg.is_empty() { // haven't already found an error
                         *msg = format!("Error {} encountered when trying to parse seq_end field of {} in line {} of {}", e, fields[9], line, filename);
                         error_found = true;
@@ -989,7 +889,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
 
         let hmm_start: u32 = match fields[6].parse(){
             Ok(v) => v,
-            Err(e) => {let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+            Err(e) => {let mut msg = my_err_msg.lock().unwrap(); // get the lock on the error message
                     if msg.is_empty() { // haven't already found an error
                         *msg = format!("Error {} encountered when trying to parse hmm_start field of {} in line {} of {}", e, fields[6], line, filename);
                         error_found = true;
@@ -1000,7 +900,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
 
         let hmm_end: u32 = match fields[7].parse(){
             Ok(v) => v,
-            Err(e) => {let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+            Err(e) => {let mut msg = my_err_msg.lock().unwrap(); // get the lock on the error message
                     if msg.is_empty() { // haven't already found an error
                         *msg = format!("Error {} encountered when trying to parse hmm_end field of {} in line {} of {}", e, fields[7], line, filename);
                         error_found = true;
@@ -1077,105 +977,14 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                         real: false, // This is a fake sequence, not in the database
                         };
                     
-                     /*    let struct_domain = DbDomain{
-                            domain: 0xffff,
-                            clan: 0xffff,
-                            alifrom: 1,
-                            alito: 1,
-                            hmmfrom: 1,
-                            hmmto: 1,
-                            eval: 0.0,
-                            full_match_start: true,
-                            full_match_end: true,
-                        };
-                        let all_domain = struct_domain.clone();
-                        fake_sequence.domains.push(all_domain);
-                        fake_sequence.structure_domains.push(struct_domain);*/
                         fake_sequence
                 
                 },
             };
 
             // Convert the sequence's domain lists from database format into viewer format
-            let mut our_domains = Vec::new();
-            for db_domain in seq_ann.domains{
-                let ddata =match domain_map.get(&db_domain.domain) {
-                    None => Dmap{
-                        domain: 0xffff,
-                        name: "Sequence not in annotation database".to_string(),
-                        description: "".to_string(),
-                        clan_name: "".to_string(),
-                        hmm_length: 0,
-                        source: AnnotationType::Other,
-                        ip_short: "".to_string(),
-                        ip_long: "".to_string(),
-                        pfam_name: "".to_string(),
-                        i_type: IEntryType::Other,
-                    },
-                    Some(v) => v.clone(),
-                };
-                let the_domain = Domain{
-                    name: ddata.name,
-                    hmm_length: ddata.hmm_length,
-                    clan: ddata.clan_name,
-                    description: ddata.description,
-                    seq_start: db_domain.alifrom,
-                    seq_end: db_domain.alito,
-                    hmm_start: db_domain.hmmfrom,
-                    hmm_end: db_domain.hmmto,
-                    dom_evalue: f64::from(db_domain.eval),
-                    full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
-                    full_match_end: db_domain.full_match_end,
-                    from_blast: false,
-                    source: ddata.source,
-    // fields below here are only used for Interpro annotations
-                    ip_short: ddata.ip_short,
-                    ip_long: ddata.ip_long,
-                    pfam_name: ddata.pfam_name,
-                    i_type: ddata.i_type,        
-                };
-                our_domains.push(the_domain);
-            }
-
-            let mut structure_domains = Vec::new();
-            for db_domain in seq_ann.structure_domains{
-                let ddata =match domain_map.get(&db_domain.domain) {
-                    None => Dmap{
-                        domain: 0xffff,
-                        name: "Sequence not in annotation database".to_string(),
-                        description: "".to_string(),
-                        clan_name: "".to_string(),
-                        hmm_length: 0,
-                        source: AnnotationType::Other,
-                        ip_short: "".to_string(),
-                        ip_long: "".to_string(),
-                        pfam_name: "".to_string(),
-                        i_type: IEntryType::Other,
-                    },
-                    Some(v) => v.clone(),
-                };
-                let the_domain = Domain{
-                    name: ddata.name,
-                    seq_start: db_domain.alifrom,
-                    seq_end: db_domain.alito,
-                    hmm_start: db_domain.hmmfrom,
-                    hmm_end: db_domain.hmmto,
-                    clan: ddata.clan_name,
-                    description: ddata.description,
-                    hmm_length: ddata.hmm_length,
-                    dom_evalue: f64::from(db_domain.eval),
-                    full_match_start: db_domain.full_match_start, // These aren't relevant for domain annotations
-                    full_match_end: db_domain.full_match_end,
-                    from_blast: false,
-                    source: ddata.source,
-    // fields below here are only used for Interpro annotations
-                    ip_short: ddata.ip_short,
-                    ip_long: ddata.ip_long,
-                    pfam_name: ddata.pfam_name,
-                    i_type: ddata.i_type,        
-                };
-                structure_domains.push(the_domain);
-            }
+            let our_domains = db_domains_to_domains(&seq_ann.domains, domain_map);
+            let structure_domains = db_domains_to_domains(&seq_ann.structure_domains, domain_map);
 
             // Create a hit structure for the hit that this domtblout line described
             let hit = Hit {
@@ -1209,25 +1018,6 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                         }
                     hit_count.fetch_add(-1,std::sync::atomic::Ordering::SeqCst); // we aren't adding a new hit after all
                 }  ).or_insert(hit); 
-               /*  let entry = hits.entry(seq_ann.name);  // entry has a write guard on its shard to prevent concurrency issues
-                match entry{
-                    dashmap::mapref::entry::Entry::Occupied(mut h)=>{
-                        let existing_hit = h.get_mut();
-                        hit_count.fetch_add(-1,std::sync::atomic::Ordering::SeqCst); // we aren't adding a new hit after all
-                        existing_hit.queries.push(domain.clone());
-                        if existing_hit.seq_length < hit.seq_length{
-                            existing_hit.seq_length = hit.seq_length;
-                            existing_hit.sequence = hit.sequence.clone();
-                        }
-                        if hit.seq_evalue < existing_hit.seq_evalue{
-                            existing_hit.seq_evalue = hit.seq_evalue
-                        }
-                    },
-                    dashmap::mapref::entry::Entry::Vacant(vacant) => {vacant.insert(hit);
-                        ()
-                    }
-                };
-*/
             }
 
         } // closes if that decides if reportable hit
@@ -1235,7 +1025,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
     }
 });
 
-let msg = errMsg.lock().unwrap();
+let msg = err_msg.lock().unwrap();
     if msg.is_empty(){ // no error detected
         Ok(hit_count.load(std::sync::atomic::Ordering::SeqCst))
     }
@@ -1272,7 +1062,11 @@ fn build_graph_from_hits(hits: &mut Vec<Hit>, graph_db: &PartitionHandle)-> Resu
                             Ok(d) => d,
                             Err(msg) => return Err(format!("Error deserializing graph node, message was {}.", msg)),
                         },
-                    None => return Err(format!("Couldn't find taxid {} in node DB", hit.taxid)),
+                    None => { // If the hit's taxid isn't in the node DB, set it to UNKNOWN_TAXID.
+                        // it'll be patched to hang off the root node later
+                        hit.taxid = UNKNOWN_TAXID;
+                        continue;
+                    },
                 };
                 if node.ranknum >= depth {
                     depth = node.ranknum+1;
@@ -1296,7 +1090,7 @@ fn build_graph_from_hits(hits: &mut Vec<Hit>, graph_db: &PartitionHandle)-> Resu
                                 Ok(d) => d,
                                 Err(msg) => return Err(format!("Error deserializing graph node, message was {}.", msg)),
                         },
-                        None => return Err(format!("Couldn't find taxid {} in node DB", node.parent)),
+                        None => return Err(format!("Couldn't find taxid {} in node DB, possible corrupt annotations database", node.parent)),
                     };
                     if parent.taxid == parent.parent{
                         root = parent.taxid;
@@ -1329,7 +1123,7 @@ fn build_graph_from_hits(hits: &mut Vec<Hit>, graph_db: &PartitionHandle)-> Resu
                         Err(why) => return Err(format!("Error looking up taxid {} in graph DB, reason was: {}", node.parent, why)),
                         Ok(d) => d,
                         };
-                        let mut parent: Node = match res1{
+                        let parent: Node = match res1{
                             Some(d) => match rmp_serde::from_slice(&d){
                                 Ok(d) => d,
                                 Err(msg) => return Err(format!("Error deserializing graph node, message was {}.", msg)),
@@ -1338,6 +1132,8 @@ fn build_graph_from_hits(hits: &mut Vec<Hit>, graph_db: &PartitionHandle)-> Resu
                     };
                     node = parent;  // on to the next level up
                 }
+                node.children = Vec::new();
+                node.hits = Vec::new();
                 root= node.taxid;
                 depth = 1;
                 ret_graph.insert(node.taxid, node); // Put the root node of the taxonomy in the graph
@@ -1558,6 +1354,50 @@ pub fn collect_hits(root: &i64, graph: &HashMap<i64, Node>, hits: &mut Vec<i64>)
         collect_hits(child, graph, hits)?;
     }
     Ok(())
+}
+
+// Converts a list of domains from the annotation database's compact format into the
+// format the viewer uses, looking up each domain's name and metadata in domain_map.
+// Domains whose ID isn't in domain_map (e.g. the placeholder domain added for sequences
+// that aren't in the annotation database) get a "Sequence not in annotation database" entry.
+fn db_domains_to_domains(db_domains: &[DbDomain], domain_map: &HashMap<u32, Dmap>) -> Vec<Domain>{
+    db_domains.iter().map(|db_domain| {
+        let ddata = match domain_map.get(&db_domain.domain) {
+            None => Dmap{
+                domain: 0xffff,
+                name: "Sequence not in annotation database".to_string(),
+                description: "".to_string(),
+                clan_name: "".to_string(),
+                hmm_length: 0,
+                source: AnnotationType::Other,
+                ip_short: "".to_string(),
+                ip_long: "".to_string(),
+                pfam_name: "".to_string(),
+                i_type: IEntryType::Other,
+            },
+            Some(v) => v.clone(),
+        };
+        Domain{
+            name: ddata.name,
+            clan: ddata.clan_name,
+            description: ddata.description,
+            hmm_length: ddata.hmm_length,
+            seq_start: db_domain.alifrom,
+            seq_end: db_domain.alito,
+            hmm_start: db_domain.hmmfrom,
+            hmm_end: db_domain.hmmto,
+            dom_evalue: db_domain.eval,
+            full_match_start: db_domain.full_match_start,
+            full_match_end: db_domain.full_match_end,
+            from_blast: false,
+            source: ddata.source,
+            // fields below here are only used for Interpro annotations
+            ip_short: ddata.ip_short,
+            ip_long: ddata.ip_long,
+            pfam_name: ddata.pfam_name,
+            i_type: ddata.i_type,
+        }
+    }).collect()
 }
 
 fn create_domain_id_map(db: &fjall::PartitionHandle) -> Result<HashMap<u32, Dmap>, String>{

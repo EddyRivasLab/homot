@@ -1,7 +1,7 @@
 /* sequence_page.dart: SequencePage -- details for a single sequence
  */
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:homot/main.dart';
 import 'package:homot/utility.dart';
 import 'package:homot/draw_data.dart';
@@ -52,7 +52,7 @@ class _SequencePageState extends State<SequencePage> {
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                             "Sequence: ${theHit.name}"
-                            "\nE-Value: ${theHit.seqEvalue.toStringAsExponential(4)}"
+                            "\nE-Value: ${theHit.seqEvalue.toStringAsExponential(2)}"
                             "\nTaxon: ${graphdata.graph[theHit.taxid]!.name}"
                             "\nDescription: ${theHit.description}",
                           ),

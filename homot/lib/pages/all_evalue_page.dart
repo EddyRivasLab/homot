@@ -2,7 +2,7 @@
  */
 
 import 'dart:math';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:homot/main.dart';
 import 'package:homot/utility.dart';
 import 'package:homot/draw_data.dart';
@@ -94,7 +94,7 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
                                       Theme.of(context).colorScheme.onSurface,
                                 ),
                                 "Sequence: ${searchdata.hits[index].name}"
-                                "\nE-Value: ${searchdata.hits[index].seqEvalue.toStringAsExponential(4)}"
+                                "\nE-Value: ${searchdata.hits[index].seqEvalue.toStringAsExponential(2)}"
                                 "\nTaxon: ${graphdata.graph[searchdata.hits[index].taxid]!.name}"
                                 "\nDescription: ${searchdata.hits[index].description}",
                               ),

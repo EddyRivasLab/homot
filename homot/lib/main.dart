@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:homot/src/rust/frb_generated.dart';
 import 'package:homot/src/rust/api/graph.dart';
@@ -17,7 +16,7 @@ import 'dart:collection';
 import 'package:matrix4_transform/matrix4_transform.dart';
 import 'package:patterns_canvas/patterns_canvas.dart';
 
-// List of pairs of background and foregrund colors for displaying
+// List of pairs of background and foreground colors for displaying
 // domains.  Taken from the ColorBrewer example color sets.
 // Format is (BGcolor, FG color)
 enum SelectedBy { none, structure, subtree, subtreeStructure }
@@ -137,6 +136,8 @@ ColorScheme lightScheme = ColorScheme.fromSeed(
 
 ColorScheme darkScheme = ColorScheme.fromSeed(
   seedColor: const Color(0xff5475b4),
+  // Without this, every colour not set below gets a light-mode shade
+  brightness: Brightness.dark,
   primary: const Color(0xff5475b4),
   secondary: const Color(0xff9e0142),
   surface: const Color(0xff000000),
@@ -478,16 +479,12 @@ class _TopLevelState extends State<TopLevel> {
     return Consumer<HSettings>(
       builder: (context, hsettings, child) {
         return MaterialApp(
-          theme: hsettings.themeData,
+          theme: hsettings.lightTheme,
+          darkTheme: hsettings.darkTheme,
+          themeMode: hsettings.themeMode,
           debugShowCheckedModeBanner: false,
           title: 'Homot',
           home: MediaQuery.withNoTextScaling(child: MacMenu()),
-          initialRoute: '/',
-          routes: {
-            '/main': (context) => const MainPage(),
-            '/graph': (context) => const GraphPage(),
-            '/settings': (context) => const SettingsPage(),
-          },
         );
       },
     );
@@ -599,101 +596,52 @@ class HSettings with ChangeNotifier {
     }
   }
 
-  ThemeData _updateTheme() {
-    if (_mode == BrightModes.light ||
-        (_mode == BrightModes.system &&
-            PlatformDispatcher.instance.platformBrightness ==
-                Brightness.light)) {
-      return ThemeData(
-        colorScheme: lightScheme,
-        fontFamily: _font,
-        textTheme: TextTheme(
-          displayLarge: TextStyle(fontSize: 57 * _scale),
-          displayMedium: TextStyle(fontSize: 45 * _scale),
-          displaySmall: TextStyle(fontSize: 36 * _scale),
-          headlineLarge: TextStyle(fontSize: 32 * _scale),
-          headlineMedium: TextStyle(fontSize: 28 * _scale),
-          headlineSmall: TextStyle(fontSize: 24 * _scale),
-          titleLarge: TextStyle(fontSize: 22 * _scale),
-          titleMedium: TextStyle(fontSize: 16 * _scale),
-          titleSmall: TextStyle(fontSize: 14 * _scale),
-          bodyLarge: TextStyle(fontSize: 16 * _scale),
-          bodyMedium: TextStyle(fontSize: 14 * _scale),
-          bodySmall: TextStyle(fontSize: 12 * _scale),
-          labelLarge: TextStyle(fontSize: 14 * _scale),
-          labelMedium: TextStyle(fontSize: 12 * _scale),
-          labelSmall: TextStyle(fontSize: 11 * _scale),
+  // Builds the app's theme from a colour scheme.  The light and dark themes
+  // differ only in their colour scheme and scrollbar thumb colours.
+  ThemeData _buildTheme(
+    ColorScheme scheme,
+    Color thumbActiveColor,
+    double thumbIdleAlpha,
+  ) {
+    return ThemeData(
+      colorScheme: scheme,
+      fontFamily: _font,
+      textTheme: TextTheme(
+        displayLarge: TextStyle(fontSize: 57 * _scale),
+        displayMedium: TextStyle(fontSize: 45 * _scale),
+        displaySmall: TextStyle(fontSize: 36 * _scale),
+        headlineLarge: TextStyle(fontSize: 32 * _scale),
+        headlineMedium: TextStyle(fontSize: 28 * _scale),
+        headlineSmall: TextStyle(fontSize: 24 * _scale),
+        titleLarge: TextStyle(fontSize: 22 * _scale),
+        titleMedium: TextStyle(fontSize: 16 * _scale),
+        titleSmall: TextStyle(fontSize: 14 * _scale),
+        bodyLarge: TextStyle(fontSize: 16 * _scale),
+        bodyMedium: TextStyle(fontSize: 14 * _scale),
+        bodySmall: TextStyle(fontSize: 12 * _scale),
+        labelLarge: TextStyle(fontSize: 14 * _scale),
+        labelMedium: TextStyle(fontSize: 12 * _scale),
+        labelSmall: TextStyle(fontSize: 11 * _scale),
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          border: Border.all(color: scheme.onSurface, width: 1.0),
+          borderRadius: BorderRadius.circular(4.0),
         ),
-        tooltipTheme: TooltipThemeData(
-          decoration: BoxDecoration(
-            color: lightScheme.surface,
-            border: Border.all(color: lightScheme.onSurface, width: 1.0),
-            borderRadius: BorderRadius.circular(4.0),
-          ),
-        ),
-        scrollbarTheme: ScrollbarThemeData(
-          thumbVisibility: WidgetStateProperty.all<bool>(true),
-          thumbColor: WidgetStateProperty.resolveWith<Color?>((states) {
-            if (states.contains(WidgetState.dragged)) {
-              return Colors.black.withValues(
-                alpha: 0.5,
-              ); // Color when being dragged
-            }
-            if (states.contains(WidgetState.hovered)) {
-              return Colors.black.withValues(
-                alpha: 0.5,
-              ); // Color when hovered (Desktop/Web)
-            }
-            return Colors.grey.withValues(alpha: 0.75); // Default color
-          }),
-        ),
-      );
-    } else {
-      return ThemeData(
-        colorScheme: darkScheme,
-        fontFamily: _font,
-        textTheme: TextTheme(
-          displayLarge: TextStyle(fontSize: 57 * _scale),
-          displayMedium: TextStyle(fontSize: 45 * _scale),
-          displaySmall: TextStyle(fontSize: 36 * _scale),
-          headlineLarge: TextStyle(fontSize: 32 * _scale),
-          headlineMedium: TextStyle(fontSize: 28 * _scale),
-          headlineSmall: TextStyle(fontSize: 24 * _scale),
-          titleLarge: TextStyle(fontSize: 22 * _scale),
-          titleMedium: TextStyle(fontSize: 16 * _scale),
-          titleSmall: TextStyle(fontSize: 14 * _scale),
-          bodyLarge: TextStyle(fontSize: 16 * _scale),
-          bodyMedium: TextStyle(fontSize: 14 * _scale),
-          bodySmall: TextStyle(fontSize: 12 * _scale),
-          labelLarge: TextStyle(fontSize: 14 * _scale),
-          labelMedium: TextStyle(fontSize: 12 * _scale),
-          labelSmall: TextStyle(fontSize: 11 * _scale),
-        ),
-        tooltipTheme: TooltipThemeData(
-          decoration: BoxDecoration(
-            border: Border.all(color: darkScheme.onSurface, width: 1.0),
-            color: darkScheme.surface,
-            borderRadius: BorderRadius.circular(4.0),
-          ),
-        ),
-        scrollbarTheme: ScrollbarThemeData(
-          thumbVisibility: WidgetStateProperty.all<bool>(true),
-          thumbColor: WidgetStateProperty.resolveWith<Color?>((states) {
-            if (states.contains(WidgetState.dragged)) {
-              return Colors.white.withValues(
-                alpha: 0.5,
-              ); // Color when being dragged
-            }
-            if (states.contains(WidgetState.hovered)) {
-              return Colors.white.withValues(
-                alpha: 0.5,
-              ); // Color when hovered (Desktop/Web)
-            }
-            return Colors.grey.withValues(alpha: 0.5); // Default color
-          }),
-        ),
-      );
-    }
+      ),
+      scrollbarTheme: ScrollbarThemeData(
+        thumbVisibility: WidgetStateProperty.all<bool>(true),
+        thumbColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.dragged) ||
+              states.contains(WidgetState.hovered)) {
+            // Colour when being dragged or hovered (Desktop/Web)
+            return thumbActiveColor.withValues(alpha: 0.5);
+          }
+          return Colors.grey.withValues(alpha: thumbIdleAlpha); // Default
+        }),
+      ),
+    );
   }
 
   set drawType(GraphDrawType newType) {
@@ -849,7 +797,15 @@ class HSettings with ChangeNotifier {
     notifyListeners();
   }
 
-  ThemeData get themeData => _updateTheme();
+  ThemeData get lightTheme => _buildTheme(lightScheme, Colors.black, 0.75);
+  ThemeData get darkTheme => _buildTheme(darkScheme, Colors.white, 0.5);
+  // MaterialApp picks between lightTheme and darkTheme using this, and follows
+  // changes to the OS appearance itself when it's ThemeMode.system.
+  ThemeMode get themeMode => switch (_mode) {
+    BrightModes.light => ThemeMode.light,
+    BrightModes.dark => ThemeMode.dark,
+    BrightModes.system => ThemeMode.system,
+  };
   double get scale => _scale;
   String get font => _font;
   BrightModes get mode => _mode;
@@ -1220,25 +1176,10 @@ class GraphData with ChangeNotifier {
     }
   }
 
-  void pushHistory(PlatformInt64 node) {
-    _history.add(node);
-    notifyListeners();
-  }
-
   void setRotation(double newRotation) {
     if (newRotation >= 0 && newRotation <= 2 * pi) {
       _rotation = newRotation;
       updateTransform();
-    }
-  }
-
-  PlatformInt64 popHistory() {
-    if (_history.isNotEmpty) {
-      PlatformInt64 last = _history.removeLast();
-      notifyListeners();
-      return last;
-    } else {
-      return _graphRoot;
     }
   }
 }
@@ -1321,15 +1262,11 @@ class FileData with ChangeNotifier {
     }
   }
 
-  void deleteDomtbloutFile(String domtblout) {
-    _domtbloutFiles.remove(domtblout);
-    if (_domtbloutFiles.isEmpty) {
-      _domtbloutFilesSet = false;
-    }
-    notifyListeners();
-  }
-
-  void exportCurrentPage(
+  // Writes the contents of the current page to _exportFile.  Returns null on
+  // success, or a description of the error if the export failed.  It doesn't
+  // show the error itself, because the caller's dialog is usually gone by the
+  // time the write finishes; the caller reports it with a context that's still mounted.
+  Future<String?> exportCurrentPage(
     String currentpage,
     SearchData searchdata,
     bool pfamNames,
@@ -1339,10 +1276,47 @@ class FileData with ChangeNotifier {
     bool showInterproRepeat,
     bool showInterproSite,
     bool showInterproOther,
-    BuildContext context,
   ) async {
-    var outFile = File(_exportFile);
-    var outSink = outFile.openWrite(mode: FileMode.write);
+    IOSink? outSink;
+    try {
+      outSink = File(_exportFile).openWrite(mode: FileMode.write);
+      _writePage(
+        currentpage,
+        searchdata,
+        pfamNames,
+        showInterproSuperfamily,
+        showInterproFamily,
+        showInterproDomain,
+        showInterproRepeat,
+        showInterproSite,
+        showInterproOther,
+        outSink,
+      );
+      // Errors opening or writing the file are reported here
+      await outSink.flush();
+      await outSink.close();
+      return null;
+    } catch (e) {
+      // Close the sink if we can, but report the original error
+      try {
+        await outSink?.close();
+      } catch (_) {}
+      return e.toString();
+    }
+  }
+
+  void _writePage(
+    String currentpage,
+    SearchData searchdata,
+    bool pfamNames,
+    bool showInterproSuperfamily,
+    bool showInterproFamily,
+    bool showInterproDomain,
+    bool showInterproRepeat,
+    bool showInterproSite,
+    bool showInterproOther,
+    IOSink outSink,
+  ) {
     switch (currentpage) {
       case "/allstructure":
         _exportAllStructure(
@@ -1411,45 +1385,6 @@ class FileData with ChangeNotifier {
         break;
       default:
         outSink.writeln("No data to export");
-    }
-    try {
-      await outSink.flush();
-      await outSink.close();
-    } catch (e) {
-      if (!context.mounted) return;
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text("Unable to Export Data"),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            titleTextStyle: TextStyle(
-              color: Theme.of(context).colorScheme.onError,
-              fontSize: 20.0,
-              fontWeight: FontWeight.bold,
-            ),
-            content: Text("Error was: $e"),
-            contentTextStyle: TextStyle(
-              color: Theme.of(context).colorScheme.onError,
-              fontSize: 16.0,
-            ),
-            actions: [
-              ElevatedButton(
-                style: MenuItemButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.onError,
-                ),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: Text(
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                  "OK",
-                ),
-              ),
-            ],
-          );
-        },
-      );
     }
   }
 
@@ -1861,63 +1796,6 @@ class _MacMenuBarState extends State<MacMenu> {
 }
 
 // Gratuitiously stolen from the documentation for the MenuBar class
-class MenuEntry {
-  const MenuEntry({
-    required this.label,
-    this.shortcut,
-    this.onPressed,
-    this.menuChildren,
-  }) : assert(
-         menuChildren == null || onPressed == null,
-         'onPressed is ignored if menuChildren are provided',
-       );
-
-  final String label;
-  final MenuSerializableShortcut? shortcut;
-  final VoidCallback? onPressed;
-  final List<MenuEntry>? menuChildren;
-
-  static List<Widget> build(List<MenuEntry> selections) {
-    Widget buildSelection(MenuEntry selection) {
-      if (selection.menuChildren != null) {
-        return SubmenuButton(
-          menuChildren: MenuEntry.build(selection.menuChildren!),
-          child: Text(selection.label),
-        );
-      }
-      return Consumer<FileData>(
-        builder: (context, filedata, child) {
-          return MenuItemButton(
-            shortcut: selection.shortcut,
-            onPressed: selection.onPressed,
-            child: Text(selection.label),
-          );
-        },
-      );
-    }
-
-    return selections.map<Widget>(buildSelection).toList();
-  }
-
-  static Map<MenuSerializableShortcut, Intent> shortcuts(
-    List<MenuEntry> selections,
-  ) {
-    final Map<MenuSerializableShortcut, Intent> result =
-        <MenuSerializableShortcut, Intent>{};
-    for (final MenuEntry selection in selections) {
-      if (selection.menuChildren != null) {
-        result.addAll(MenuEntry.shortcuts(selection.menuChildren!));
-      } else {
-        if (selection.shortcut != null && selection.onPressed != null) {
-          result[selection.shortcut!] = VoidCallbackIntent(
-            selection.onPressed!,
-          );
-        }
-      }
-    }
-    return result;
-  }
-}
 
 class NonMacMenuBar extends StatefulWidget {
   const NonMacMenuBar({super.key});
@@ -2033,53 +1911,6 @@ class _NonMacMenuBarState extends State<NonMacMenuBar> {
       },
     );
   }
-
-  /*List<MenuEntry> _getMenus(BuildContext context) {
-    return [
-      MenuEntry(
-        label: 'Menu',
-        menuChildren: [
-          MenuEntry(
-            label: 'About',
-            onPressed: () {
-              showAboutDialog(
-                context: context,
-                applicationName: 'Homot: A taxonomy viewer for HMMER',
-                applicationVersion: '1.0.0',
-              );
-            },
-          ),
-          MenuEntry(
-            label: 'Quit Homot',
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: const Text("Quit Homot?"),
-                    actions: <Widget>[
-                      TextButton(
-                        onPressed: () {
-                          exit(0);
-                        },
-                        child: const Text("Quit"),
-                      ),
-                      TextButton
-                        onPressed: () {
-                          Navigator.pop(context, 'Cancel');
-                        },
-                        child: const Text("Cancel"),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-          ),
-        ],
-      ),
-    ];
-  }*/
 }
 
 // class that holds the results of a search
@@ -2167,11 +1998,6 @@ class SearchData with ChangeNotifier {
   set currentHits(List<SigCategory> hits) {
     _currentHits = hits;
     _currentLoaded = true;
-    notifyListeners();
-  }
-
-  void clearCurrentLoaded() {
-    _currentLoaded = false;
     notifyListeners();
   }
 

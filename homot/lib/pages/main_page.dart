@@ -2,7 +2,7 @@
  * annotated database and the domtblout/BLAST files they wish to view
  */
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:homot/main.dart';
 import 'package:homot/utility.dart';
 import 'package:homot/src/rust/api/graph.dart';
@@ -24,6 +24,7 @@ class _MainPageState extends State<MainPage> {
   @override
   void dispose() {
     //ScaffoldMessenger.of(context).clearSnackBars();
+    _mainScrollController.dispose();
     super.dispose();
   }
 
@@ -102,11 +103,10 @@ class _MainPageState extends State<MainPage> {
                               // Disable the button until this load finishes,
                               // however it finishes (success, error, or exception)
                               filedata.loading = true;
-                              try {
-                                // Grab the messenger before the await so the
-                                // loading snackbar can be cleared even if this
-                                // page is disposed while the data loads.
-                                final messenger = ScaffoldMessenger.of(context);
+                              // Grab the messenger before the await so the
+                              // loading snackbar can be cleared even if this
+                              // page is disposed while the data loads.
+                              final messenger = ScaffoldMessenger.of(context);
                                 messenger.showSnackBar(
                                   SnackBar(
                                     duration: Duration(days: 1),
@@ -119,6 +119,7 @@ class _MainPageState extends State<MainPage> {
                                     ),
                                   ),
                                 );
+                              try {
                                 //Gather hits from the domtblout files
                                 var results = await (fetchGraph(
                                   annfile: filedata.annotationsFile,
@@ -211,9 +212,36 @@ class _MainPageState extends State<MainPage> {
                                   searchdata.selectedBy =
                                       SelectedBy.none; // reset selection
                                   searchdata.selectedHit = -1;
-                                  context.go("/graph");
+                                  context.go("/allstructure");
                                 }
-                              } finally {
+                              }
+                              catch(e){
+                                messenger.clearSnackBars();
+                                var message2 = "Homot has encountered an exception while loading data.\nPlease check that you have specified a valid annotations database and search results file.\n$e";
+                                // Use the captured messenger: this page's context
+                                // may no longer be mounted after the await.
+                                messenger.showSnackBar(
+                                SnackBar(
+                                  //duration: Duration(days: 1),
+                                  backgroundColor: Colors.red,
+                                  duration: const Duration(days: 100),
+                                  content: Center(
+                                  child: Column(
+                                  children: [
+                                  Text(message2),
+                                    ElevatedButton(
+                                      child: Text("Close"),
+                                      onPressed: () {
+                                        messenger.hideCurrentSnackBar();
+                                      },
+                                    ),
+                                  ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                              }
+                               finally {
                                 filedata.loading = false;
                               }
                             }

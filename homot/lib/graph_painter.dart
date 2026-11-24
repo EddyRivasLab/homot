@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:homot/main.dart';
 import 'package:homot/src/rust/api/graph.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
@@ -257,8 +257,8 @@ class GraphPainter extends CustomPainter {
     Color patternFg, patternBg;
     if (nodeId == parentId) {
       // root node of current graph
-      nodeColor = hSettings.themeData.colorScheme.onSurface;
-      fillColor = hSettings.themeData.colorScheme.onSurface;
+      nodeColor = Theme.of(context).colorScheme.onSurface;
+      fillColor = Theme.of(context).colorScheme.onSurface;
       fillTextColor = Colors.white;
       patternType = PatternType.dots;
       patternFg = Color(0xff000000);

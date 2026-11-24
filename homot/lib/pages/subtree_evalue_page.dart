@@ -2,7 +2,7 @@
  */
 
 import 'dart:math';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:homot/main.dart';
 import 'package:homot/utility.dart';
 import 'package:homot/draw_data.dart';
@@ -29,6 +29,13 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
   List<bool> fullWidth = [];
   List<bool> showExpand = [];
   List<int> lengths = [];
+
+  @override
+  void dispose() {
+    _subtreeEvalueScrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -121,7 +128,7 @@ class _SubtreeEvaluePageState extends State<SubtreeEvaluePage> {
                                       Theme.of(context).colorScheme.onSurface,
                                 ),
                                 "Sequence: ${searchdata.hits[hitIndices[index].toInt()].name}"
-                                "\nE-Value: ${searchdata.hits[hitIndices[index].toInt()].seqEvalue.toStringAsExponential(4)}"
+                                "\nE-Value: ${searchdata.hits[hitIndices[index].toInt()].seqEvalue.toStringAsExponential(2)}"
                                 "\nTaxon: ${graphdata.graph[searchdata.hits[hitIndices[index].toInt()].taxid]!.name}"
                                 "\nDescription: ${searchdata.hits[hitIndices[index].toInt()].description}",
                               ),

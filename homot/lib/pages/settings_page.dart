@@ -1,7 +1,11 @@
 /* settings_page.dart: SettingsPage -- allows the user to configure the application
  */
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+// input_quantity's QtyDecorationProps still expects flutter/material's InputBorder.
+import 'package:flutter/material.dart'
+    as fm
+    show OutlineInputBorder, Material, MaterialType;
 import 'package:homot/main.dart';
 import 'package:homot/utility.dart';
 import 'package:homot/graph_painter.dart';
@@ -126,6 +130,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
+
   void _showEvalWarning() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -267,24 +272,26 @@ class _SettingsPageState extends State<SettingsPage> {
                                       "Font Scale Factor",
                                     ),
                                   ),
-                                  InputQty.double(
-                                    initVal: hsettings.scale,
-                                    minVal: 0.001,
-                                    steps: 0.1,
-                                    decoration: QtyDecorationProps(
-                                      qtyStyle: QtyStyle.btnOnRight,
-                                      border: OutlineInputBorder(
-                                        borderSide: BorderSide(
-                                          color:
-                                              Theme.of(
-                                                context,
-                                              ).colorScheme.onSurface,
+                                  _LegacyMaterial(
+                                    child: InputQty.double(
+                                      initVal: hsettings.scale,
+                                      minVal: 0.001,
+                                      steps: 0.1,
+                                      decoration: QtyDecorationProps(
+                                        qtyStyle: QtyStyle.btnOnRight,
+                                        border: fm.OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
+                                          ),
                                         ),
                                       ),
+                                      onQtyChanged: (val) {
+                                        hsettings.scale = val;
+                                      },
                                     ),
-                                    onQtyChanged: (val) {
-                                      hsettings.scale = val;
-                                    },
                                   ),
                                 ],
                               ),
@@ -363,24 +370,26 @@ class _SettingsPageState extends State<SettingsPage> {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      InputQty.double(
-                                        initVal: hsettings.lineWidth,
-                                        minVal: 0.5,
-                                        steps: 0.5,
-                                        decoration: QtyDecorationProps(
-                                          qtyStyle: QtyStyle.btnOnRight,
-                                          border: OutlineInputBorder(
-                                            borderSide: BorderSide(
-                                              color:
-                                                  Theme.of(
-                                                    context,
-                                                  ).colorScheme.onSurface,
+                                      _LegacyMaterial(
+                                        child: InputQty.double(
+                                          initVal: hsettings.lineWidth,
+                                          minVal: 0.5,
+                                          steps: 0.5,
+                                          decoration: QtyDecorationProps(
+                                            qtyStyle: QtyStyle.btnOnRight,
+                                            border: fm.OutlineInputBorder(
+                                              borderSide: BorderSide(
+                                                color:
+                                                    Theme.of(
+                                                      context,
+                                                    ).colorScheme.onSurface,
+                                              ),
                                             ),
                                           ),
+                                          onQtyChanged: (val) {
+                                            hsettings.lineWidth = val;
+                                          },
                                         ),
-                                        onQtyChanged: (val) {
-                                          hsettings.lineWidth = val;
-                                        },
                                       ),
                                       SizedBox(width: 20),
                                       CustomPaint(
@@ -551,11 +560,11 @@ class _SettingsPageState extends State<SettingsPage> {
                                             parsed >= 0 &&
                                             parsed != hsettings.evalMin) {
                                           hsettings.evalMin = parsed.toDouble();
-                                          if (hsettings.evalMin > hsettings.evalMax){
+                                          if (hsettings.evalMin >
+                                              hsettings.evalMax) {
                                             // min > max means no hits will be shown
                                             _showEvalWarning();
-                                          }
-                                          else{
+                                          } else {
                                             _showReloadWarning();
                                           }
                                         } else {
@@ -630,11 +639,11 @@ class _SettingsPageState extends State<SettingsPage> {
                                             parsed >= 0 &&
                                             parsed != hsettings.evalMax) {
                                           hsettings.evalMax = parsed.toDouble();
-                                          if (hsettings.evalMin > hsettings.evalMax){
+                                          if (hsettings.evalMin >
+                                              hsettings.evalMax) {
                                             // min > max means no hits will be shown
                                             _showEvalWarning();
-                                          }
-                                          else{
+                                          } else {
                                             _showReloadWarning();
                                           }
                                         } else {
@@ -744,11 +753,11 @@ class _SettingsPageState extends State<SettingsPage> {
                                             parsed != hsettings.domEvalMin) {
                                           hsettings.domEvalMin =
                                               parsed.toDouble();
-                                          if (hsettings.domEvalMin > hsettings.domEvalMax){
+                                          if (hsettings.domEvalMin >
+                                              hsettings.domEvalMax) {
                                             // min > max means no hits will be shown
                                             _showEvalWarning();
-                                          }
-                                          else{
+                                          } else {
                                             _showReloadWarning();
                                           }
                                         } else {
@@ -824,11 +833,11 @@ class _SettingsPageState extends State<SettingsPage> {
                                             parsed != hsettings.domEvalMax) {
                                           hsettings.domEvalMax =
                                               parsed.toDouble();
-                                          if (hsettings.domEvalMin > hsettings.domEvalMax){
+                                          if (hsettings.domEvalMin >
+                                              hsettings.domEvalMax) {
                                             // min > max means no hits will be shown
                                             _showEvalWarning();
-                                          }
-                                          else{
+                                          } else {
                                             _showReloadWarning();
                                           }
                                         } else {
@@ -914,6 +923,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 onChanged: (bool? value) {
                                   if (value != null) {
                                     hsettings.showInterproFamily = value;
+                                    _showReloadWarning();
                                   }
                                 },
                               ),
@@ -931,6 +941,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 onChanged: (bool? value) {
                                   if (value != null) {
                                     hsettings.showInterproDomain = value;
+                                    _showReloadWarning();
                                   }
                                 },
                               ),
@@ -949,6 +960,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 onChanged: (bool? value) {
                                   if (value != null) {
                                     hsettings.showInterproRepeat = value;
+                                    _showReloadWarning();
                                   }
                                 },
                               ),
@@ -966,6 +978,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 onChanged: (bool? value) {
                                   if (value != null) {
                                     hsettings.showInterproSite = value;
+                                    _showReloadWarning();
                                   }
                                 },
                                 
@@ -984,6 +997,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 onChanged: (bool? value) {
                                   if (value != null) {
                                     hsettings.showInterproOther = value;
+                                    _showReloadWarning();
                                   }
                                 },
                               ),
@@ -1078,6 +1092,27 @@ class _SettingsPageState extends State<SettingsPage> {
         },
       ),
       bottomNavigationBar: MainNavBar(whereAmI: WhichPage.settings),
+    );
+  }
+}
+
+// input_quantity is still built on package:flutter/material, while this app uses
+// package:material_ui.  Its widgets look for flutter/material's Theme,
+// localizations and Material ancestor, which the material_ui widgets above them
+// don't provide, so the page crashes with "No Material widget found".
+// MaterialUiCompatibilityBridge supplies the legacy Theme (mapped from ours) and
+// localizations; the transparent legacy Material satisfies the ancestor check
+// without drawing anything.  Remove this once input_quantity moves to material_ui.
+class _LegacyMaterial extends StatelessWidget {
+  const _LegacyMaterial({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    // ignore: deprecated_member_use
+    return MaterialUiCompatibilityBridge(
+      child: fm.Material(type: fm.MaterialType.transparency, child: child),
     );
   }
 }
