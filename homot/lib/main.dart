@@ -774,9 +774,9 @@ class HSettings with ChangeNotifier {
   set lineWidth(double newWidth) {
     if (newWidth > 0) {
       _lineWidth = newWidth;
+      _prefs.setDouble("homot_lineWidth", newWidth);
+      notifyListeners();
     }
-    _prefs.setDouble("homot_lineWidth", newWidth);
-    notifyListeners();
   }
 
   set addPatterns(bool val) {
@@ -1036,8 +1036,8 @@ class GraphData with ChangeNotifier {
     _transform = Matrix4.identity();
     _tController.value = Matrix4.identity();
     _trackRegions = TrackRegions(0);
-    _graphRoot = 0;
-    _currentRoot = 0;
+    _graphRoot = -1;
+    _currentRoot = -1;
     _depth = 0;
     _maxLevels = 0;
     notifyListeners();
@@ -1264,6 +1264,16 @@ class FileData with ChangeNotifier {
     } else {
       return "Change";
     }
+  }
+
+  // True while a data load is in progress, so the Load Data button can be
+  // disabled.  Kept here rather than in the page's state so that it survives
+  // navigating away from and back to the main page during a load.
+  bool _loading = false;
+  bool get loading => _loading;
+  set loading(bool value) {
+    _loading = value;
+    notifyListeners();
   }
 
   String get exportFile => _exportFile;
@@ -2131,7 +2141,7 @@ class SearchData with ChangeNotifier {
     _domainsContained = [];
     for (var domain in results.domainsContained) {
       if (!_domainsContained.contains(domain) &&
-          (domain != "Sequence not in annotation database")) {
+          domain != "Sequence not in annotation database") {
         _domainsContained.add(domain);
       }
     }

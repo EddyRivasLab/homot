@@ -77,7 +77,7 @@ fn wire__crate__api__graph__collect_hits_impl(
             >>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
-                transform_result_sse::<_, ()>((move || {
+                transform_result_sse::<_, String>((move || {
                     let mut api_hits_guard = None;
                     let decode_indices_ =
                         flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
@@ -92,13 +92,11 @@ fn wire__crate__api__graph__collect_hits_impl(
                         }
                     }
                     let mut api_hits_guard = api_hits_guard.unwrap();
-                    let output_ok = Result::<_, ()>::Ok({
-                        crate::api::graph::collect_hits(
-                            &api_root,
-                            &api_graph,
-                            &mut *api_hits_guard,
-                        );
-                    })?;
+                    let output_ok = crate::api::graph::collect_hits(
+                        &api_root,
+                        &api_graph,
+                        &mut *api_hits_guard,
+                    )?;
                     Ok(output_ok)
                 })())
             }
@@ -193,12 +191,12 @@ fn wire__crate__api__graph__find_hits_below_node_impl(
             );
             let api_hit_structures = <Vec<u32>>::sse_decode(&mut deserializer);
             deserializer.end();
-            transform_result_sse::<_, ()>((move || {
-                let output_ok = Result::<_, ()>::Ok(crate::api::graph::find_hits_below_node(
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::graph::find_hits_below_node(
                     api_root,
                     &api_graph,
                     &api_hit_structures,
-                ))?;
+                )?;
                 Ok(output_ok)
             })())
         },

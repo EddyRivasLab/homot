@@ -11,6 +11,7 @@ use std::cmp::Reverse;
 use rayon::prelude::*;
 use std::sync::{Arc, Mutex};
 
+const UNKNOWN_TAXID:i64 = -1;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Dmap{
     pub domain: u32,
@@ -310,7 +311,7 @@ fn count_hits(graph: &mut HashMap<i64, Node>, id: i64) -> Result<i64, String>  {
         children = node.children.clone();
 
     } else {
-        return Err(format!("Node with taxid {} not found in graph",id));
+        return Err(format!("Node with taxid {} not found in graph in count_hits",id));
     }
 
     for child_id in children {
@@ -323,7 +324,7 @@ fn count_hits(graph: &mut HashMap<i64, Node>, id: i64) -> Result<i64, String>  {
         node.hits_below = total;
     }
     else{
-        return Err(format!("Node with taxid {} not found in graph", id));
+        return Err(format!("Node with taxid {} not found in graph when looking for children in count_hits", id));
     }
     Ok(total)
 }
@@ -435,14 +436,16 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64,
     for item in hit_map.iter(){
         hits.push(item.value().clone());
     }
-    hits.sort_by(|a, b| a.seq_evalue.total_cmp(&(b.seq_evalue)));
+    // Break e-value ties by name so hit order is deterministic regardless of the
+    // order the parallel parser inserted hits into the DashMap
+    hits.sort_by(|a, b| a.seq_evalue.total_cmp(&b.seq_evalue).then_with(|| a.name.cmp(&b.name)));
 
   //  println!("{}ms to create sorted vector of hits", now.elapsed().as_millis());
 
     // create the list of domains hit so that we can assign colors
     results.domains_contained = create_domain_list(&hits);
 
-    match build_graph_from_hits(&hits, &graph_db){
+    match build_graph_from_hits(& mut hits, &graph_db){
         Ok(v) =>{
             graph = v.0;
             depth = v.1;
@@ -452,7 +455,6 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64,
                 results.message = "Error building graph: ".to_string() + &msg;
                 return results;
             },
-        
     }
  //   println!("{}ms to build graph from hits", now.elapsed().as_millis());
     let total_hits:i64; 
@@ -480,8 +482,18 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64,
 
     (results.structures, results.hit_structures) = compute_signatures(&hits, &interpro_show_superfamily, &interpro_show_family,
          &interpro_show_domain, &interpro_show_repeat, &interpro_show_site, &interpro_show_other, &interpro_show_pfam_names);
-    assert!(results.hit_structures.len() == hits.len());
-    let temp:HitResults = find_hits_below_node(root, &graph, &results.hit_structures);
+    if results.hit_structures.len() != hits.len(){
+        results.message = "Error: number of hits in hit_structures didn't match number of counted hits".to_string();
+        return results;
+    }
+    let temp:HitResults;
+    match find_hits_below_node(root, &graph, &results.hit_structures){
+        Ok(v) => temp=v,
+        Err(msg) =>{
+            results.message = msg;
+            return results;
+        }
+    }
     results.succeeded = true;
     results.message = "Successfully read database".to_string();
     results.depth = depth;
@@ -578,6 +590,18 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
         else{
             let mut error_found= false;
             let target_name = fields[0].to_string();
+            let target_length: u32 = match fields[2].parse(){
+                Err(e) => {
+                    let mut msg = my_errMsg.lock().unwrap(); // get the lock on the error message
+                    if msg.is_empty() { // haven't already found an error
+                        *msg = format!("Error {} encountered when trying to parse tlen field of {} in line {} of {}", e, fields[2], line, filename);
+                        error_found = true;
+                    }
+                    drop(msg);  // Unlock the mutex
+                    0                    
+                },
+                Ok(v) => v,
+            };
             let query_name = fields[3].to_string();
             let hmm_length:u32 = match fields[5].parse(){
                 Err(e) => {
@@ -707,16 +731,16 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
 
                     Err(_msg) => {
                      //errmsg = format!("Deserialization error for Annotated Sequence, reason was: {}" , &msg.to_string());
-                    AnnotatedSequence{
-                        name: target_name.clone(),
-                        sequence: str::repeat("X", seq_end as usize),
-                        description: String::new(),
-                        length: seq_end, // This is a fake sequence, not in the database
-                        taxid: 1,  // root node if using NCBI taxonomy, figure out a better plan later
-                        domains: Vec::new(),
-                        structure_domains: Vec::new(),
-                        real: false, // This is a fake sequence, not in the database
-                    }
+                        AnnotatedSequence{
+                            name: target_name.clone(),
+                            sequence: str::repeat("X", seq_end as usize),
+                            description: String::new(),
+                            length: seq_end, // This is a fake sequence, not in the database
+                            taxid: UNKNOWN_TAXID,  // Unknown for now, will be patched to graph root in build_graph_from_hits
+                            domains: Vec::new(),
+                            structure_domains: Vec::new(),
+                            real: false, // This is a fake sequence, not in the database
+                        }
                     },
                 },
                 None => {
@@ -725,7 +749,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                         sequence: str::repeat("X", seq_end as usize),
                         description: String::new(),
                         length: seq_end, // This is a fake sequence, not in the database
-                        taxid: 1,  // root node if using NCBI taxonomy, figure out a better plan later
+                        taxid: UNKNOWN_TAXID,  // Unknown for now, will be patched to graph root in build_graph_from_hits
                         domains: Vec::new(),
                         structure_domains: Vec::new(),
                         real: false, // This is a fake sequence, not in the database
@@ -734,9 +758,9 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                             domain: 0xffffffff,
                             clan: 0xffff,
                             alifrom: 1,
-                            alito: seq_end,
+                            alito: target_length,
                             hmmfrom: 1,
-                            hmmto: seq_end,
+                            hmmto: hmm_length,
                             eval: MAX as f64,
                             full_match_start: true,
                             full_match_end: true,
@@ -1035,7 +1059,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                         sequence: str::repeat("X", seq_end as usize),
                         description: String::new(),
                         length: seq_end, // This is a fake sequence, not in the database
-                        taxid: 1,  // root node if using NCBI taxonomy, figure out a better plan later
+                        taxid: UNKNOWN_TAXID,  // Unknown for now, will be patched to graph root in build_graph_from_hits
                         domains: Vec::new(),
                         structure_domains: Vec::new(),
                         real: false, // This is a fake sequence, not in the database
@@ -1047,7 +1071,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                         sequence: str::repeat("X", seq_end as usize),
                         description: String::new(),
                         length: seq_end, // This is a fake sequence, not in the database
-                        taxid: 1,  // root node if using NCBI taxonomy, figure out a better plan later
+                        taxid: UNKNOWN_TAXID,  // Unknown for now, will be patched to graph root in build_graph_from_hits
                         domains: Vec::new(),
                         structure_domains: Vec::new(),
                         real: false, // This is a fake sequence, not in the database
@@ -1078,9 +1102,9 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 let ddata =match domain_map.get(&db_domain.domain) {
                     None => Dmap{
                         domain: 0xffff,
-                        name: "No annotation data available".to_string(),
-                        description: "No annotation data available".to_string(),
-                        clan_name: "No annotation data available".to_string(),
+                        name: "Sequence not in annotation database".to_string(),
+                        description: "".to_string(),
+                        clan_name: "".to_string(),
                         hmm_length: 0,
                         source: AnnotationType::Other,
                         ip_short: "".to_string(),
@@ -1118,9 +1142,9 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                 let ddata =match domain_map.get(&db_domain.domain) {
                     None => Dmap{
                         domain: 0xffff,
-                        name: "No annotation data available".to_string(),
-                        description: "No annotation data available".to_string(),
-                        clan_name: "No annotation data available".to_string(),
+                        name: "Sequence not in annotation database".to_string(),
+                        description: "".to_string(),
+                        clan_name: "".to_string(),
                         hmm_length: 0,
                         source: AnnotationType::Other,
                         ip_short: "".to_string(),
@@ -1177,6 +1201,11 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                     if existing_hit.seq_length < hit.seq_length{
                             existing_hit.seq_length = hit.seq_length;
                             existing_hit.sequence = hit.sequence.clone();
+                            // copy the structure domains and domains over so that the hit draws correctly
+                            // This should be rare (only happens on hits not in the database), 
+                            // so the time for the clone shouldn't matter
+                            existing_hit.structure_domains = hit.structure_domains.clone();
+                            existing_hit.domains = hit.domains.clone();
                         }
                     hit_count.fetch_add(-1,std::sync::atomic::Ordering::SeqCst); // we aren't adding a new hit after all
                 }  ).or_insert(hit); 
@@ -1218,13 +1247,17 @@ let msg = errMsg.lock().unwrap();
 
 // Assumes the hits vector is sorted in ascending order by e-value
 // builds a graph from the list of hits
-fn build_graph_from_hits(hits: &Vec<Hit>, graph_db: &PartitionHandle)-> Result<(HashMap<i64, Node>, u32, i64), String> {
-    let mut root:i64 = -1;
+fn build_graph_from_hits(hits: &mut Vec<Hit>, graph_db: &PartitionHandle)-> Result<(HashMap<i64, Node>, u32, i64), String> {
+    let mut root:i64 = UNKNOWN_TAXID;
     let mut depth: u32 = 0;
     let mut ret_graph:HashMap<i64, Node> = HashMap::new();
 
-    let mut hit_num: i64 = 0;  //Index into hit vector for each hit
-    for hit in hits{
+    for (hit_num, hit) in hits.iter_mut().enumerate(){
+        let hit_num = hit_num as i64;
+        if hit.taxid == UNKNOWN_TAXID{ // We didn't have a taxonomy ID for this hit, skip it, it will be patched to 
+        // hang off the root node later
+            continue;            
+        }
         if ret_graph.contains_key(&hit.taxid){ // simple case, just add this hit to the node in the graph
                 let node = ret_graph.get_mut(&hit.taxid).unwrap();
                 node.hits.push(hit_num);
@@ -1281,9 +1314,52 @@ fn build_graph_from_hits(hits: &Vec<Hit>, graph_db: &PartitionHandle)-> Result<(
                     parent.children.push(node.taxid); // add the node to the parent's child list 
                 }   
             }
-        hit_num +=1;
     }
+    if root == UNKNOWN_TAXID{ // None of the hits had taxa that were in the taxonomy, find the root
+        // of the taxonomy so we can put all hits there
+        if let Ok(first_node_option) = graph_db.first_key_value(){
+            if let Some((_, first_node_handle)) = first_node_option{
+                let mut node:Node = match rmp_serde::from_slice(&first_node_handle){
+                    Ok(d) => d,
+                    Err(msg) => return Err(format!("Error deserializing graph node, message was {}.", msg)),
+                };
 
+                while node.parent != node.taxid{ // we aren't at the root, go up
+                    let res1 = match graph_db.get(node.parent.to_string()){
+                        Err(why) => return Err(format!("Error looking up taxid {} in graph DB, reason was: {}", node.parent, why)),
+                        Ok(d) => d,
+                        };
+                        let mut parent: Node = match res1{
+                            Some(d) => match rmp_serde::from_slice(&d){
+                                Ok(d) => d,
+                                Err(msg) => return Err(format!("Error deserializing graph node, message was {}.", msg)),
+                        },
+                        None => return Err(format!("Couldn't find taxid {} in node DB", node.parent)),
+                    };
+                    node = parent;  // on to the next level up
+                }
+                root= node.taxid;
+                depth = 1;
+                ret_graph.insert(node.taxid, node); // Put the root node of the taxonomy in the graph
+            }
+            else{
+                return Err("Could not build taxonomy graph.  No hits had taxids that were found in the taxonomy, and could not find the root nod of the taxonomy".to_string());
+            }
+        }
+        else{
+            return Err("Could not build taxonomy graph.  No hits had taxids that were found in the taxonomy, and could not find the root nod of the taxonomy".to_string());
+        }
+    }
+    // go back over the hits and set the taxids of any nodes that we didn't have taxids for to be the root of the graph
+    let root_node = ret_graph.get_mut(&root).unwrap();
+
+    for (hit_num, hit) in hits.iter_mut().enumerate(){
+        let hit_num=hit_num as i64;
+        if hit.taxid == UNKNOWN_TAXID{
+            hit.taxid = root;                
+            root_node.hits.push(hit_num);
+        }
+    }
     Ok((ret_graph, depth, root))
 }
 
@@ -1372,6 +1448,9 @@ fn domains_to_structure(domains: &Vec<Domain>, interpro_show_superfamily: &bool,
         }
     }
   //  print!(" {}, show_superfamily={}, show_family={}, show_domain={}, show_repeat={}\n", structure, interpro_show_superfamily, interpro_show_family, interpro_show_domain, interpro_show_repeat);
+    if structure == "" { //all domains masked
+          return "No Annotated Domains".to_string();
+    }
     structure    
 }
 
@@ -1403,8 +1482,8 @@ fn compute_signatures(hits: &Vec<Hit>, interpro_show_superfamily: &bool, interpr
     }
 
     // sanity check
-    assert!(hits.len() == hit_structures.len());  // should be one hit_structure for every hit
-    assert!(hit_map.len() == current_signature as usize);  // number of structures should equal the number of the next structure we'd create
+    debug_assert!(hits.len() == hit_structures.len());  // should be one hit_structure for every hit
+    debug_assert!(hit_map.len() == current_signature as usize);  // number of structures should equal the number of the next structure we'd create
     // even if there are no hits in the list
     // This should work even if none of the hits have domain structures    
 
@@ -1419,9 +1498,9 @@ fn compute_signatures(hits: &Vec<Hit>, interpro_show_superfamily: &bool, interpr
 // the hits in each category are sorted by hit number, causing them to be sorted by e-value
 #[frb(sync)]
 #[frb(serialize)]
-pub fn find_hits_below_node(root: i64, graph: &HashMap<i64, Node>, hit_structures: &Vec<u32>) -> HitResults{
+pub fn find_hits_below_node(root: i64, graph: &HashMap<i64, Node>, hit_structures: &Vec<u32>) -> Result<HitResults, String>{
     let mut hits: Vec<i64> = Vec::new(); 
-    collect_hits(&root, graph, &mut hits);
+    collect_hits(&root, graph, &mut hits)?;
     hits.sort(); // sorting the list of hits by # has the effect of sorting the hits by e-value
 //println!("1, and we have {} hits, and hit_structures has {} values", hits.len(), hit_structures.len());
     // build the set of categories as a HashMap for fast lookup, turn into vector later
@@ -1429,20 +1508,25 @@ pub fn find_hits_below_node(root: i64, graph: &HashMap<i64, Node>, hit_structure
 //println!("about to start iterator over hits");
     for hit in &hits{
   //     println!("Processing hit {} with structure {}", hit, hit_structures[*hit as usize]);
-        if category_map.contains_key(& hit_structures[*hit as usize]){
+        if let Some(key) = hit_structures.get(*hit as usize){
+            if category_map.contains_key(key){
     //        println!("Adding to existing category for signature {}", hit_structures[*hit as usize]);
             // We already have an appropriate category for this hit, so just add this hit to the list
-            if let Some(cat) = category_map.get_mut(&hit_structures[*hit as usize]){
-                cat.hits.push(*hit);
+                if let Some(cat) = category_map.get_mut(&hit_structures[*hit as usize]){
+                    cat.hits.push(*hit);
+                }
+            }
+            else{
+            // need to create a new category
+      //     println!("Creating new category for signature {}", hit_structures[*hit as usize]);
+                let category = SigCategory{signature: hit_structures[*hit as usize],
+                    hits: vec![*hit],
+                };
+                category_map.insert(hit_structures[*hit as usize],category);
             }
         }
         else{
-            // need to create a new category
-      //     println!("Creating new category for signature {}", hit_structures[*hit as usize]);
-            let category = SigCategory{signature: hit_structures[*hit as usize],
-                hits: vec![*hit],
-            };
-            category_map.insert(hit_structures[*hit as usize],category);
+            return Err(format!("Invalid hit {} found in find_hits_below_node", *hit));
         }
     }
 //println!("2");
@@ -1457,24 +1541,23 @@ pub fn find_hits_below_node(root: i64, graph: &HashMap<i64, Node>, hit_structure
         categories: categories,
         hits: hits,
     };
-    res
+    Ok(res)
 }
 
 // traverses the graph starting at root and gathers all of the hits at root or below into a single list
-pub fn collect_hits(root: &i64, graph: &HashMap<i64, Node>, hits: &mut Vec<i64>){
-    if(*root == -1 )||(graph.is_empty()){
+pub fn collect_hits(root: &i64, graph: &HashMap<i64, Node>, hits: &mut Vec<i64>) -> Result<(), String>{
+    if (*root == -1) || graph.is_empty(){
         // empty graph
-        return;
+        return Ok(());
     }
-    let node = &graph[root];
-    for hit in &node.hits{
-  //  println!("Found hit {} as child of node{}", hit, root);
-
-        hits.push(*hit);
+    let node = graph
+        .get(root)
+        .ok_or_else(|| format!("Invalid node index {} found in collect_hits", root))?;
+    hits.extend_from_slice(&node.hits);  // hits assigned directly to this node
+    for child in &node.children{  // and everything below it
+        collect_hits(child, graph, hits)?;
     }
-    for child in &node.children{
-        collect_hits(child, graph, hits);
-    }
+    Ok(())
 }
 
 fn create_domain_id_map(db: &fjall::PartitionHandle) -> Result<HashMap<u32, Dmap>, String>{
