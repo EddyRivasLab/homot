@@ -28,6 +28,12 @@ class _SubtreeStructurePageState extends State<SubtreeStructurePage> {
   List<int> lengths = [];
 
   @override
+  void dispose() {
+    _subtreeStructureScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Material(
       child: Consumer3<SearchData, GraphData, HSettings>(

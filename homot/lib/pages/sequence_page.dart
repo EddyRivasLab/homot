@@ -20,6 +20,13 @@ class _SequencePageState extends State<SequencePage> {
   bool fullWidth = false;
   bool showExpand = false;
   final ScrollController _scrollController2 = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController2.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.sizeOf(context).width;

@@ -9,7 +9,6 @@ import 'package:homot/graph_painter.dart';
 import 'package:homot/src/rust/api/graph.dart';
 import 'package:provider/provider.dart';
 import 'package:vector_math/vector_math_64.dart' hide Colors;
-import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:homot/pages/scroll_offsets.dart';
 
@@ -25,7 +24,7 @@ class _GraphPageState extends State<GraphPage> {
   double scaleFactor = 1.0;
   OverlayEntry? _nodeOverlayEntry;
   OverlayEntry? _removedNodesOverlayEntry;
-  OverlayEntry? _norootOverlayEntry;
+  ScrollController? _removedNodesScrollController;
 
   // Recompute the "selected subtree" hit lists for the node now at the center of
   // the graph.  findHitsBelowNode throws (the Rust Err string) if the graph and hit
@@ -57,7 +56,6 @@ class _GraphPageState extends State<GraphPage> {
   }
 
   void _removeAllOverlays() {
-    _removeNorootOverlay();
     _removeNodeOverlay();
     _removeRemovedNodesOverlay();
   }
@@ -234,7 +232,10 @@ class _GraphPageState extends State<GraphPage> {
     Node theNode,
   ) {
     //      String parentName = graphdata.getNode(theNode.parent).name;
-    ScrollController mainScrollController = ScrollController();
+    // Callers remove any existing removed-nodes overlay first, which disposes
+    // the previous controller.
+    final mainScrollController = ScrollController();
+    _removedNodesScrollController = mainScrollController;
     // Declare this once because we have to render it twice
     Widget theWidget = Consumer<GraphData>(
       builder: (context, graphdata, child) {
@@ -287,41 +288,13 @@ class _GraphPageState extends State<GraphPage> {
   void _removeRemovedNodesOverlay() {
     _removedNodesOverlayEntry?.remove();
     _removedNodesOverlayEntry = null;
-  }
-
-  // shows a warning Overlay because it is not possible to re-center the graph on a node
-  void _showNorootOverlay(
-    BuildContext context,
-    Offset tapPosition,
-    PlatformInt64 nodeId,
-    Node theNode,
-  ) {
-    _norootOverlayEntry = OverlayEntry(
-      builder:
-          (context) => CustomSingleChildLayout(
-            delegate: _OnScreenPopupDelegate(tapPosition),
-            child: Material(
-              color: Colors.transparent,
-              child: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.yellow,
-                  borderRadius: BorderRadius.circular(5),
-                ),
-                child: Text(
-                  "Node ${theNode.name} has no children",
-                  style: TextStyle(color: Colors.black),
-                ),
-              ),
-            ),
-          ),
-    );
-    Overlay.of(context).insert(_norootOverlayEntry!);
-  }
-
-  void _removeNorootOverlay() {
-    _norootOverlayEntry?.remove();
-    _norootOverlayEntry = null;
+    // The overlay's ListView is unmounted with the entry, so its controller
+    // can't be in use; dispose it after the frame to be safe.
+    final controller = _removedNodesScrollController;
+    _removedNodesScrollController = null;
+    if (controller != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
+    }
   }
 
   @override
@@ -392,18 +365,6 @@ class _GraphPageState extends State<GraphPage> {
                         graphdata.popPastIndex();
                         graphdata.addRoot(node);
                         _selectSubtree(graphdata, searchdata);
-
-                        if (graphdata.getNode(node).children.isEmpty) {
-                          _showNorootOverlay(
-                            context,
-                            details.globalPosition,
-                            node,
-                            graphdata.getNode(node),
-                          );
-                          Future.delayed(const Duration(seconds: 5), () {
-                            _removeNorootOverlay();
-                          });
-                        }
                       }
                     },
                     onSecondaryTapDown: (details) {
@@ -618,7 +579,7 @@ class _GraphPageState extends State<GraphPage> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      "Graph Levels Shown: ${min(graphdata.maxLevels, (graphdata.depth - (graphdata.graph[graphdata.currentRoot]!.ranknum)))}",
+                                      "Graph Levels Shown: ${min(graphdata.maxLevels, (maxDepthBelowRoot(graphdata.graph[graphdata.currentRoot]!, graphdata.graph) - (graphdata.graph[graphdata.currentRoot]!.ranknum) + 1))}",
                                       style: Theme.of(
                                         context,
                                       ).textTheme.bodyMedium!.copyWith(
@@ -648,9 +609,12 @@ class _GraphPageState extends State<GraphPage> {
                                             min: 1.0,
                                             max: max(
                                               1.0,
-                                              graphdata.depth.toDouble(),
+                                              graphdata.depth.toDouble() - 1,
                                             ),
-                                            divisions: max(1, graphdata.depth-1),
+                                            divisions: max(
+                                              1,
+                                              graphdata.depth - 2,
+                                            ),
                                             onChanged: (double value) {
                                               setState(() {
                                                 graphdata.setMaxLevels(
@@ -661,7 +625,7 @@ class _GraphPageState extends State<GraphPage> {
                                           ),
                                         ),
                                         Text(
-                                          "${graphdata.depth}",
+                                          "${graphdata.depth - 1}",
                                           style: Theme.of(
                                             context,
                                           ).textTheme.bodyMedium!.copyWith(

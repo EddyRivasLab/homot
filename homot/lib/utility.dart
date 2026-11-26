@@ -8,6 +8,16 @@ import "package:go_router/go_router.dart";
 
 import 'package:system_fonts/system_fonts.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:path/path.dart' as p;
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:homot/src/rust/api/graph.dart';
+
+// Directory part of a file path, or null if the path has no directory part.
+// Uses the current platform's separators, so Windows paths (C:\dir\file) work.
+String? parentDir(String path) {
+  final dir = p.dirname(path);
+  return dir == '.' ? null : dir;
+}
 
 // This is a very lightly modified version of the SystemFontSelector from the system_fonts package.
 /// [SystemFontSelector] is a [DropdownMenu] widget that displays a list of all the available fonts in the system.
@@ -601,16 +611,8 @@ void showExportDialog(BuildContext context) {
                           if (value == null) {
                             return "Please specify a file";
                           } else {
-                            var splits = value.split('/');
-                            String dir = "";
-                            if (splits.length > 1) {
-                              dir = splits
-                                  .getRange(0, splits.length - 1)
-                                  .join("/");
-                            } else {
-                              dir = "";
-                            }
-                            return dir != "" && (!Directory(dir).existsSync())
+                            final dir = parentDir(value);
+                            return dir != null && !Directory(dir).existsSync()
                                 ? "Directory does not exist"
                                 : null;
                           }
@@ -694,4 +696,19 @@ void showExportDialog(BuildContext context) {
       );
     },
   );
+}
+
+int maxDepthBelowRoot(Node root, Map<PlatformInt64, Node> graph) {
+  int depth = 0;
+
+  if (root.ranknum > depth) {
+    depth = root.ranknum;
+  }
+  for (var childId in root.children) {
+    var childDepth = maxDepthBelowRoot(graph[childId.toInt()]!, graph);
+    if (childDepth > depth) {
+      depth = childDepth;
+    }
+  }
+  return depth;
 }

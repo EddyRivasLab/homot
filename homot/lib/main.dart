@@ -1228,20 +1228,14 @@ class FileData with ChangeNotifier {
   void setAnnotationsFile(String newAnnotations) {
     _annotationsFile = newAnnotations;
     _annFileSet = true;
-    var splits = newAnnotations.split('/');
-    if (splits.length > 1) {
-      _annFileDir = splits.getRange(0, splits.length - 1).join("/");
-    }
+    _annFileDir = parentDir(newAnnotations) ?? _annFileDir;
     notifyListeners();
   }
 
   void addDomtbloutFile(String domtblout) {
     _domtbloutFiles.add(domtblout);
     _domtbloutFilesSet = true;
-    var splits = domtblout.split('/');
-    if (splits.length > 1) {
-      _domtbloutFileDir = splits.getRange(0, splits.length - 1).join("/");
-    }
+    _domtbloutFileDir = parentDir(domtblout) ?? _domtbloutFileDir;
     notifyListeners();
   }
 
@@ -1254,10 +1248,7 @@ class FileData with ChangeNotifier {
   void setDomtbloutFile(int which, String domtblout) {
     if (which >= 0 && which < _domtbloutFiles.length) {
       _domtbloutFiles[which] = domtblout;
-      var splits = domtblout.split('/');
-      if (splits.length > 1) {
-        _domtbloutFileDir = splits.getRange(0, splits.length - 1).join("/");
-      }
+      _domtbloutFileDir = parentDir(domtblout) ?? _domtbloutFileDir;
       notifyListeners();
     }
   }

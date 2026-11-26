@@ -28,7 +28,13 @@ class _AllEvaluePageState extends State<AllEvaluePage> {
   List<bool> fullWidth = [];
   List<bool> showExpand = [];
   List<int> lengths = [];
+
   @override
+  void dispose() {
+    _allEvalueScrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Material(

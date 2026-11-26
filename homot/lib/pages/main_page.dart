@@ -107,18 +107,18 @@ class _MainPageState extends State<MainPage> {
                               // loading snackbar can be cleared even if this
                               // page is disposed while the data loads.
                               final messenger = ScaffoldMessenger.of(context);
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    duration: Duration(days: 1),
-                                    backgroundColor: Colors.yellow,
-                                    content: Center(
-                                      child: Text(
-                                        "Loading Data",
-                                        style: TextStyle(color: Colors.black),
-                                      ),
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  duration: Duration(days: 1),
+                                  backgroundColor: Colors.yellow,
+                                  content: Center(
+                                    child: Text(
+                                      "Loading Data",
+                                      style: TextStyle(color: Colors.black),
                                     ),
                                   ),
-                                );
+                                ),
+                              );
                               try {
                                 //Gather hits from the domtblout files
                                 var results = await (fetchGraph(
@@ -159,7 +159,11 @@ class _MainPageState extends State<MainPage> {
                                 messenger.clearSnackBars();
                                 if (!context.mounted) return;
                                 // Update the overview data
+                                // A successful load with no hits still returns a
+                                // one-node graph (the taxonomy root), so check
+                                // the hit list rather than the graph.
                                 if (!results.succeeded ||
+                                    results.hits.isEmpty ||
                                     results.graph.isEmpty) {
                                   String message;
                                   if (results.succeeded) {
@@ -200,7 +204,7 @@ class _MainPageState extends State<MainPage> {
                                   graphdata.clearGraph();
                                   graphdata.setGraph(results.graph);
                                   graphdata.setDepth(results.depth);
-                                  graphdata.setMaxLevels(results.depth);
+                                  graphdata.setMaxLevels(results.depth - 1);
                                   graphdata.clearDeletedNodes();
                                   graphdata.addRoot(
                                     results.root,
@@ -214,34 +218,33 @@ class _MainPageState extends State<MainPage> {
                                   searchdata.selectedHit = -1;
                                   context.go("/allstructure");
                                 }
-                              }
-                              catch(e){
+                              } catch (e) {
                                 messenger.clearSnackBars();
-                                var message2 = "Homot has encountered an exception while loading data.\nPlease check that you have specified a valid annotations database and search results file.\n$e";
+                                var message2 =
+                                    "Homot has encountered an exception while loading data.\nPlease check that you have specified a valid annotations database and search results file.\n$e";
                                 // Use the captured messenger: this page's context
                                 // may no longer be mounted after the await.
                                 messenger.showSnackBar(
-                                SnackBar(
-                                  //duration: Duration(days: 1),
-                                  backgroundColor: Colors.red,
-                                  duration: const Duration(days: 100),
-                                  content: Center(
-                                  child: Column(
-                                  children: [
-                                  Text(message2),
-                                    ElevatedButton(
-                                      child: Text("Close"),
-                                      onPressed: () {
-                                        messenger.hideCurrentSnackBar();
-                                      },
-                                    ),
-                                  ],
-                                        ),
+                                  SnackBar(
+                                    //duration: Duration(days: 1),
+                                    backgroundColor: Colors.red,
+                                    duration: const Duration(days: 100),
+                                    content: Center(
+                                      child: Column(
+                                        children: [
+                                          Text(message2),
+                                          ElevatedButton(
+                                            child: Text("Close"),
+                                            onPressed: () {
+                                              messenger.hideCurrentSnackBar();
+                                            },
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  );
-                              }
-                               finally {
+                                  ),
+                                );
+                              } finally {
                                 filedata.loading = false;
                               }
                             }

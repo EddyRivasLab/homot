@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:material_ui/material_ui.dart';
 import 'package:homot/main.dart';
+import 'package:homot/utility.dart';
 import 'package:homot/src/rust/api/graph.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:patterns_canvas/patterns_canvas.dart';
@@ -622,30 +623,6 @@ class GraphPainter extends CustomPainter {
         }
       }
       double arcPerChild = (node.myArcEnd - node.myArcStart) / hitsBelow;
-      /* if (node.children.length > 1) {
-        // Need to draw the arc for this node
-        var rect = Rect.fromCircle(center: center, radius: myRadius);
-
-        double arcStart =
-            node.myArcStart +
-            (graph[node.children[0].toInt()]!.hitsBelow) * arcPerChild; 
-        double arcEnd =
-            node.myArcEnd; -
-            (graph[node.children[node.children.length - 1].toInt()]!
-                    .hitsBelow) *
-                arcPerChild;
-        double sweep = node.myArcEnd - node.myArcStart;
-        myCanvas.drawArc(
-          rect,
-          node.myArcStart,
-          sweep,
-          false,
-          paint
-            ..style = PaintingStyle.stroke
-            ..color = fillColor
-            ..strokeWidth = hSettings.lineWidth / graphData.scale,
-        );
-      } */
 
       double lastEnd = node.myArcStart;
       var i = 0;
@@ -689,7 +666,6 @@ class GraphPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const rootFrac = 0.025;
     var paint =
         Paint()
           ..color = Colors.white
@@ -700,37 +676,38 @@ class GraphPainter extends CustomPainter {
     final double logicalHeight = size.height; // * devicePixelRatio;
     final logicalSize = Size(logicalWidth, logicalHeight);
     final double logicalRadius = graphRadius; // * devicePixelRatio;
+    int maxLevel;
 
     int drawnLevels;
+    Node root = graphData.graph[graphData.currentRoot]!;
+    int maxDepth = maxDepthBelowRoot(root, graphData.graph);
     final Canvas logicalCanvas = canvas;
     if (graphData.graph[graphData.currentRoot] != null) {
       drawnLevels = min(
-        ((graphData.depth - 1) -
-            graphData.graph[graphData.currentRoot]!.ranknum),
+        (maxDepth - graphData.graph[graphData.currentRoot]!.ranknum),
         // the -1 accounts for the fact that graph levels are zero-indexed
         graphData.maxLevels,
       );
     } else {
       drawnLevels = 0;
     }
-    // drawnLevels is the number of rings outside the root circle (maxLevel below is
-    // root.ranknum + drawnLevels).  It is 0 when the current root is at the deepest
-    // rank, so divide by at least 1 to keep radPerLevel finite and non-zero for hit
-    // testing; with no rings, only the root circle is drawn anyway.
     drawnLevels = max(drawnLevels, 0);
-    final double radPerLevel =
-        (1 - rootFrac) *
-        logicalRadius /
-        max(drawnLevels, 1); // How much radius to add per level of the graph
-    graphData.radPerLevel = radPerLevel;
-    var center = Offset(logicalSize.width / 2, logicalSize.height / 2);
-    int maxLevel;
-    Node root;
-
     if (graphData.graph[graphData.currentRoot] != null) {
       maxLevel =
           (graphData.graph[graphData.currentRoot]!.ranknum + drawnLevels);
-      root = graphData.graph[graphData.currentRoot]!;
+
+      double rootFrac = (root.children.isEmpty) ? 1.0 : 0.025;
+      // drawnLevels is the number of rings outside the root circle (maxLevel below is
+      // root.ranknum + drawnLevels).  It is 0 when the current root is at the deepest
+      // rank, so divide by at least 1 to keep radPerLevel finite and non-zero for hit
+      // testing; with no rings, only the root circle is drawn anyway.
+
+      final double radPerLevel =
+          (1 - rootFrac) *
+          logicalRadius /
+          max(drawnLevels, 1); // How much radius to add per level of the graph
+      graphData.radPerLevel = radPerLevel;
+      var center = Offset(logicalSize.width / 2, logicalSize.height / 2);
 
       graphData.rootRadius = rootFrac * logicalRadius;
       root.myArcStart = 0.0;
@@ -758,6 +735,38 @@ class GraphPainter extends CustomPainter {
         paint,
         size,
       );
+      if (root.children.isEmpty) {
+        // The root is a leaf node
+        var message =
+            root.hits.length > 1
+                ? "${root.name} has no descendants.\n${root.hits.length} homologs were found at this taxon."
+                : "${root.name} has no descendants.\n 1 homolog was found at this taxon.";
+        TextPainter testPainter = TextPainter(
+          textAlign: TextAlign.center,
+          textDirection: TextDirection.ltr,
+        );
+        testPainter.textScaler = TextScaler.linear(1 / graphData.scale);
+
+        testPainter.text = TextSpan(
+          text: message,
+          style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+            color: Theme.of(context).colorScheme.surface,
+            backgroundColor: Theme.of(context).colorScheme.onSurface,
+          ),
+        );
+        testPainter.layout();
+        // The whole canvas is rotated by graphData.rotation about the graph center
+        // (see GraphData.updateTransform), so undo that rotation about the same
+        // point to keep the message upright.  The offsets are relative to the
+        // center, in the counter-rotated frame, so the text stays centered.
+        double xOffset = -testPainter.width / 2;
+        double yOffset = -testPainter.height / 2;
+        canvas.save();
+        canvas.translate(center.dx, center.dy);
+        canvas.rotate(-graphData.rotation);
+        testPainter.paint(canvas, Offset(xOffset, yOffset));
+        canvas.restore();
+      }
     }
   }
 

@@ -113,8 +113,12 @@ class _SettingsPageState extends State<SettingsPage> {
     eValMaxTextController.dispose();
     domEValMaxTextController.dispose();
     domEValMinTextController.dispose();
+    mainScrollController.dispose();
     super.dispose();
   }
+
+  // Kept in the state (not created in build) so it survives rebuilds and is disposed
+  final ScrollController mainScrollController = ScrollController();
 
   void _showReloadWarning() {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -148,7 +152,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final ScrollController mainScrollController = ScrollController();
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.primary,
       appBar: HomotAppBar(text: "Settings"),

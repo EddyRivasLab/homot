@@ -3,13 +3,13 @@ use serde::{Serialize, Deserialize};
 use fjall::{Config, PartitionCreateOptions,UserValue, Slice, PartitionHandle};
 use std::sync::atomic::AtomicI64;
 use std::{collections::HashMap};
-use std::f64::MAX;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Seek};
 use dashmap::DashMap;
 use std::cmp::Reverse;
 use rayon::prelude::*;
 use std::sync::{Arc, Mutex};
+use std::f64::MAX;
 
 const UNKNOWN_TAXID:i64 = -1;
 #[derive(Clone, Serialize, Deserialize)]
@@ -388,7 +388,7 @@ pub fn fetch_graph(annfile: String, domtblout_files: Vec<String>, eval_max: f64,
     };
 
 
-    let (domain_map) = match create_domain_id_map(&domain_db){
+    let domain_map = match create_domain_id_map(&domain_db){
         Ok(v) => v,
         Err(msg) => {
             results.message = "Couldn't create domain ID to name map from annotations database.  Error was: ".to_string() + &msg.to_string();
@@ -724,8 +724,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                         d},
 
                     Err(_msg) => {
-                     //errmsg = format!("Deserialization error for Annotated Sequence, reason was: {}" , &msg.to_string());
-                        AnnotatedSequence{
+                        let mut fake_sequence = AnnotatedSequence{
                             name: target_name.clone(),
                             sequence: str::repeat("X", target_length as usize),
                             description: String::new(),
@@ -734,7 +733,22 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                             domains: Vec::new(),
                             structure_domains: Vec::new(),
                             real: false, // This is a fake sequence, not in the database
-                        }
+                            };
+                           let struct_domain = DbDomain{
+                                domain: 0xffffffff,
+                                clan: 0xffff,
+                                alifrom: 1,
+                                alito: target_length,
+                                hmmfrom: 1,
+                                hmmto: hmm_length,
+                                eval: MAX,
+                                full_match_start: true,
+                                full_match_end: true,
+                            };
+                            let all_domain = struct_domain.clone();
+                            fake_sequence.domains.push(all_domain);
+                            fake_sequence.structure_domains.push(struct_domain);
+                            fake_sequence
                     },
                 },
                 None => {
@@ -755,7 +769,7 @@ annotation_db: &PartitionHandle, domain_map: &HashMap<u32, Dmap> ) -> Result<i64
                             alito: target_length,
                             hmmfrom: 1,
                             hmmto: hmm_length,
-                            eval: MAX as f64,
+                            eval: MAX,
                             full_match_start: true,
                             full_match_end: true,
                         };

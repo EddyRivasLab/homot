@@ -28,6 +28,12 @@ class _AllStructurePageState extends State<AllStructurePage> {
   List<int> lengths = [];
 
   @override
+  void dispose() {
+    _allStructureScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Material(
       child: SelectionArea(
