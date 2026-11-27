@@ -15,6 +15,7 @@ import 'dart:io';
 import 'dart:collection';
 import 'package:matrix4_transform/matrix4_transform.dart';
 import 'package:patterns_canvas/patterns_canvas.dart';
+import 'package:csv/csv.dart';
 
 // List of pairs of background and foreground colors for displaying
 // domains.  Taken from the ColorBrewer example color sets.
@@ -1308,9 +1309,10 @@ class FileData with ChangeNotifier {
     bool showInterproOther,
     IOSink outSink,
   ) {
+    List<List<String>> outData;
     switch (currentpage) {
       case "/allstructure":
-        _exportAllStructure(
+        outData = _exportAllStructure(
           searchdata,
           pfamNames,
           showInterproSuperfamily,
@@ -1319,11 +1321,10 @@ class FileData with ChangeNotifier {
           showInterproRepeat,
           showInterproSite,
           showInterproOther,
-          outSink,
         );
         break;
       case "/subtreestructure":
-        _exportSubtreeStructure(
+        outData = _exportSubtreeStructure(
           searchdata,
           pfamNames,
           showInterproSuperfamily,
@@ -1332,11 +1333,10 @@ class FileData with ChangeNotifier {
           showInterproRepeat,
           showInterproSite,
           showInterproOther,
-          outSink,
         );
         break;
       case "/allevalue":
-        _exportAllEval(
+        outData = _exportAllEval(
           searchdata,
           pfamNames,
           showInterproSuperfamily,
@@ -1345,11 +1345,10 @@ class FileData with ChangeNotifier {
           showInterproRepeat,
           showInterproSite,
           showInterproOther,
-          outSink,
         );
         break;
       case "/subtreeevalue":
-        _exportSubtreeEval(
+        outData = _exportSubtreeEval(
           searchdata,
           pfamNames,
           showInterproSuperfamily,
@@ -1358,12 +1357,113 @@ class FileData with ChangeNotifier {
           showInterproRepeat,
           showInterproSite,
           showInterproOther,
-          outSink,
         );
         break;
       case "/sequence":
-        _exportSequence(
-          searchdata.hits[searchdata.selectedHit.toInt()],
+        outData = [
+          _exportSequence(
+            searchdata.hits[searchdata.selectedHit.toInt()],
+            pfamNames,
+            showInterproSuperfamily,
+            showInterproFamily,
+            showInterproDomain,
+            showInterproRepeat,
+            showInterproSite,
+            showInterproOther,
+          ),
+        ];
+        break;
+      default:
+        outData = [
+          ["No data to export"],
+        ];
+    }
+    final csvOut = csv.encode(outData);
+    outSink.write(csvOut);
+  }
+
+  List<String> _header() {
+    return [
+      "Format:",
+      "SeqEvalue",
+      "HitName",
+      "(QueryName, QueryStart, QueryEnd)*",
+      "ANNOTATIONS:",
+      "(Name, Evalue, Start, End)*",
+    ];
+  }
+
+  List<List<String>> _exportAllStructure(
+    SearchData searchdata,
+    bool pfamNames,
+    bool showInterproSuperfamily,
+    bool showInterproFamily,
+    bool showInterproDomain,
+    bool showInterproRepeat,
+    bool showInterproSite,
+    bool showInterproOther,
+  ) {
+    List<List<String>> outString = [_header()];
+    for (var category in searchdata.rootHits) {
+      outString += _exportCategory(
+        category,
+        searchdata,
+        pfamNames,
+        showInterproSuperfamily,
+        showInterproFamily,
+        showInterproDomain,
+        showInterproRepeat,
+        showInterproSite,
+        showInterproOther,
+      );
+      outString += [[]]; // blank line between categories
+    }
+    return outString;
+  }
+
+  List<List<String>> _exportSubtreeStructure(
+    SearchData searchdata,
+    bool pfamNames,
+    bool showInterproSuperfamily,
+    bool showInterproFamily,
+    bool showInterproDomain,
+    bool showInterproRepeat,
+    bool showInterproSite,
+    bool showInterproOther,
+  ) {
+    List<List<String>> outString = [_header()];
+    for (var category in searchdata.currentHits) {
+      outString += _exportCategory(
+        category,
+        searchdata,
+        pfamNames,
+        showInterproSuperfamily,
+        showInterproFamily,
+        showInterproDomain,
+        showInterproRepeat,
+        showInterproSite,
+        showInterproOther,
+      );
+      outString += [[]];
+    }
+    return outString;
+  }
+
+  List<List<String>> _exportAllEval(
+    SearchData searchdata,
+    bool pfamNames,
+    bool showInterproSuperfamily,
+    bool showInterproFamily,
+    bool showInterproDomain,
+    bool showInterproRepeat,
+    bool showInterproSite,
+    bool showInterproOther,
+  ) {
+    List<List<String>> outString = [_header()];
+    for (var hit in searchdata.hits) {
+      outString += [
+        _exportHit(
+          hit,
           pfamNames,
           showInterproSuperfamily,
           showInterproFamily,
@@ -1371,19 +1471,13 @@ class FileData with ChangeNotifier {
           showInterproRepeat,
           showInterproSite,
           showInterproOther,
-          outSink,
-        );
-        break;
-      default:
-        outSink.writeln("No data to export");
+        ),
+      ];
     }
+    return outString;
   }
 
-  String _header() {
-    return "Format: SeqEvalue, HitName, (QueryName, QueryStart, QueryEnd)*, ANNOTATIONS:, (Name, Evalue, Start, End)*";
-  }
-
-  void _exportAllStructure(
+  List<List<String>> _exportSubtreeEval(
     SearchData searchdata,
     bool pfamNames,
     bool showInterproSuperfamily,
@@ -1392,94 +1486,8 @@ class FileData with ChangeNotifier {
     bool showInterproRepeat,
     bool showInterproSite,
     bool showInterproOther,
-    IOSink outSink,
   ) {
-    outSink.writeln(_header());
-    for (var category in searchdata.rootHits) {
-      _exportCategory(
-        category,
-        searchdata,
-        pfamNames,
-        showInterproSuperfamily,
-        showInterproFamily,
-        showInterproDomain,
-        showInterproRepeat,
-        showInterproSite,
-        showInterproOther,
-        outSink,
-      );
-      outSink.writeln(""); // blank line between categories
-    }
-  }
-
-  void _exportSubtreeStructure(
-    SearchData searchdata,
-    bool pfamNames,
-    bool showInterproSuperfamily,
-    bool showInterproFamily,
-    bool showInterproDomain,
-    bool showInterproRepeat,
-    bool showInterproSite,
-    bool showInterproOther,
-    IOSink outSink,
-  ) {
-    outSink.writeln(_header());
-    for (var category in searchdata.currentHits) {
-      _exportCategory(
-        category,
-        searchdata,
-        pfamNames,
-        showInterproSuperfamily,
-        showInterproFamily,
-        showInterproDomain,
-        showInterproRepeat,
-        showInterproSite,
-        showInterproOther,
-        outSink,
-      );
-      outSink.writeln(""); // blank line between categories
-    }
-  }
-
-  void _exportAllEval(
-    SearchData searchdata,
-    bool pfamNames,
-    bool showInterproSuperfamily,
-    bool showInterproFamily,
-    bool showInterproDomain,
-    bool showInterproRepeat,
-    bool showInterproSite,
-    bool showInterproOther,
-    IOSink outSink,
-  ) {
-    outSink.writeln(_header());
-    for (var hit in searchdata.hits) {
-      _exportHit(
-        hit,
-        pfamNames,
-        showInterproSuperfamily,
-        showInterproFamily,
-        showInterproDomain,
-        showInterproRepeat,
-        showInterproSite,
-        showInterproOther,
-        outSink,
-      );
-    }
-  }
-
-  void _exportSubtreeEval(
-    SearchData searchdata,
-    bool pfamNames,
-    bool showInterproSuperfamily,
-    bool showInterproFamily,
-    bool showInterproDomain,
-    bool showInterproRepeat,
-    bool showInterproSite,
-    bool showInterproOther,
-    IOSink outSink,
-  ) {
-    outSink.writeln(_header());
+    List<List<String>> outString = [_header()];
     Int64List hitIndices = Int64List(0);
     switch (searchdata.selectedBy) {
       case SelectedBy.subtree:
@@ -1495,21 +1503,23 @@ class FileData with ChangeNotifier {
         hitIndices = Int64List(0);
     }
     for (var hitIndex in hitIndices) {
-      _exportHit(
-        searchdata.hits[hitIndex.toInt()],
-        pfamNames,
-        showInterproSuperfamily,
-        showInterproFamily,
-        showInterproDomain,
-        showInterproRepeat,
-        showInterproSite,
-        showInterproOther,
-        outSink,
-      );
+      outString += [
+        _exportHit(
+          searchdata.hits[hitIndex.toInt()],
+          pfamNames,
+          showInterproSuperfamily,
+          showInterproFamily,
+          showInterproDomain,
+          showInterproRepeat,
+          showInterproSite,
+          showInterproOther,
+        ),
+      ];
     }
+    return outString;
   }
 
-  void _exportCategory(
+  List<List<String>> _exportCategory(
     SigCategory category,
     SearchData searchdata,
     bool pfamNames,
@@ -1519,29 +1529,33 @@ class FileData with ChangeNotifier {
     bool showInterproRepeat,
     bool showInterproSite,
     bool showInterproOther,
-    IOSink outSink,
   ) {
-    var outString =
-        "${category.hits.length} Hits with Signature ${searchdata.structures[category.signature]}";
-    outSink.writeln(outString);
+    List<List<String>> outString;
+    String header =
+        "${category.hits.length} Hits with Domain Structure ${searchdata.structures[category.signature]}";
+    outString = [
+      [header],
+    ];
 
     for (var hit in category.hits) {
       var theHit = searchdata.hits[hit.toInt()];
-      _exportHit(
-        theHit,
-        pfamNames,
-        showInterproSuperfamily,
-        showInterproFamily,
-        showInterproDomain,
-        showInterproRepeat,
-        showInterproSite,
-        showInterproOther,
-        outSink,
-      );
+      outString += [
+        _exportHit(
+          theHit,
+          pfamNames,
+          showInterproSuperfamily,
+          showInterproFamily,
+          showInterproDomain,
+          showInterproRepeat,
+          showInterproSite,
+          showInterproOther,
+        ),
+      ];
     }
+    return outString;
   }
 
-  void _exportHit(
+  List<String> _exportHit(
     Hit hit,
     bool pfamNames,
     bool showInterproSuperfamily,
@@ -1550,13 +1564,16 @@ class FileData with ChangeNotifier {
     bool showInterproRepeat,
     bool showInterproSite,
     bool showInterproOther,
-    IOSink outSink,
   ) {
-    var outString = "${hit.seqEvalue},${hit.name}";
+    List<String> outString = [hit.seqEvalue.toStringAsExponential(2), hit.name];
     for (var query in hit.queries) {
-      outString += ", ${query.name}, ${query.seqStart}, ${query.seqEnd}";
+      outString += [
+        query.name,
+        query.seqStart.toString(),
+        query.seqEnd.toString(),
+      ];
     }
-    outString += ", ANNOTATIONS:";
+    outString += ["ANNOTATIONS:"];
     for (var domain in hit.structureDomains) {
       if (domain.source != AnnotationType.interpro ||
           (domain.iType == IEntryType.superfamily && showInterproSuperfamily) ||
@@ -1568,19 +1585,22 @@ class FileData with ChangeNotifier {
         if (domain.source == AnnotationType.interpro &&
             pfamNames &&
             domain.pfamName.isNotEmpty) {
-          outString += ", ${domain.pfamName}";
+          outString += [domain.pfamName];
         } else {
-          outString += ", ${domain.name}";
+          outString += [domain.name];
         }
-        outString +=
-            ", ${domain.domEvalue}, ${domain.seqStart}, ${domain.seqEnd}";
+        outString += [
+          domain.domEvalue.toStringAsExponential(2),
+          domain.seqStart.toString(),
+          domain.seqEnd.toString(),
+        ];
       }
     }
-    outSink.writeln(outString);
+    return outString;
   }
 }
 
-void _exportSequence(
+List<String> _exportSequence(
   Hit hit,
   bool pfamNames,
   bool showInterproSuperfamily,
@@ -1589,13 +1609,16 @@ void _exportSequence(
   bool showInterproRepeat,
   bool showInterproSite,
   bool showInterproOther,
-  IOSink outSink,
 ) {
-  var outString = "${hit.seqEvalue},${hit.name}";
+  List<String> outString = [hit.seqEvalue.toStringAsExponential(2), hit.name];
   for (var query in hit.queries) {
-    outString += ", ${query.name}, ${query.seqStart}, ${query.seqEnd}";
+    outString += [
+      query.name,
+      query.seqStart.toString(),
+      query.seqEnd.toString(),
+    ];
   }
-  outString += ", ANNOTATIONS:";
+  outString += ["ANNOTATIONS:"];
   for (var domain in hit.domains) {
     if (domain.source != AnnotationType.interpro ||
         (domain.iType == IEntryType.superfamily && showInterproSuperfamily) ||
@@ -1607,15 +1630,18 @@ void _exportSequence(
       if (domain.source == AnnotationType.interpro &&
           pfamNames &&
           domain.pfamName.isNotEmpty) {
-        outString += ", ${domain.pfamName}";
+        outString += [domain.pfamName];
       } else {
-        outString += ", ${domain.name}";
+        outString += [domain.name];
       }
-      outString +=
-          ", ${domain.domEvalue}, ${domain.seqStart}, ${domain.seqEnd}";
+      outString += [
+        domain.domEvalue.toStringAsExponential(2),
+        domain.seqStart.toString(),
+        domain.seqEnd.toString(),
+      ];
     }
   }
-  outSink.writeln(outString);
+  return outString;
 }
 
 // about dialog function

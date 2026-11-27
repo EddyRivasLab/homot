@@ -89,7 +89,12 @@ class _MainPageState extends State<MainPage> {
                                 filedata.clearDomtbloutFiles();
                               }
                               : null,
-                      child: Text("Clear"),
+                      child: Text(
+                        "Clear",
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -183,7 +188,15 @@ class _MainPageState extends State<MainPage> {
                                           children: [
                                             Text(message),
                                             ElevatedButton(
-                                              child: Text("Close"),
+                                              child: Text(
+                                                "Close",
+                                                style: TextStyle(
+                                                  color:
+                                                      Theme.of(
+                                                        context,
+                                                      ).colorScheme.onSurface,
+                                                ),
+                                              ),
                                               onPressed: () {
                                                 ScaffoldMessenger.of(
                                                   context,
@@ -249,7 +262,12 @@ class _MainPageState extends State<MainPage> {
                               }
                             }
                             : null,
-                    child: Text(filedata.loading ? "Loading…" : "Load Data"),
+                    child: Text(
+                      filedata.loading ? "Loading…" : "Load Data",
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
                   ),
                 ),
               ],

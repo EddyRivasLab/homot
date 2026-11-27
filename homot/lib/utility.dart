@@ -19,6 +19,58 @@ String? parentDir(String path) {
   return dir == '.' ? null : dir;
 }
 
+// Cleans up a path typed or pasted into a text field: trims surrounding
+// whitespace, expands a leading ~ to the user's home directory, and strips
+// trailing separators (so parentDir of "/a/db/" is "/a", not "/a/db").
+String normalizeTypedPath(String path) {
+  var v = path.trim();
+  if (v == '~' || v.startsWith('~/') || v.startsWith('~\\')) {
+    final home = _homeDir();
+    if (home != null) {
+      v = v.length <= 2 ? home : p.join(home, v.substring(2));
+    }
+  }
+  return v.length > 1 ? p.normalize(v) : v;
+}
+
+String? _homeDir() =>
+    Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+
+// Resolves a typed path to an absolute path that satisfies [exists], or
+// returns null if there is none.  The path is tried as typed first; if it is
+// relative and not found, it is also tried relative to the home directory, so
+// entering just "mydb" finds ~/mydb.  (An app launched from the Finder has
+// "/" as its working directory, so relative paths rarely work as typed.)
+String? resolveTypedPath(String value, bool Function(String) exists) {
+  final v = normalizeTypedPath(value);
+  if (v.isEmpty) return null;
+  if (exists(v)) return p.absolute(v);
+  final home = _homeDir();
+  if (p.isRelative(v) && home != null) {
+    final h = p.join(home, v);
+    if (exists(h)) return h;
+  }
+  return null;
+}
+
+String? resolveTypedDir(String value) =>
+    resolveTypedPath(value, (s) => Directory(s).existsSync());
+
+String? resolveTypedFile(String value) =>
+    resolveTypedPath(value, (s) => File(s).existsSync());
+
+// Like resolveTypedFile, but for a file to be written: it only needs its
+// directory to exist.  A bare name ("out.csv") counts as typed only if that
+// file already exists, so it otherwise goes in the home directory rather than
+// the app's working directory.
+String? resolveTypedOutputFile(String value) => resolveTypedPath(value, (s) {
+  if (File(s).existsSync()) return true;
+  final dir = p.dirname(s);
+  return dir != '.' &&
+      Directory(dir).existsSync() &&
+      !Directory(s).existsSync();
+});
+
 // This is a very lightly modified version of the SystemFontSelector from the system_fonts package.
 /// [SystemFontSelector] is a [DropdownMenu] widget that displays a list of all the available fonts in the system.
 /// The user can select a font from the list and the font will be loaded and font name will be passed to the `onFontSelected` callback.
@@ -368,13 +420,16 @@ class _AnnDbSelectState extends State<AnnDbSelect> {
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                   autovalidateMode: AutovalidateMode.onUserInteraction,
-                  onFieldSubmitted: (String? value) async {
-                    if (value != null && Directory(value).existsSync()) {
-                      filedata.setAnnotationsFile(value);
+                  // Update on every edit, not just on Enter, so a typed path is
+                  // used even if the user clicks Load Data without submitting.
+                  onChanged: (String value) {
+                    final v = resolveTypedDir(value);
+                    if (v != null && v != filedata.annotationsFile) {
+                      filedata.setAnnotationsFile(v);
                     }
                   },
                   validator: (String? value) {
-                    return (value == null || !Directory(value).existsSync())
+                    return (value == null || resolveTypedDir(value) == null)
                         ? "Must be valid  directory path"
                         : null;
                   },
@@ -437,14 +492,16 @@ class _DomtblSelectState extends State<DomtblSelect> {
                   controller: myController,
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   onFieldSubmitted: (String? value) async {
-                    if (value != null && File(value).existsSync()) {
-                      filedata.addDomtbloutFile(value);
+                    if (value == null) return;
+                    final v = resolveTypedFile(value);
+                    if (v != null) {
+                      filedata.addDomtbloutFile(v);
                       myController.text =
                           "Select or enter search result file(s)";
                     }
                   },
                   validator: (String? value) {
-                    return (value == null || !File(value).existsSync())
+                    return (value == null || resolveTypedFile(value) == null)
                         ? "Must be valid filename"
                         : null;
                   },
@@ -501,16 +558,18 @@ class _DomtblEditState extends State<DomtblEdit> {
                           ? filedata.domtbloutFiles[widget.which]
                           : "Illegal index passed to DomTblEdit",
                   autovalidateMode: AutovalidateMode.onUserInteraction,
-                  onFieldSubmitted: (String? value) async {
-                    if (value != null &&
-                        File(value).existsSync() &&
+                  // Update on every edit, not just on Enter (see AnnDbSelect).
+                  onChanged: (String value) {
+                    final v = resolveTypedFile(value);
+                    if (v != null &&
                         widget.which >= 0 &&
-                        widget.which < filedata.domtbloutFiles.length) {
-                      filedata.setDomtbloutFile(widget.which, value);
+                        widget.which < filedata.domtbloutFiles.length &&
+                        filedata.domtbloutFiles[widget.which] != v) {
+                      filedata.setDomtbloutFile(widget.which, v);
                     }
                   },
                   validator: (String? value) {
-                    return (value == null || !File(value).existsSync())
+                    return (value == null || resolveTypedFile(value) == null)
                         ? "Must be valid filename"
                         : null;
                   },
@@ -537,10 +596,7 @@ void _showExportError(BuildContext context, String error) {
           fontWeight: FontWeight.bold,
         ),
         content: Text("Error was: $error"),
-        contentTextStyle: TextStyle(
-          color: Theme.of(context).colorScheme.onError,
-          fontSize: 16.0,
-        ),
+        contentTextStyle: TextStyle(fontSize: 16.0),
         actions: [
           ElevatedButton(
             style: MenuItemButton.styleFrom(
@@ -560,14 +616,62 @@ void _showExportError(BuildContext context, String error) {
   );
 }
 
+// Asks whether to overwrite an existing export file.  Returns true to replace.
+Future<bool> _confirmReplace(BuildContext context, String path) async {
+  final replace = await showDialog<bool>(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: Theme.of(context).colorScheme.onPrimary,
+        titleTextStyle: TextStyle(color: Theme.of(context).colorScheme.primary),
+
+        title: Text("\"${p.basename(path)}\" already exists"),
+        content: Text(
+          "Do you want to replace it?\n\n$path",
+          style: TextStyle(color: Theme.of(context).colorScheme.primary),
+        ),
+        actions: [
+          TextButton(
+            style: MenuItemButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+            ),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            style: MenuItemButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text("Replace"),
+          ),
+        ],
+      );
+    },
+  );
+  return replace ?? false;
+}
+
 void showExportDialog(BuildContext context) {
   // The dialog builders below shadow `context`, so keep a handle on the page's
   // context for reporting errors after the dialog has closed.
   final BuildContext pageContext = context;
-  final myController = TextEditingController();
-  myController.text = "Enter or choose output file name";
+  // Set once here, not in the Consumer builder: the builder reruns whenever
+  // FileData changes, which onChanged triggers on every keystroke.  An empty
+  // field shows the hint text instead.
+  final myController = TextEditingController(
+    text: context.read<FileData>().exportFile,
+  );
+
   final currentLocation =
       GoRouter.of(context).routerDelegate.currentConfiguration.uri.toString();
+
+  // True when the export path came from the save dialog, which has already
+  // asked about replacing an existing file.  Typed paths (and a path left over
+  // from an earlier export) are checked before writing.
+  bool pathFromPicker = false;
 
   showDialog(
     context: context,
@@ -577,7 +681,7 @@ void showExportDialog(BuildContext context) {
         backgroundColor: Theme.of(context).colorScheme.onPrimary,
         titleTextStyle: TextStyle(color: Theme.of(context).colorScheme.primary),
         content: Consumer3<FileData, SearchData, HSettings>(
-          builder: (context, filedata, searchData, hsettings, child) {
+          builder: (context, fileData, searchData, hsettings, child) {
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -589,7 +693,7 @@ void showExportDialog(BuildContext context) {
                           color: Theme.of(context).colorScheme.primary,
                         ),
                         decoration: InputDecoration(
-                          hintText: "Enter output file name",
+                          hintText: "Enter or choose output file name",
                           hintStyle: TextStyle(
                             color: Theme.of(context).colorScheme.primary,
                           ),
@@ -601,21 +705,23 @@ void showExportDialog(BuildContext context) {
                         ),
                         controller: myController,
                         autovalidateMode: AutovalidateMode.onUserInteraction,
-                        onFieldSubmitted: (String? value) async {
-                          if (value != null) {
-                            filedata.exportFile = value;
-                            myController.text = filedata.exportFile;
+                        // Update on every edit, not just on Enter.  An
+                        // unusable path clears exportFile, which disables
+                        // Export, rather than leaving an earlier path in place.
+                        onChanged: (String value) {
+                          final v = resolveTypedOutputFile(value) ?? "";
+                          pathFromPicker = false;
+                          if (v != fileData.exportFile) {
+                            fileData.exportFile = v;
                           }
                         },
                         validator: (String? value) {
-                          if (value == null) {
+                          if (value == null || value.trim().isEmpty) {
                             return "Please specify a file";
-                          } else {
-                            final dir = parentDir(value);
-                            return dir != null && !Directory(dir).existsSync()
-                                ? "Directory does not exist"
-                                : null;
                           }
+                          return resolveTypedOutputFile(value) == null
+                              ? "Directory does not exist"
+                              : null;
                         },
                       ),
                     ),
@@ -626,7 +732,8 @@ void showExportDialog(BuildContext context) {
                         final FileSaveLocation? loc = await getSaveLocation();
                         if (loc == null) {
                         } else {
-                          filedata.exportFile = loc.path;
+                          pathFromPicker = true;
+                          fileData.exportFile = loc.path;
                           myController.text = loc.path;
                         }
                       },
@@ -651,6 +758,14 @@ void showExportDialog(BuildContext context) {
                       onPressed:
                           filedata.exportFile != ""
                               ? () async {
+                                if (!pathFromPicker &&
+                                    File(filedata.exportFile).existsSync()) {
+                                  final replace = await _confirmReplace(
+                                    context,
+                                    filedata.exportFile,
+                                  );
+                                  if (!replace || !context.mounted) return;
+                                }
                                 Navigator.pop(context, 'Cancel');
                                 final String? error = await filedata
                                     .exportCurrentPage(

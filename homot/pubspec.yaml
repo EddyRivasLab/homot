@@ -49,6 +49,7 @@ dependencies:
   vector_math: ^2.4.4
   material_ui: ^1.11.1
   path: ^1.9.1
+  csv: ^8.0.0
 
 dev_dependencies:
   flutter_test:
